@@ -23,12 +23,13 @@ Hence, instead of approximating the expected value of the quantity of interest o
 ### A First Simple MLMC Example
 
 PDEs with random coefficients typically describe cell movements, fluid pressures, temperatures or flow rates, all subject to uncertainty. For example, a model for fluid flow through porous media, commonly used in geophysics, is the elliptic PDE
+```html
 <img src="figures/eq_PDE.pdf" width="225" align="middle"/>
-
+```
 with random diffusion coefficient `k(x,ω)`. `k` represents the uncertain permeability of the porous material, and `p` is the unknown pressure head. The problem is physically meaningful if `k > 0`, hence, usually `k(x,ω) = exp(Z(x,ω))`, where `Z` is an underlying random field with known characteristics. For example, we may consider the Gaussian random field `Z(x,ω)` with Mat&eacute;rn kernel
-
+```html
 <img src="figures/eq_matern.pdf" width="450" align="middle"/>
-
+```
 Here, `p` denotes the usual p-norm. Let us choose
 
 ```julia
@@ -43,9 +44,9 @@ We can define the covariance function `C` using the `matern`-function:
 C(x,y) = matern(λ,σ,ν,x,y)
 ```
 A typical sample of the lognormal random field is shown below:
-
+```html
 <img src="figures/fig_matern.pdf" width="350" align="middle"/>
-
+```
 When dealing with PDEs, the natural sequence of models with different accuracy, required in the Multilevel Monte Carlo method, can be obtained by varying the discretization mesh. For example, one can use a Finite Volume (FV) method and consider meshes with an increasing number of FV cells as the level `l` increases. We provide a simple implementation of the FV method using rectangular cells in
 
 ```julia
