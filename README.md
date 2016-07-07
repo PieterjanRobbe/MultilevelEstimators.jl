@@ -6,16 +6,8 @@ The module has been tested for challenging 3D problems with up to 5000 uncertain
 
 ## Installation
 
-Add the module to your julia `LOAD_PATH` using
-
 ```julia
-push!(LOAD_PATH,"/Path/to/MultilevelEstimators/")
-```
-
-To permanently add the module to your search path, append the abode line to your `~/.juliarc.jl`-file. Now you should be able to
-
-```julia
-using MultilevelEstimators
+Pkg.clone("https://github.com/PieterjanRobbe/MultilevelEstimators.jl")
 ```
 
 ## Usage
@@ -125,7 +117,7 @@ srand(2016) # reset random number generator for reproducibility
 TOL = 1e-3
 (E, V, A, B, splitting, S) = simulate(mySampler,TOL)
 ```
-Here, `TOL` is the desired tolerance on the *root mean square error* (RMSE). The simulate function has 6 different outputs:
+Here, `TOL` is the desired tolerance on the *root mean square error* (RMSE). The `simulate` function has 6 different outputs:
 
 * `E`: the expected value of the quantity of interest, computed up to `TOL`
 * `V`: the variance of the quantity of interest
@@ -262,10 +254,10 @@ The extension of the module to higher-order polynomial lattice rules is ongoing 
 
 ### Multiple Quantities of Interest
 
-It is also possible to compute multiple quantities of interest in the same simulation. For example, if instead of a single point evaluation of the pressure, we would like to find the statistics of the pressure in `100` points `(0:0.1:1,0:0.1:1)`. Therefore, we must define the `Settings` object as
+It is also possible to compute multiple quantities of interest in the same simulation. For example, if instead of a single point evaluation of the pressure, we would like to find the statistics of the pressure in `121` points `(0:0.1:1,0:0.1:1)`. Therefore, we must define the `Settings` object as
 
 ```julia
-mySettings = Settings(indexset, numberGenerator, gaussianFieldSampler, sampleFunction, Z=100)
+mySettings = Settings(indexset, numberGenerator, gaussianFieldSampler, sampleFunction, Z=121)
 ```
 and adapt the quantity of interest to interpolate in multiple points:
 
@@ -286,9 +278,9 @@ end
 
 The result of the simulation will contain the expected value, variance and error estimate in each interpolation point.
 
-### Parallel sampling
+### Parallel Sampling
 
-Of course, as for any Monte Carlo method, all samples can be taken in parallel. The most convenient way is wrapping your code into a custom module, see the [test]() folder.
+Of course, as for any Monte Carlo method, all samples can be taken in parallel. The most convenient way is wrapping your code into a custom module, see the [test](https://github.com/PieterjanRobbe/MultilevelEstimators.jl/tree/master/test) folder.
 
 ```julia
 module TestModule
