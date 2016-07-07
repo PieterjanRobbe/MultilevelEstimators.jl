@@ -14,8 +14,11 @@ Pkg.clone("https://github.com/PieterjanRobbe/MultilevelEstimators.jl")
 
 ### Multilevel Monte Carlo
 
-In most mathematical models, parameters or coefficients are unknown or subject to uncertainty, particularly due to lack of data or measurements. Often, these problems involve the computation of a *quantity of interest* as the expected value over the uncertain input parameters. The classical sample-based approach then chooses `N` realisations of the uncertain parameters and approximates this expected value as a sample average. The Multilevel Monte Carlo (MLMC) method improves the error versus work complexity rate of the classical approach by using models  with different levels of accuracy. These models are called *levels*. Note that `l=0` is the least accurate model. The main idea is to write the approximation to G at the most accurate level `L` as a telescoping sum 
-<img src="https://github.com/PieterjanRobbe/MultilevelEstimators.jl/blob/master/figures/eq_telsum.pdf" width="550" align="middle"/>
+In most mathematical models, parameters or coefficients are unknown or subject to uncertainty, particularly due to lack of data or measurements. Often, these problems involve the computation of a *quantity of interest* as the expected value over the uncertain input parameters. The classical sample-based approach then chooses `N` realisations of the uncertain parameters and approximates this expected value as a sample average. The Multilevel Monte Carlo (MLMC) method improves the error versus work complexity rate of the classical approach by using models  with different levels of accuracy. These models are called *levels*. Note that `l=0` is the least accurate model. The main idea is to write the approximation to G at the most accurate level `L` as a telescoping sum
+
+<img src="https://github.com/favicon.ico" width="48">
+
+![alt tag](https://github.com/PieterjanRobbe/MultilevelEstimators.jl/blob/master/figures/eq_telsum.pdf )
 
 Hence, instead of approximating the expected value of the quantity of interest on the finest mesh, the MLMC method approximates differences &Delta;G at different levels `l`. If the variance of these differences goes sufficiently fast to zero as `l` increases, most samples are taken at models with low accuracy, hence low cost. Typically, only very few samples are needed at the finest mesh.
 
