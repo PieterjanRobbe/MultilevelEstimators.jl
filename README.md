@@ -16,7 +16,7 @@ Pkg.clone("https://github.com/PieterjanRobbe/MultilevelEstimators.jl")
 
 In most mathematical models, parameters or coefficients are unknown or subject to uncertainty, particularly due to lack of data or measurements. Often, these problems involve the computation of a *quantity of interest* as the expected value over the uncertain input parameters. The classical sample-based approach then chooses `N` realisations of the uncertain parameters and approximates this expected value as a sample average. The Multilevel Monte Carlo (MLMC) method improves the error versus work complexity rate of the classical approach by using models  with different levels of accuracy. These models are called *levels*. Note that `l=0` is the least accurate model. The main idea is to write the approximation to G at the most accurate level `L` as a telescoping sum
 
-<img src="https://github.com/favicon.ico" width="48">
+<img src="https://github.com/PieterjanRobbe/MultilevelEstimators.jl/blob/master/figures/eq_matern.pdf" width="350">
 
 ![alt tag](https://github.com/PieterjanRobbe/MultilevelEstimators.jl/blob/master/figures/eq_telsum.pdf )
 
