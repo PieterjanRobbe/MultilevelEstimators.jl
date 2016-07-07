@@ -1,4 +1,5 @@
 # Multilevel Monte Carlo for Julia
+[![Build Status](https://travis-ci.org/PieterjanRobbe/MultilevelEstimators.jl.png)](https://travis-ci.org/PieterjanRobbe/MultilevelEstimators.jl)
 
 This module provides a versatile implementation of Monte Carlo (MC) methods, Multilevel Monte Carlo (MLMC) methods and Multi-Index Monte Carlo (MIMC) methods, and their Quasi-Monte Carlo (QMC) counterparts, Multilevel Quasi-Monte Carlo (MLQMC) and Multi-Index Quasi-Monte Carlo (MIQMC). The module is mainly aimed at solving partial differential equations (PDEs) with random coefficients, but can be used for any forward uncertainty quantification (UQ) problem by specifying the appropriate sample function.
 
