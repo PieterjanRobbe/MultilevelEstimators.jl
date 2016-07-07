@@ -16,7 +16,7 @@ Pkg.clone("https://github.com/PieterjanRobbe/MultilevelEstimators.jl")
 
 In most mathematical models, parameters or coefficients are unknown or subject to uncertainty, particularly due to lack of data or measurements. Often, these problems involve the computation of a *quantity of interest* as the expected value over the uncertain input parameters. The classical sample-based approach then chooses `N` realisations of the uncertain parameters and approximates this expected value as a sample average. The Multilevel Monte Carlo (MLMC) method improves the error versus work complexity rate of the classical approach by using models  with different levels of accuracy. These models are called *levels*. Note that `l=0` is the least accurate model. The main idea is to write the approximation to G at the most accurate level `L` as a telescoping sum
 
-<img src="https://github.com/PieterjanRobbe/MultilevelEstimators.jl/blob/master/figures/eq_telsum.png" width="650">
+<img src="https://github.com/PieterjanRobbe/MultilevelEstimators.jl/blob/master/figures/eq_telsum.png" width="650" align="middle">
 
 Hence, instead of approximating the expected value of the quantity of interest on the finest mesh, the MLMC method approximates differences &Delta;G at different levels `l`. If the variance of these differences goes sufficiently fast to zero as `l` increases, most samples are taken at models with low accuracy, hence low cost. Typically, only very few samples are needed at the finest mesh.
 
@@ -24,10 +24,11 @@ Hence, instead of approximating the expected value of the quantity of interest o
 ### A First Simple MLMC Example
 
 PDEs with random coefficients typically describe cell movements, fluid pressures, temperatures or flow rates, all subject to uncertainty. For example, a model for fluid flow through porous media, commonly used in geophysics, is the elliptic PDE
-<img src="https://github.com/PieterjanRobbe/MultilevelEstimators.jl/blob/master/figures/eq_PDE.png" width="300">
+<img src="https://github.com/PieterjanRobbe/MultilevelEstimators.jl/blob/master/figures/eq_PDE.png" width="250" align="middle">
 
 with random diffusion coefficient `k(x,ω)`. `k` represents the uncertain permeability of the porous material, and `p` is the unknown pressure head. The problem is physically meaningful if `k > 0`, hence, usually `k(x,ω) = exp(Z(x,ω))`, where `Z` is an underlying random field with known characteristics. For example, we may consider the Gaussian random field `Z(x,ω)` with Mat&eacute;rn kernel
-<img src="https://github.com/PieterjanRobbe/MultilevelEstimators.jl/blob/master/figures/eq_matern.png" width="650">
+
+<img src="https://github.com/PieterjanRobbe/MultilevelEstimators.jl/blob/master/figures/eq_matern.png" width="550" align="middle">
 
 Here, `p` denotes the usual p-norm. Let us choose
 
@@ -43,7 +44,7 @@ We can define the covariance function `C` using the `matern`-function:
 C(x,y) = matern(λ,σ,ν,x,y)
 ```
 A typical sample of the lognormal random field is shown below:
-<img src="https://github.com/PieterjanRobbe/MultilevelEstimators.jl/blob/master/figures/fig_matern.png" width="450">
+<img src="https://github.com/PieterjanRobbe/MultilevelEstimators.jl/blob/master/figures/fig_matern.png" width="450" align="middle">
 
 When dealing with PDEs, the natural sequence of models with different accuracy, required in the Multilevel Monte Carlo method, can be obtained by varying the discretization mesh. For example, one can use a Finite Volume (FV) method and consider meshes with an increasing number of FV cells as the level `l` increases. We provide a simple implementation of the FV method using rectangular cells in
 
@@ -156,7 +157,7 @@ reset!(mySampler)
 
 Multi-Index Monte Carlo (MIMC) is a generalisation of MLMC where the levels are replaced by multi-indices. Whereas MLMC uses levels that refine in both `x`- and `y`-direction simultaneously, the MIMC method will allow for grids that refine only in `x` or only in `y`. For non-isotropic examples, where the MLMC method would perform badly, MIMC allows to again achieve the optimal convergence rate of error versus work. An illustration of these grids is shown below:
 
-<img src="figures/fig_mimc.pdf" width="370" align="middle"/>
+<img src="https://github.com/PieterjanRobbe/MultilevelEstimators.jl/blob/master/figures/fig_mimc.png" width="450" align="middle">
 
 The classical MLMC method would only consider meshes on the main diagonal, whereas MIMC considers a subset of all grids depicted. This subset is called the *index set*. As for the Smolyak construction in Sparse Grids, it can be shown that an index set consisting of the grids in the left upper triangle (the `TD` case) are, in some sense, optimal, see [2]. We provide 5 different index sets, `ML` (multilevel), `FT` (full tensor), `TD` (total degree), `HC` (hyperbolic cross) and `AD`. This last index set is an Adaptive Multi-Index Monte Carlo (AMIMC) method.
 
