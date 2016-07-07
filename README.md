@@ -18,7 +18,7 @@ In most mathematical models, parameters or coefficients are unknown or subject t
 
 <img src="https://github.com/PieterjanRobbe/MultilevelEstimators.jl/blob/master/figures/eq_matern.pdf" width="350">
 
-![alt tag](https://github.com/PieterjanRobbe/MultilevelEstimators.jl/blob/master/figures/eq_telsum.pdf )
+![alt tag](https://github.com/PieterjanRobbe/MultilevelEstimators.jl/blob/master/figures/eq_matern.png )
 
 Hence, instead of approximating the expected value of the quantity of interest on the finest mesh, the MLMC method approximates differences &Delta;G at different levels `l`. If the variance of these differences goes sufficiently fast to zero as `l` increases, most samples are taken at models with low accuracy, hence low cost. Typically, only very few samples are needed at the finest mesh.
 
