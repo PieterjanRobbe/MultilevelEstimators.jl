@@ -5,6 +5,12 @@ os:
   - osx
 julia:
   - 0.4
+before_script:
+  - Pkg.add("Interpolations")
+  - Pkg.add("Reexport")
+  - Pkg.add("FastGaussQuadrature")
+  - Pkg.clone("https://github.com/PieterjanRobbe/QMC.jl")
+  - Pkg.update()
 notifications:
   email: false
 # uncomment the following lines to override the default test script
