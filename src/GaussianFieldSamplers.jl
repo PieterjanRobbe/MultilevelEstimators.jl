@@ -188,7 +188,12 @@ end
 
 # matern kernel
 function matern{T<:AbstractFloat}(λ::T,σ::T,ν::T,p::T,x::AbstractArray{T},y::AbstractArray{T})
-  cov = σ^2*2^(1-ν)/gamma(ν)*(sqrt(2*ν)*norm(x.-y,1)/λ).^ν.*besselk(ν,sqrt(2*ν)*norm(x.-y,1)/λ)
+  cov = zeros(T,size(x.-y))
+  for i in 1:length(x)
+    for j in 1:length(y)
+      @inbounds cov[i,j] = σ^2*2^(1-ν)/gamma(ν)*(sqrt(2*ν)*norm(x[i]-y[j],p)/λ).^ν.*besselk(ν,sqrt(2*ν)*norm(x[i]-y[j],p)/λ)
+    end
+  end
   cov[(x.-y).==zero(T)]=one(T)
 
   return cov
