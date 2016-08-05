@@ -32,7 +32,7 @@ function test1(TOL::AbstractFloat)
 	gaussianFieldSampler = createKLexpansion(pd,λ,σ,ν,s,cov=rho)
 	sampleFunction = parametrizedPDEpointEvaluation
 	
-	mySettings = Settings(indexset, numberGenerator, gaussianFieldSampler, sampleFunction, Z=9)
+	mySettings = Settings(indexset, numberGenerator, sampleFunction, gaussianFieldSampler=gaussianFieldSampler, Z=9)
 
 	mySampler = createSampler(d,mySettings)
 
@@ -65,7 +65,7 @@ function test2(TOL::AbstractFloat)
 	gaussianFieldSampler = createKLexpansion(pd,λ,σ,ν,s,cov=rho)
 	sampleFunction = parametrizedPDEEffectiveConductivity
 
-	mySettings = Settings(indexset, numberGenerator, gaussianFieldSampler, sampleFunction)
+	mySettings = Settings(indexset, numberGenerator, sampleFunction, gaussianFieldSampler=gaussianFieldSampler)
 
 	mySampler = createSampler(d,mySettings)
 

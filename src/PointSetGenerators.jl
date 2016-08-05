@@ -5,90 +5,123 @@ abstract MCgenerator <: NumberGenerator
 
 abstract QMCgenerator <: NumberGenerator
 
+#
 # Uniform random number generators
+#
 
-# random number generator
-type UniformMCgenerator{s,q,d} <: MCgenerator
-  λ::Float64
+# uniform Monte Carlo sampler
+type UniformMCgenerator{s} <: MCgenerator
+  λ::Float64 # decay rate, 0.5 for Monte Carlo
+  lb::Vector{Float64} # lower bounds for random variables
+  ub::Vector{Float64} # upper bounds for random variables
 end
 
-function UniformMCgenerator{N}(d::N, s::N)
-  return UniformMCgenerator{s,1,d}(0.5)
+# constructors
+function UniformMCgenerator{N}(s::N)
+  return UniformMCgenerator{s}(0.5,zeros(s),ones(s))
 end
 
-next{s,q,d}(generator::UniformMCgenerator{s,q,d},index::Index{d}) = rand(s)
-
-# randomised lattice rule generator
-type UniformQMCgenerator{s,q,d} <: QMCgenerator
-  generators::Dict{Index{d},RandLatSeq{s,q}}
-  λ::Float64
+function UniformMCgenerator{N,T}(s::N,lb::Vector{T},ub::Vector{T})
+  @assert length(ub) == s && length(lb) == s
+  return UniformMCgenerator{s}(0.5,lb,ub)
 end
 
-function UniformQMCgenerator{N}(d::N, s::N, q::N)
-  return UniformQMCgenerator{s,q,d}(Dict{Index{d},RandLatSeq{s,q}}(),1.)
+# utilities
+function getPoint{s,N}(generator::UniformMCgenerator{s},k::N)
+  return generator.lb + (generator.ub - generator.lb).*rand(s)
 end
 
-function next{s,q,d}(qmc::UniformQMCgenerator{s,q,d},index::Index{d})
-  if haskey(qmc.generators,index)
-    next!(qmc.generators[index])
-  else
-    qmc.generators[index] = RandLatSeq(s,q)
-    next!(qmc.generators[index])
-  end
+nshifts{s}(generator::UniformMCgenerator{s}) = 1
+
+reset{s}(generator::UniformMCgenerator{s}) = Void
+
+# randomized QMC generator
+type UniformQMCgenerator{s,q} <: QMCgenerator
+  generator::RandWrapper
+  λ::Float64 # decay rate, 1 for Rank-1 Lattice Rules
+  lb::Vector{Float64} # lower bounds for random variables
+  ub::Vector{Float64} # upper bounds for random variables
 end
 
-nshifts{s,q,d}(generator::UniformMCgenerator{s,q,d}) = q
-nshifts{s,q,d}(generator::UniformQMCgenerator{s,q,d}) = q
-
-function reset!{s,q,d}(generator::UniformMCgenerator{s,q,d})
+# constructors
+function UniformQMCgenerator{N}(s::N, q::N)
+  lat = LatSeq(s)
+  randlat = RandWrapper(lat,q)
+  return UniformQMCgenerator{s,q}(randlat,1.,zeros(s),ones(s))
 end
 
-function reset!{s,q,d}(generator::UniformQMCgenerator{s,q,d})
-  for gen in values(generator.generators)
-    QMC.reset!(gen)
-  end
+function UniformQMCgenerator{N}(randlat::RandWrapper)
+  return UniformQMCgenerator{s,q}(randlat,1.,zeros(s),ones(s))
 end
 
+function UniformQMCgenerator{N}(s::N, q::N,lb::Vector{T},ub::Vector{T})
+  @assert length(ub) == s && length(lb) == s
+  lat = LatSeq(s)
+  randlat = RandWrapper(lat,q)
+  return UniformQMCgenerator{s,q}(randlat,1.,lb,ub)
+end
+
+function UniformQMCgenerator{N}(randlat::RandWrapper,lb::Vector{T},ub::Vector{T})
+  @assert length(ub) == s && length(lb) == s
+  return UniformQMCgenerator{s,q}(randlat,1.,lb,ub)
+end
+
+# utilities
+function getPoint{s,q,N}(generator::UniformQMCgenerator{s,q},k::N)
+    return generator.lb + (generator.ub - generator.lb).*getPoint(generator.generator,k)
+end
+
+nshifts{s,q}(generator::UniformQMCgenerator{s,q}) = q
+
+reset{s,q}(generator::UniformQMCgenerator{s,q})
+  reset(generator.generator)
+end
+
+#
 # Gaussian random number generators
+#
 
 # random number generator
-type GaussianMCgenerator{s,q,d} <: MCgenerator
+type GaussianMCgenerator{s} <: MCgenerator
   λ::Float64
 end
 
-function GaussianMCgenerator{N}(d::N, s::N)
-  return GaussianMCgenerator{s,1,d}(0.5)
+# constructors
+function GaussianMCgenerator{N}(s::N)
+  return GaussianMCgenerator{s,1}(0.5)
 end
 
-next{s,q,d}(generator::GaussianMCgenerator{s,q,d},index::Index{d}) = randn(s)
+# utilities
+getPoint{s,N}(generator::GaussianMCgenerator{s},k::N) = randn(s)
+
+nshifts{s}(generator::GaussianMCgenerator{s}) = 1
+
+reset{s}(generator::GaussianMCgenerator{s}) = Void
 
 # randomised lattice rule generator
-type GaussianQMCgenerator{s,q,d} <: QMCgenerator
-  generators::Dict{Index{d},RandLatSeq{s,q}}
+type GaussianQMCgenerator{s,q} <: QMCgenerator
+  generator::RandWrapper
   λ::Float64
 end
 
-function GaussianQMCgenerator{N}(d::N, s::N, q::N)
-  return GaussianQMCgenerator{s,q,d}(Dict{Index{d},RandLatSeq{s,q}}(),1.)
+# constructors
+function GaussianQMCgenerator{N}(s::N, q::N)
+  lat = LatSeq(s)
+  randlat = RandWrapper(lat,q)
+  return GaussianQMCgenerator{s,q}(randlat,1.)
 end
 
-function next{s,q,d}(qmc::GaussianQMCgenerator{s,q,d},index::Index{d})
-if haskey(qmc.generators,index)
-    sqrt(2)*erfinv(2*next!(qmc.generators[index])-1)
-  else
-    qmc.generators[index] = RandLatSeq(s,q)
-    sqrt(2)*erfinv(2*next!(qmc.generators[index])-1)
-  end
+function GaussianQMCgenerator{N}(randlat::RandWrapper)
+  return GaussianQMCgenerator{s,q}(randlat,1.)
 end
 
-nshifts{s,q,d}(generator::GaussianMCgenerator{s,q,d}) = q
-nshifts{s,q,d}(generator::GaussianQMCgenerator{s,q,d}) = q
-
-function reset!{s,q,d}(generator::GaussianMCgenerator{s,q,d})
+# utilities
+function getPoint{s,q,N}(generator::GaussianQMCgenerator{s,q},k::N)
+    return getPoint(generator.generator,k)
 end
 
-function reset!{s,q,d}(generator::GaussianQMCgenerator{s,q,d})
-  for gen in values(generator.generators)
-    QMC.reset!(gen)
-  end
+nshifts{s,q}(generator::GaussianQMCgenerator{s,q}) = q
+
+reset{s,q}(generator::GaussianQMCgenerator{s,q})
+  reset(generator.generator)
 end

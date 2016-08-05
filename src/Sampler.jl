@@ -11,12 +11,13 @@ type Settings{T,N} # only mutable type is passed by reference!
   sampleFunction::Function # quantity of interest
   showInfo::Bool # boolean to decide if something must be printed to screen
   useTime::Bool # boolean to indicate if true simulation time must be used as cost measure
+  generatorState::Dict{Index,N}
 end
 
 # convenience constructor for settings
-function Settings{d,T,N}(indexset::IndexSet{d}, numberGenerator::NumberGenerator, gaussianFieldSampler::GaussianFieldSampler, sampleFunction::Function;
+function Settings{d,T,N}(indexset::IndexSet{d}, numberGenerator::NumberGenerator, sampleFunction::Function; gaussianFieldSampler::GaussianFieldSampler, 
   m0::Vector{N} = 4*ones(Int64,d), maxK::N = 6, gamma::T = 1.4, splitting::T = 0.5, Z::N = 1, showInfo::Bool = true, useTime::Bool = false)
-  return Settings(m0,maxK,gamma,splitting,Z,indexset,numberGenerator,gaussianFieldSampler,sampleFunction,showInfo,useTime)
+  return Settings(m0,maxK,gamma,splitting,Z,indexset,numberGenerator,gaussianFieldSampler,sampleFunction,showInfo,useTime,Dict{Index{d},N}())
 end
 
 function reset!{T,N}(settings::Settings{T,N})
@@ -57,11 +58,18 @@ function sample{d,T,N}(sampler::Sampler{d,T,N}, nbOfSamples::N, index::Index{d})
     !sampler.settings.showInfo || println(">> Taking $(nshift)x$(nbOfSamples) samples at $(index)...")
   end
 
+  # ask state of generator
+  state = sampler.settings.generatorState
+  if !haskey(state,index)
+    state[index] = 0
+  end
+  s = state[index]
+
   # take the samples
-  samples = @parallel (vcat) for i = 1:nbOfSamples
+  samples = @parallel (vcat) for i = s+1:s+nbOfSamples
 
     # generate "random" numbers
-    XI = next(sampler.settings.numberGenerator,index)
+    XI = getPoint(sampler.settings.numberGenerator,i)
 
     # solve
     mySample = zeros(T,1,nshift,Z)
