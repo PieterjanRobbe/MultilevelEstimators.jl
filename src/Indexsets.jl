@@ -1,52 +1,55 @@
 # representation of an "index" in multiple dimensions
-type Index{d}
-  indices::Array{Int32,1}
+type Index{d,V<:AbstractVector}
+  indices::V
+
+  #Index(indices::AbstractVector{N}) = new(indices)
 end
+#Index(d,index::AbstractVector) = Index{d,eltype(index),typeof(index)}(index)
 
 # constructor for indices
-Index{N<:Integer}(index::Array{N,1}) = Index{length(index)}(index)
-Index{N<:Integer}(i::N...) = Index{length(i)}([i...]) # slurping and splatting
+Index{N<:Integer}(index::Vector{N}) = Index{length(index),Vector{N}}(index)
+Index{N<:Integer}(i::N...) = Index{length(i),Vector{N}}([i...]) # slurping and splatting
 
 ndims{d}(index::Index{d}) = d
 
-zero{d}(::Type{Index{d}}) = Index(zeros(Int32,d))
-zero{d}(index::Index{d}) = Index(zeros(Int32,d))
+zero{d,V}(::Type{Index{d,V}}) = Index(zeros(eltype(V),d))
+zero{d,V}(index::Index{d,V}) = Index(zeros(eltype(V),d))
 
-one{d}(::Type{Index{d}}) = Index(ones(Int32,d))
-one{d}(index::Index{d}) = Index(ones(Int32,d))
+one{d,V}(::Type{Index{d,V}}) = Index(ones(eltype(V),d))
+one{d,V}(index::Index{d,V}) = Index(ones(eltype(V),d))
 
-*{d}(index1::Index{d}, index2::Index{d}) = Index(index1.indices.*index2.indices)
-*{d,N}(s::N, index::Index{d}) = Index(s*index.indices)
-*{d,N}(index::Index{d}, s::N) = Index(s*index.indices)
-*{d,T}(s::Vector{T}, index::Index{d}) = s.*index.indices
-*{d,T}(index::Index{d}, s::Vector{T}) = s.*index.indices
+*{d}(index1::Index{d}, index2::Index{d}) = Index(index1.indices.*index2.indices) # can only multiply indices of same length
+*{N<:Integer,I<:Index}(s::N, index::I) = Index(s*index.indices)
+*{I<:Index,N<:Integer}(index::I, s::N) = Index(s*index.indices)
+*{T,I<:Index}(s::Vector{T}, index::I) = s.*index.indices
+*{I<:Index,T}(index::I, s::Vector{T}) = s.*index.indices
 
 =={d}(index1::Index{d}, index2::Index{d}) = ( index1.indices == index2.indices )
-=={d,N<:Integer}(index1::Index{d}, s::N) = ( index1.indices == (s*one(index1)).indices )
-.=={d,N<:Integer}(index1::Index{d}, s::N) = ( index1.indices .== (s*one(index1)).indices )
+=={I<:Index,N<:Integer}(index1::I, s::N) = ( index1.indices == (s*one(index1)).indices )
+.=={I<:Index,N<:Integer}(index1::I, s::N) = ( index1.indices .== (s*one(index1)).indices )
 
 hash(index::Index, h::UInt) = hash(index.indices, hash(:Index, h))
 isequal(index1::Index, index2::Index) = isequal(hash(index1),hash(index2))
 
 !={d}(index1::Index{d}, index2::Index{d}) = ( index1.indices != index2.indices )
-!={d,N}(index1::Index{d}, s::N) = ( index1.indices != (s*one(index1)).indices )
+!={I<:Index,N<:Integer}(index1::I, s::N) = ( index1.indices != (s*one(index1)).indices )
 
 +{d}(index1::Index{d}, index2::Index{d}) = Index(index1.indices+index2.indices)
 -{d}(index1::Index{d}, index2::Index{d}) = Index(index1.indices-index2.indices)
-+{d,N}(index1::Index{d}, s::N) = Index(index1.indices+s)
--{d,N}(index1::Index{d}, s::N) = Index(index1.indices-s)
--{d}(index::Index{d}) = Index(-index.indices)
++{I<:Index,N<:Integer}(index1::I, s::N) = Index(index1.indices+s)
+-{I<:Index,N<:Integer}(index1::I, s::N) = Index(index1.indices-s)
+-{I<:Index}(index::I) = Index(-index.indices)
 
-getindex{d}(index::Index{d}, i::Integer) = index.indices[i]
-getindex{d}(index::Index{d}, ::Colon) = index.indices
-setindex!{d}(index::Index{d}, value, key) = index.indices[key] = value
-maximum{d}(index::Index{d}) = maximum(index.indices)
-indmax{d}(index::Index{d}) = indmax(index.indices)
-sum{d}(index::Index{d}) = sum(index.indices)
-prod{d}(index::Index{d}) = prod(max(1,index.indices))
-diff{d}(index1::Index{d}, index2::Index{d}) = count(!,index1.indices.==index2.indices) # returns number of indices that is different
+getindex{I<:Index,N<:Integer}(index::I, i::N) = index.indices[i]
+getindex{I<:Index}(index::I, ::Colon) = index.indices
+setindex!{I<:Index}(index::I, value, key) = index.indices[key] = value
+maximum{I<:Index}(index::I) = maximum(index.indices)
+indmax{I<:Index}(index::I) = indmax(index.indices)
+sum{I<:Index}(index::I) = sum(index.indices)
+prod{I<:Index}(index::I) = prod(max(1,index.indices))
+diff{I<:Index}(index1::I, index2::I) = count(!,index1.indices.==index2.indices) # returns number of indices that is different
 
-copy{d}(index::Index{d}) = Index(copy(index.indices))
+copy{I}(index::I) = Index(copy(index.indices))
 
 function show(io::IO, index::Index)
   d = ndims(index)
@@ -57,29 +60,31 @@ function show(io::IO, index::Index)
   print(io, @sprintf("%i]",index[d]))
 end
 
-isvalid{d}(index::Index{d}) = all(index.indices .≥ 0)
+isvalid{I<:Index}(index::I) = all(index.indices .≥ 0)
 
 # enum with index set types
 @enum Kind ML FT TD HC AD
 
 # representation of an index set
-type IndexSet{d, T<:AbstractFloat}
+type IndexSet{d, W<:AbstractVector}
   kind::Kind
-  weights::Vector{T}
+  weights::W
 end
 
+ndims{d}(index::Index{d}) = d
+
 # create index set
-function createIndexSet{N<:Int,T<:AbstractFloat}(kind::Kind, d::N; weights::Array{T,1} = ones(Float64,d))
+function createIndexSet{N<:Int,T<:AbstractFloat}(kind::Kind, d::N; weights::Vector{T} = ones(Float64,d))
   d > 0 || error("dimension of index set cannot be negative or zero!")
   (d > 1) $ (kind == ML) || error("cannot perform MIMC simulation with d=1, choose ML or increase dimension!")
   kind == ML ? weights == ones(T,d) || error("cannot assign weights to index set of type ML!") : []
   ( ( length(weights) == d ) && all(weights .> 0) ) || error("incorrect weights specified!")
-  
-  return IndexSet{d,T}(kind, weights)
+
+  return IndexSet{length(weights),Vector{T}}(kind, weights)::IndexSet{length(weights),Vector{T}}
 end
 
 # convenience methods for index sets
-ndims{d,T}(indexSet::IndexSet{d,T}) = d
+ndims{d}(indexSet::IndexSet{d}) = d
 
 function show(io::IO, indexset::IndexSet)
   d = ndims(indexset)
@@ -89,7 +94,7 @@ function show(io::IO, indexset::IndexSet)
 end
 
 # difference operator
-function difference{d,N}(p::N, i::Index{d}, current::Index{d})
+function difference{N<:Integer,d}(p::N, i::Index{d}, current::Index{d})
   while i != -1
     i[p] -= 1
     if (i[p] < current[p]-1) || (!isvalid(i))
@@ -107,7 +112,7 @@ end
 
 # drop algorithm for the iterative enumeration of all indices of given kind
 # see "M. Holz, Sparse Grid Quadrature in High Dimensions with Applications, Springer, 2010"
-function drop{d,N,T}(p::N, i::Index{d}, K::N, kind::Kind, weights::Array{T,1})
+function drop{N<:Integer,d,T<:AbstractFloat}(p::N, i::Index{d}, K::N, kind::Kind, weights::Vector{T})
   while i != -1 # at most two iterations
     i[p] += 1
     if ( kind == ML && all(i[:].>K) ) ||
@@ -127,8 +132,9 @@ function drop{d,N,T}(p::N, i::Index{d}, K::N, kind::Kind, weights::Array{T,1})
 end
 
 # return index set of given kind for certain parameter K
-function getIndexSet{d,N,T}(indexset::IndexSet{d,T}, K::N)
-  indices = Index{d}[]
+function getIndexSet{S<:IndexSet,N<:Integer}(indexset::S, K::N)
+  d = ndims(indexset)
+  indices = Index{d,Vector{N}}[]
   if K ≥ 0
     i = Index(zeros(N,d))
     p = 1
@@ -143,14 +149,14 @@ end
 # returns the "boundary" indices of the given index set
 # we define an index as a boundary index when it is not dominated
 # by another index in its maximum direction(s)
-function getBoundary{d,N,T}(indexset::IndexSet{d,T}, K::N)
+function getBoundary{S<:IndexSet,N<:Integer}(indexset::S, K::N)
   indices = getIndexSet(indexset,K)
   return getBoundary(indices)
 end
 
 # returns the "boundary" indices of an adaptive index set
-function getBoundary{d}(indices::Set{Index{d}})
-  boundary = Set{Index{d}}()
+function getBoundary{d,V}(indices::Set{Index{d,V}}) # must have explicit d in signature
+  boundary = Set{Index{d,V}}()
   for index in indices
     maxs = find(index.==maximum(index)) # maximum direction(s)
     isboundary = true
@@ -165,11 +171,11 @@ function getBoundary{d}(indices::Set{Index{d}})
       push!(boundary,index)
     end
   end
-  return boundary
+  return boundary::Set{Index{d,V}}
 end
 
 # admissability for index sets of AD type
-function isAdmissable{d}(set::Set{Index{d}}, i::Index{d})
+function isAdmissable{d,V}(set::Set{Index{d,V}}, i::Index{d,V}) # must have explicit d in signature to ensure same length
   ad = true
   if in(i,set)
     ad = false

@@ -11,6 +11,12 @@ The module has been tested for challenging 3D problems with up to 5000 uncertain
 Pkg.clone("https://github.com/PieterjanRobbe/MultilevelEstimators.jl")
 ```
 
+Load the package in Julia using
+
+```julia
+using MultilevelEstimators
+```
+
 ## Usage
 
 ### Multilevel Monte Carlo
@@ -110,7 +116,7 @@ To set up a full simulation, we must provide the level hierarchy (or index set, 
 
 ```julia
 indexset = createIndexSet(ML,1) # setup for Multilevel
-numberGenerator = GaussianMCgenerator(1,s) # Monte Carlo sampler
+numberGenerator = GaussianMCgenerator(s) # Monte Carlo sampler
 gaussianFieldSampler = createKLexpansion(d,λ,σ,ν,s,cov=C) # KLE
 sampleFunction = myQuantityOfInterest 
 ```
@@ -120,8 +126,8 @@ In the KL expansion, the random numbers are standard normal random variables. We
 Next, create a `Settings`-object and a `Sampler`:
 
 ```julia
-mySettings = Settings(indexset, numberGenerator, gaussianFieldSampler, sampleFunction)
-mySampler = createSampler(1,mySettings)
+mySettings = Settings(indexset, numberGenerator, sampleFunction, gaussianFieldSampler=gaussianFieldSampler)
+mySampler = createSampler(mySettings)
 ```
 
 and perform a simulation as
@@ -161,10 +167,10 @@ The result of the simulation is
 
 Hence, the expected value of the quantity of interest is 0.500 (up to `TOL=1e-3` accurate) and its variance is 0.017. Note that the exact expected value of this problem is known analytically:`E=0.5`. The MLMC algorithm used only two levels and took 267955 PDE solves at a grid with `16` cells and 63065 PDE solves at a grid with `64` cells.
 
-We also provide a `reset!` function to clear the samples already taken:
+We also provide a `reset` function to clear the samples already taken:
 
 ```julia
-reset!(mySampler)
+reset(mySampler)
 ```
 
 ### Multi-Index Monte Carlo
@@ -184,13 +190,13 @@ pd = 2 # physical dimension of the problem
 d = 2 # dimension of the index set
 
 indexset = createIndexSet(TD,d) # setup for Multilevel
-numberGenerator = GaussianMCgenerator(d,s) # Monte Carlo sampler
+numberGenerator = GaussianMCgenerator(s) # Monte Carlo sampler
 gaussianFieldSampler = createKLexpansion(pd,λ,σ,ν,s,cov=C) # KLE
 
-mySettings = Settings(indexset, numberGenerator, gaussianFieldSampler, sampleFunction)
-mySampler = createSampler(d,mySettings)
+mySettings = Settings(indexset, numberGenerator, sampleFunction, gaussianFieldSampler=gaussianFieldSampler)
+mySampler = createSampler(mySettings)
 ```
-Note that the `d`-argument in the setup functions is now equal to the physical dimension of the problem (`pd=2`), since we want our index set to refine in both `x`- and `y`-direction. When `d=1`, the standard MLMC method is used.
+Note that the `d`-argument in the `IndexSet` is now equal to the physical dimension of the problem (`pd=2`), since we want our index set to refine in both `x`- and `y`-direction. When `d=1`, the standard MLMC method is used.
 
 ```julia
 srand(2016) # reset random number generator
@@ -228,9 +234,9 @@ To obtain an error bound on our estimator, we cannot simply take the variance ov
 
 ```julia
 q = 16 # number of shifts
-numberGenerator = GaussianQMCgenerator(1,s,q) # Quasi-Monte Carlo sampler
+numberGenerator = GaussianQMCgenerator(s,q) # Quasi-Monte Carlo sampler
 ```
-The `1` here indicates that we will use Multilevel Quasi-Monte Carlo (MLQMC). Note that also a uniform sampler, `UniformQMCgenerator`, is available.
+Note that also a uniform sampler, `UniformQMCgenerator`, is available.
 
 To complete the simulation, execute
 
@@ -239,8 +245,8 @@ indexset = createIndexSet(ML,1) # setup for Multilevel
 gaussianFieldSampler = createKLexpansion(d,λ,σ,ν,s,cov=C) # KLE
 sampleFunction = myQuantityOfInterest
 
-mySettings = Settings(indexset, numberGenerator, gaussianFieldSampler, sampleFunction)
-mySampler = createSampler(1,mySettings)
+mySettings = Settings(indexset, numberGenerator, sampleFunction, gaussianFieldSampler=gaussianFieldSampler)
+mySampler = createSampler(mySettings)
 
 srand(2016) # reset random number generator for reproducability
 (E, V, A, B, splitting, S) = simulate(mySampler,TOL)
@@ -250,30 +256,36 @@ This results in
 
 ```
 *** currently running at K = 0...
->> Taking 16x16 samples at 1-dimensional index with values [0]...
-   >>> B = 0.4983587937565641
+>> Taking 16x16 samples at level 0...
+   >>> B = 0.49542487635437005
    >>> splitting = 0.5
->> Taking 16x85 samples at 1-dimensional index with values [0]...
+>> Taking 16x81 samples at level 0...
 *** currently running at K = 1...
->> Taking 16x16 samples at 1-dimensional index with values [1]...
-   >>> B = 0.0006964829951229075
+>> Taking 16x16 samples at level 1...
+   >>> B = 0.0016855312260037323
    >>> splitting = 0.5
->> Taking 16x36 samples at 1-dimensional index with values [1]...
->> Taking 16x39 samples at 1-dimensional index with values [0]...
-*** error estimate is 0.0001937976494168214 + 0.00046909667415580606 = 0.0006628943235726275
-*** result is 0.49971563624899434 with a variance of 0.01685275419659606
+>> Taking 16x37 samples at level 1...
+>> Taking 16x44 samples at level 0...
+*** error estimate is 0.0001735794753904881 + 0.0011954321152848005 = 0.0013690115906752887
+*** currently running at K = 2...
+>> Taking 16x16 samples at level 2...
+   >>> B = 0.00011290789431687618
+   >>> splitting = 0.8870921056831238
+>> Taking 16x16 samples at level 2...
+*** error estimate is 0.00022198875658330022 + 0.0003703618150897451 = 0.0005923505716730453
+*** result is 0.4993707259127149 with a variance of 0.017316465185862627
 ```
 
-The MLQMC method only needs `q`x 140 = 2240 samples of the PDE on a `16`-point mesh, and `q`x 52 = 832 samples on a `64`-point mesh. We can check that indeed the sum of the statistical error and bias `A + B ` is smaller than `TOL = 1e-3`.
+The MLQMC method only needs `q`x 141 = 2256 samples of the PDE on a `16`-point mesh, `q`x 53 = 848 samples on a `64`-point mesh, and `q`x 32 = 512 on the finest mesh. We can check that indeed the sum of the statistical error and bias `A + B ` is smaller than `TOL = 1e-3`.
 
-The extension of the module to higher-order polynomial lattice rules is ongoing work.
+The module can also work with custom defined point generators, for example, the higher-order polynomial lattice rules from [QMC.jl](https://github.com/PieterjanRobbe/QMC.jl).
 
 ### Multiple Quantities of Interest
 
 It is also possible to compute multiple quantities of interest in the same simulation. For example, if instead of a single point evaluation of the pressure, we would like to find the statistics of the pressure in `121` points `(0:0.1:1,0:0.1:1)`. Therefore, we must define the `Settings` object as
 
 ```julia
-mySettings = Settings(indexset, numberGenerator, gaussianFieldSampler, sampleFunction, Z=121)
+mySettings = Settings(indexset, numberGenerator, sampleFunction, gaussianFieldSampler=gaussianFieldSampler, Z=121)
 ```
 and adapt the quantity of interest to interpolate in multiple points:
 

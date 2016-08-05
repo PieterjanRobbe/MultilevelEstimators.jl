@@ -1,14 +1,20 @@
 # abstract Gaussian field sampler
 abstract GaussianFieldSampler
 
-# KL expansion
-type KLexpansion{d,T,N} <: GaussianFieldSampler
-  mkl::N # number of terms in KL expansion
-  eigenval::Array{Array{T,1},1} # d-dimensional KL eigenvalues
-  eigenfunc::Array{Array{T,2},1} # 1d KL eigenfunctions
+# Empty sampler type
+type EmptySampler <: GaussianFieldSampler
+
 end
 
-function createKLexpansion{T,N}(d::N, λ::T, σ::T, ν::T, mkl::N; m0::N = 4, maxK::N = 15, cov::Function = nothing)
+# KL expansion
+type KLexpansion{d,N<:Integer,A<:AbstractVector,B<:AbstractVector} <: GaussianFieldSampler
+  mkl::N # number of terms in KL expansion
+  eigenval::A # d-dimensional KL eigenvalues
+  eigenfunc::B # 1d KL eigenfunctions
+end
+
+# constructor
+function createKLexpansion{T<:AbstractFloat,N<:Integer}(d::N, λ::T, σ::T, ν::T, mkl::N; m0::N = 4, maxK::N = 15, cov::Function = nothing)
   d > 0 || error("dimension cannot be negative or zero!")
   λ > 0 || error("correlation length of random field cannot be negative or zero!")
   σ > 0 || error("variance of random field cannot be negative or zero!")
@@ -25,8 +31,8 @@ function createKLexpansion{T,N}(d::N, λ::T, σ::T, ν::T, mkl::N; m0::N = 4, ma
 
   # compose the d-dimensional eigenvalues by adaptive search
   O = Array{T,1}[] #Dict{Index{d},T}()
-  A = Dict{Index{d},T}()
-  A[one(Index{d})] = θ[1]^d
+  A = Dict{Index{d,Vector{N}},T}()
+  A[one(Index{d,Vector{N}})] = θ[1]^d
   converged = false
   max_mkl = 1 # store maximum number of 1d eigenvalues
   while length(O) < mkl
@@ -67,12 +73,18 @@ function createKLexpansion{T,N}(d::N, λ::T, σ::T, ν::T, mkl::N; m0::N = 4, ma
     end
   end
 
-  return KLexpansion{d,T,N}(mkl,O,eigenfunc)
+  return KLexpansion{d,N,typeof(O),typeof(eigenfunc)}(mkl,O,eigenfunc)
 end
 
+# utilities
+ndims{d}(kl::KLexpansion{d}) = d
+inttype{d,N}(kl::KLexpansion{d,N}) = N
+
 # function to compose KL expansion
-function compose{d,T,N}(kl::KLexpansion{d,T,N}, xi::Vector{T}, index::Index)
-  index = ndims(index) < d ? Index(repeat([index[1]],inner=[d])) : index # FIX for multilevel case v
+function compose{K<:KLexpansion,T<:AbstractFloat,I<:Index}(kl::K, xi::Vector{T}, index::I)
+  N = inttype(kl)
+  d = ndims(kl)
+  index = ndims(index) < d ? Index(repeat([index[1]],inner=[d])) : index # FIX for multilevel case
   k = 0
   for i in 1:length(kl.eigenval)
     v = kl.eigenfunc[index[1]+1][convert(N,kl.eigenval[i][1]),:]
@@ -85,7 +97,7 @@ function compose{d,T,N}(kl::KLexpansion{d,T,N}, xi::Vector{T}, index::Index)
 end
 
 # find all positive (>0) zeros of the transcendental function tan(ω) = 2*λ*ω/(λ^2*ω^2-1)
-function findroots{T<:Real,N<:Integer}(λ::T, n::N)
+function findroots{T<:AbstractFloat,N<:Integer}(λ::T, n::N)
   λ > 0 || error("λ must be positive (λ ≥ 0)!")
   n > 0 || error("requested number of roots must be larger than zero!")
 
@@ -112,12 +124,12 @@ function findroots{T<:Real,N<:Integer}(λ::T, n::N)
 
   # find roots inside range around 1/λ
   ( length(roots) ≥ n || floor(1/(π*λ)-1/2) < 0 ) || 
-    push!(roots,bisect_root(f,left_point_of_range+eps(Float64),1/λ)[1]) # first intersection point
+    push!(roots,bisect_root(f,left_point_of_range+eps(T),1/λ)[1]) # first intersection point
   ( length(roots) ≥ n || ceil(1/(π*λ)-1/2) < 0 ) || 
     push!(roots,bisect_root(f,1/λ,right_point_of_range)[1]) # second intersection point
 
   # if the first root is zero, cut it off
-  roots[1] == 0 ? shift!(roots) : "" # empty expression
+  roots[1] == 0 ? shift!(roots) : [] # empty expression
 
   # find roots after 1/λ
   startindex = 1 + length(roots)
@@ -135,7 +147,7 @@ function findroots{T<:Real,N<:Integer}(λ::T, n::N)
 end
 
 # bissection method to find the zeros of a function in a particular interval [x1,x2]
-function bisect_root{T<:Real}(fn::Function, x1::T, x2::T)
+function bisect_root{T<:AbstractFloat}(fn::Function, x1::T, x2::T)
   xm = middle(x1, x2)
   s1 = sign(fn(x1))
   s2 = sign(fn(x2))
@@ -156,7 +168,7 @@ function bisect_root{T<:Real}(fn::Function, x1::T, x2::T)
   return x1, x2
 end
 
-# helper function to find the real "mid point" of two given Float64 numbers
+# helper function to find the real "mid point" of two given floating point numbers
 function middle(x1::Float64, x2::Float64)
   # use the usual float rules for combining non-finite numbers
   if !isfinite(x1) || !isfinite(x2)
@@ -170,7 +182,7 @@ function middle(x1::Float64, x2::Float64)
 
   negate = x1 < 0.0 || x2 < 0.0
 
-  x1_int = reinterpret(UInt64, abs(x1))
+  x1_int = reinterpret(UInt64, abs(x1)) # TODO: find automatic conversion to UInt based on T
   x2_int = reinterpret(UInt64, abs(x2))
   unsigned = reinterpret(Float64, (x1_int + x2_int) >> 1)
 

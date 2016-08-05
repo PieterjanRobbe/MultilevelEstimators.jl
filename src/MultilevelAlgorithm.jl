@@ -1,5 +1,6 @@
 # MIMC simulation
-function simulate{d,T,N}(sampler::Sampler{d,T,N}, TOL::T)
+function simulate{d,N<:Integer,T<:AbstractFloat}(sampler::Sampler{d,N}, TOL::T)
+
   # checks on inputs
   @assert TOL ≥ 0
 
@@ -13,23 +14,22 @@ function simulate{d,T,N}(sampler::Sampler{d,T,N}, TOL::T)
   converged = false
   sampler.K = 0
 
-  A = 0.; B = 0. # variable definition for use outside while-loop
-  E     = Dict{Index{d},Array{T,1}}() # dict for expected values
-  V     = Dict{Index{d},Array{T,1}}() # dict for variances
-  Vf    = Dict{Index{d},Array{T,1}}() # dict for variance of the function
-  W     = Dict{Index{d},T}() # dict for costs
-  S     = Dict{Index{d},N}() # dict for optimal number of samples
-  Vest  = Dict{Index{d},Array{T,1}}() # dict for variance of estimator
+  A = zeros(T,sampler.settings.Z); B = zeros(T,sampler.settings.Z) # variable definition for use outside while-loop
+  E     = Dict{Index{d,Vector{N}},Vector{T}}() # dict for expected values
+  V     = Dict{Index{d,Vector{N}},Vector{T}}() # dict for variances
+  Vf    = Dict{Index{d,Vector{N}},Vector{T}}() # dict for variance of the function
+  W     = Dict{Index{d,Vector{N}},T}() # dict for costs
+  S     = Dict{Index{d,Vector{N}},N}() # dict for optimal number of samples
+  Vest  = Dict{Index{d,Vector{N}},Vector{T}}() # dict for variance of estimator
   C     = sqrt(2)*erfcinv(epsilon)
   λ     = sampler.settings.numberGenerator.λ
   q     = nshifts(sampler.settings.numberGenerator)
   splitting = sampler.settings.splitting
   dir = isa(sampler.settings.numberGenerator,MCgenerator) ? 2 : 1
-  oldindexset = Set{Index{d}}()
-
-  old = Set{Index{d}}()
-  profit = Dict{Index{d},T}()
-  profit[zero(Index{d})] = 0.
+  oldindexset = Set{Index{d,Vector{N}}}()
+  old = Set{Index{d,Vector{N}}}()
+  profit = Dict{Index{d,Vector{N}},T}()
+  profit[Index(zeros(N,d))] = 0.
 
   while !converged
     # get index set in current iteration
@@ -39,10 +39,10 @@ function simulate{d,T,N}(sampler::Sampler{d,T,N}, TOL::T)
       delete!(profit,i) # delete from profit set
       push!(old,i) # add to old set and check admissables
       # full addition
-      FTSet = createIndexSet(FT,d)
-      FTSet = getIndexSet(FTSet,1)
+      full = createIndexSet(FT,d)::IndexSet{d,Vector{T}}
+      FTSet = getIndexSet(full,1)::Set{Index{d,Vector{N}}}
       for p in FTSet
-        j = copy(p+i)
+        j = copy(p+i)::Index{d,Vector{N}}
         if isAdmissable(union(old, Set(keys(profit))),j)
           profit[j] = 0.
         end
@@ -55,19 +55,19 @@ function simulate{d,T,N}(sampler::Sampler{d,T,N}, TOL::T)
       #     profit[j] = 0.
       #   end
       # end
-      newindexset = union(old, Set(keys(profit)))
+      newindexset = union(old, Set(keys(profit)))::Set{Index{d,Vector{N}}}
     else
-      newindexset = getIndexSet(sampler.settings.indexset,sampler.K)
+      newindexset = getIndexSet(sampler.settings.indexset,sampler.K)::Set{Index{d,Vector{N}}}
     end
 
     # get boundary in current iteration
+    boundary = Set{Index{d,Vector{N}}}()::Set{Index{d,Vector{N}}} # empty set
     if kind(sampler) == ML
-      boundary = Set{Index{d}}()
       push!(boundary,Index(sampler.K*ones(N,d)))
     elseif kind(sampler) == AD
-      boundary = getBoundary(newindexset)
+      boundary = union(boundary,getBoundary(newindexset)::Set{Index{d,Vector{N}}})
     else
-      boundary = getBoundary(sampler.settings.indexset, sampler.K)
+      boundary = union(boundary,getBoundary(sampler.settings.indexset, sampler.K)::Set{Index{d,Vector{N}}})
     end
 
     # new indices to add
@@ -90,7 +90,7 @@ function simulate{d,T,N}(sampler::Sampler{d,T,N}, TOL::T)
     end
 
     # estimate bias and splitting parameter
-    B = 0.
+    B = zeros(T,sampler.settings.Z)
     for index in boundary
       B += abs(E[index])
     end
@@ -99,8 +99,8 @@ function simulate{d,T,N}(sampler::Sampler{d,T,N}, TOL::T)
     !sampler.settings.showInfo || print_with_color(:green, "   >>> splitting = $(splitting)\n")
 
     # calculate optimal number of samples
-    mySum = 0.
-    for index in newindexset
+    mySum = zeros(T,sampler.settings.Z)
+    for index::Index{d,Vector{N}} in newindexset
       mySum += ( ( Vf[index].*W[index].^(2*λ) ).^(1/(2*λ+1) ) )
     end
     for index in newindexset
@@ -128,12 +128,12 @@ function simulate{d,T,N}(sampler::Sampler{d,T,N}, TOL::T)
     while maximum(A) > splitting*TOL # 0.9 is safety
       # double number of samples on index with max ratio V/W
       maxratio = 0.
-      maxindex = NaN
+      maxindex = Index(zeros(N,d))
       for index in newindexset
         ratio = maximum(Vest[index])/W[index] # shorter version not guaranteed when V/W?
         if ratio > maxratio
           maxratio = ratio
-          maxindex = index
+          maxindex = index::Index{d,Vector{N}}
         end
       end
       n = size(sampler.samples[maxindex],dir)
@@ -150,13 +150,13 @@ function simulate{d,T,N}(sampler::Sampler{d,T,N}, TOL::T)
 
     # check for convergence
     if ( sampler.K > 0 )
-      B = 0.
+      B = zeros(T,sampler.settings.Z)
       for index in boundary
         B += abs(E[index])
       end
       Etemp = sum(values(E))
       Vtemp = sum(values(Vf))
-      converged = ( maximum(A + B) < TOL )
+      converged = ( maximum(A + B)::T < TOL )
 
       # print some info to the screen
       !sampler.settings.showInfo || print_with_color(:magenta, "*** error estimate is $(maximum(A)) + $(maximum(B)) = $(maximum(A+B))\n")
@@ -175,6 +175,6 @@ function simulate{d,T,N}(sampler::Sampler{d,T,N}, TOL::T)
     oldindexset = newindexset
   end
 
-  return (sum(values(E)), sum(values(Vf)), A, B, splitting, S)
+  return (sum(values(E))::Vector{T}, sum(values(Vf))::Vector{T}, A::Vector{T}, B::Vector{T}, splitting::T, S::Dict{Index{d,Vector{N}},N})
   
 end

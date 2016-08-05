@@ -12,13 +12,15 @@ import Base: getindex, setindex!
 
 import Base: maximum, indmax, sum, prod, one, zero
 
-import Base.show
+import Base: show, reset
 
 import Base: copy, hash, isequal
 
 import Base.isvalid
 
 import Base: hcat, vcat, append!
+
+import QMC: getPoint
 
 # export statements
 export Index, IndexSet, createIndexSet # from Indexsetsjl
@@ -28,7 +30,7 @@ export Sampler, Settings, createSampler # from Sampler.jl
 export KLexpansion, createKLexpansion, matern, compose # from GaussianFieldSamplers.jl
 
 export MCgenerator, GaussianMCgenerator, UniformMCgenerator,
-	QMCgenerator, GaussianQMCgenerator, UniformQMCgenerator, reset! # from PointSetGenerators.jl
+	QMCgenerator, GaussianQMCgenerator, UniformQMCgenerator, reset # from PointSetGenerators.jl
 
 export simulate # from MultilevelAlgorithm.jl
 

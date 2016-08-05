@@ -28,13 +28,13 @@ function test1(TOL::AbstractFloat)
 	s = 100
 	
 	indexset = createIndexSet(ML,d)
-	numberGenerator = GaussianMCgenerator(d,s)
+	numberGenerator = GaussianMCgenerator(s)
 	gaussianFieldSampler = createKLexpansion(pd,λ,σ,ν,s,cov=rho)
 	sampleFunction = parametrizedPDEpointEvaluation
-	
+
 	mySettings = Settings(indexset, numberGenerator, sampleFunction, gaussianFieldSampler=gaussianFieldSampler, Z=9)
 
-	mySampler = createSampler(d,mySettings)
+	mySampler = createSampler(mySettings)
 
 	(E, V, A, B, splitting, S) = simulate(mySampler,TOL)
 
@@ -60,14 +60,14 @@ function test2(TOL::AbstractFloat)
 	
 	q = 16
 
-	indexset = createIndexSet(AD,d)
-	numberGenerator = GaussianQMCgenerator(d,s,q)
+	indexset = createIndexSet(TD,d)
+	numberGenerator = GaussianQMCgenerator(s,q)
 	gaussianFieldSampler = createKLexpansion(pd,λ,σ,ν,s,cov=rho)
 	sampleFunction = parametrizedPDEEffectiveConductivity
 
 	mySettings = Settings(indexset, numberGenerator, sampleFunction, gaussianFieldSampler=gaussianFieldSampler)
 
-	mySampler = createSampler(d,mySettings)
+	mySampler = createSampler(mySettings)
 
 	(E, V, A, B, splitting, S) = simulate(mySampler,TOL)
 
@@ -79,5 +79,5 @@ test1(1e-1)
 @time test1(1e-3)
 
 # run second test
-test1(1e-1)
+test2(1e-1)
 @time test2(1e-3)

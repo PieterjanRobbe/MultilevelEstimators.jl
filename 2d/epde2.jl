@@ -11,7 +11,7 @@
 #   k = array containing the value of k at the cell centers x_(i,j), (i,j) = 1..m
 # OUTPUT:
 #   matrix containing the value of p at the cell centers x_(i,j), (i,j) = 1..m
-function epde2{T<:Number}(k::Array{T,2})
+function epde2{T<:Number}(k::Matrix{T})
   # number of meshes
   mx = size(k,1)
   my = size(k,2)
@@ -60,7 +60,7 @@ function epde2{T<:Number}(k::Array{T,2})
   b = b[:]
 
   # solve
-  return reshape(F\b[:],mx,my)
+  return reshape(F\b[:],mx,my)::Matrix{T}
 end
 
 ######################################################################################################
@@ -75,7 +75,7 @@ end
 #   k = array containing the value of k at the cell centers x_(i,j), (i,j) = 1..m
 # OUTPUT:
 #   matrix containing the value of p at the cell centers x_(i,j), (i,j) = 1..m
-function epde2d{T<:Number}(k::Array{T,2})
+function epde2d{T<:Number}(k::Matrix{T})
   # number of meshes
   mx = size(k,1)
   my = size(k,2)
@@ -125,7 +125,7 @@ function epde2d{T<:Number}(k::Array{T,2})
   b = b[:]
 
   # solve
-  return reshape(F\b[:],mx,my)
+  return reshape(F\b[:],mx,my)::Matrix{T}
 end
 
 # compute the harmonic mean of A along dimension d
