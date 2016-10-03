@@ -1,44 +1,52 @@
-# representation of an "index" in multiple dimensions
+# representation of an index
 type Index{d,V<:AbstractVector}
   indices::V
-
-  #Index(indices::AbstractVector{N}) = new(indices)
 end
-#Index(d,index::AbstractVector) = Index{d,eltype(index),typeof(index)}(index)
+
+# utilities
+ndims{d}(index::Index{d}) = d
 
 # constructor for indices
 Index{N<:Integer}(index::Vector{N}) = Index{length(index),Vector{N}}(index)
 Index{N<:Integer}(i::N...) = Index{length(i),Vector{N}}([i...]) # slurping and splatting
 
-ndims{d}(index::Index{d}) = d
+# methods
+isvalid{I<:Index}(index::I) = all(index.indices .≥ 0)::Bool
 
-zero{d,V}(::Type{Index{d,V}}) = Index(zeros(eltype(V),d))
-zero{d,V}(index::Index{d,V}) = Index(zeros(eltype(V),d))
+zero{d,V}(::Type{Index{d,V}}) = Index(zeros(eltype(V),d))::Index{d,V}
+zero{d,V}(index::Index{d,V}) = Index(zeros(eltype(V),d))::Index{d,V}
 
-one{d,V}(::Type{Index{d,V}}) = Index(ones(eltype(V),d))
-one{d,V}(index::Index{d,V}) = Index(ones(eltype(V),d))
+one{d,V}(::Type{Index{d,V}}) = Index(ones(eltype(V),d))::Index{d,V}
+one{d,V}(index::Index{d,V}) = Index(ones(eltype(V),d))::Index{d,V}
 
-*{d}(index1::Index{d}, index2::Index{d}) = Index(index1.indices.*index2.indices) # can only multiply indices of same length
-*{N<:Integer,I<:Index}(s::N, index::I) = Index(s*index.indices)
-*{I<:Index,N<:Integer}(index::I, s::N) = Index(s*index.indices)
-*{T,I<:Index}(s::Vector{T}, index::I) = s.*index.indices
-*{I<:Index,T}(index::I, s::Vector{T}) = s.*index.indices
+*{d,V}(index1::Index{d,V}, index2::Index{d,V}) = Index(index1.indices.*index2.indices)::Index{d,V} # can only multiply indices of same length
+*{N<:Integer,I<:Index}(s::N, index::I) = Index(s*index.indices)::I
+*{I<:Index,N<:Integer}(index::I, s::N) = Index(s*index.indices)::I
+.*{T,I<:Index}(s::Vector{T}, index::I) = (s.*index.indices)::Vector{T}
+.*{I<:Index,T}(index::I, s::Vector{T}) = (s.*index.indices)::Vector{T}
 
-=={d}(index1::Index{d}, index2::Index{d}) = ( index1.indices == index2.indices )
-=={I<:Index,N<:Integer}(index1::I, s::N) = ( index1.indices == (s*one(index1)).indices )
+=={d}(index1::Index{d}, index2::Index{d}) = ( index1.indices == index2.indices )::Bool
+=={I<:Index,N<:Integer}(index1::I, s::N) = ( index1.indices == (s*one(index1)).indices )::Bool
 .=={I<:Index,N<:Integer}(index1::I, s::N) = ( index1.indices .== (s*one(index1)).indices )
 
-hash(index::Index, h::UInt) = hash(index.indices, hash(:Index, h))
-isequal(index1::Index, index2::Index) = isequal(hash(index1),hash(index2))
+function isless{d}(i1::Index{d},i2::Index{d})
+  returnvalue = false
+  if isless(sum(i1),sum(i2))
+    returnvalue = true
+  elseif isequal(i1,i2)
+    returnvalue = false
+  elseif isequal(sum(i1),sum(i2))
+    idx = find(i1.indices .!= i2.indices)[1]
+    returnvalue = ( isless(i1[idx],i2[idx]) ? true : false )
+  end
+  return returnvalue::Bool
+end
 
-!={d}(index1::Index{d}, index2::Index{d}) = ( index1.indices != index2.indices )
-!={I<:Index,N<:Integer}(index1::I, s::N) = ( index1.indices != (s*one(index1)).indices )
-
-+{d}(index1::Index{d}, index2::Index{d}) = Index(index1.indices+index2.indices)
--{d}(index1::Index{d}, index2::Index{d}) = Index(index1.indices-index2.indices)
-+{I<:Index,N<:Integer}(index1::I, s::N) = Index(index1.indices+s)
--{I<:Index,N<:Integer}(index1::I, s::N) = Index(index1.indices-s)
--{I<:Index}(index::I) = Index(-index.indices)
++{d,V}(index1::Index{d,V}, index2::Index{d,V}) = Index(index1.indices+index2.indices)::Index{d,V}
+-{d,V}(index1::Index{d,V}, index2::Index{d,V}) = Index(index1.indices-index2.indices)::Index{d,V}
++{I<:Index,N<:Integer}(index1::I, s::N) = Index(index1.indices+s)::I
+-{I<:Index,N<:Integer}(index1::I, s::N) = Index(index1.indices-s)::I
+-{I<:Index}(index::I) = Index(-index.indices)::I
 
 getindex{I<:Index,N<:Integer}(index::I, i::N) = index.indices[i]
 getindex{I<:Index}(index::I, ::Colon) = index.indices
@@ -48,8 +56,10 @@ indmax{I<:Index}(index::I) = indmax(index.indices)
 sum{I<:Index}(index::I) = sum(index.indices)
 prod{I<:Index}(index::I) = prod(max(1,index.indices))
 diff{I<:Index}(index1::I, index2::I) = count(!,index1.indices.==index2.indices) # returns number of indices that is different
+length{I<:Index}(index::I) = length(index.indices)
 
 copy{I}(index::I) = Index(copy(index.indices))
+hash(index::Index, h::UInt) = hash(index.indices, hash(:Index, h)) # needed for looking things up in a dict
 
 function show(io::IO, index::Index)
   d = ndims(index)
@@ -60,104 +70,107 @@ function show(io::IO, index::Index)
   print(io, @sprintf("%i]",index[d]))
 end
 
-isvalid{I<:Index}(index::I) = all(index.indices .≥ 0)
-
 # enum with index set types
 @enum Kind ML FT TD HC AD
 
 # representation of an index set
-type IndexSet{d, W<:AbstractVector}
-  kind::Kind
+type IndexSet{K, d, W<:AbstractVector}
   weights::W
 end
 
-ndims{d}(index::Index{d}) = d
+# utilities
+ndims{K,d}(::IndexSet{K,d}) = d
+kind{K,d}(::IndexSet{K,d}) = K
+
+# constructor for index sets
+IndexSet{T<:AbstractFloat}(K::Kind, weights::Vector{T}) = IndexSet{K,length(weights),Vector{T}}(weights)
 
 # create index set
-function createIndexSet{N<:Int,T<:AbstractFloat}(kind::Kind, d::N; weights::Vector{T} = ones(Float64,d))
+function createIndexSet{N<:Integer,T<:AbstractFloat}(K::Kind, d::N; weights::Vector{T} = ones(Float64,d))
   d > 0 || error("dimension of index set cannot be negative or zero!")
-  (d > 1) $ (kind == ML) || error("cannot perform MIMC simulation with d=1, choose ML or increase dimension!")
-  kind == ML ? weights == ones(T,d) || error("cannot assign weights to index set of type ML!") : []
+  K == ML ? ( d == 1 || error("can only perform MLMC when d=1") ) : ( d != 1 || error("cannot perform MIMC simulation with d=1, choose ML or increase dimension!") )
+  K == ML ? weights == ones(T,d) || error("cannot assign weights to index set of type ML!") : []
   ( ( length(weights) == d ) && all(weights .> 0) ) || error("incorrect weights specified!")
 
-  return IndexSet{length(weights),Vector{T}}(kind, weights)::IndexSet{length(weights),Vector{T}}
+  return IndexSet(K, weights)
 end
 
-# convenience methods for index sets
-ndims{d}(indexSet::IndexSet{d}) = d
+# methods
+isValid{I<:IndexSet}(indexset::I) = ( typeof(ndims(indexset)) <: Integer && ndims(indexset) > 0 && length(indexset.weights) == ndims(indexset) )
 
 function show(io::IO, indexset::IndexSet)
-  d = ndims(indexset)
-  k = indexset.kind
-  w = indexset.weights
-  print(io, "$d-dimensional index set of type $k with weights $w")
+  print(io, "$(ndims(indexset))-dimensional index set of type $(kind(indexset)) with weights $(indexset.weights)")
 end
 
+#
+# Main methods for working with indices and index sets
+#
+
 # difference operator
-function difference{N<:Integer,d}(p::N, i::Index{d}, current::Index{d})
+function difference{d}(i::Index{d}, current::Index{d})
+  p = 1
+  returnvalue = zero(i)
   while i != -1
     i[p] -= 1
     if (i[p] < current[p]-1) || (!isvalid(i))
       if p == ndims(i)
-        return -one(i)
+        returnvalue = -one(i)
+        break
       end
       i[p] = current[p]
       p = p + 1
     else
-      p = 1
-      return i
+      returnvalue = i
+      break
     end
   end
+  return returnvalue
 end
 
 # drop algorithm for the iterative enumeration of all indices of given kind
 # see "M. Holz, Sparse Grid Quadrature in High Dimensions with Applications, Springer, 2010"
-function drop{N<:Integer,d,T<:AbstractFloat}(p::N, i::Index{d}, K::N, kind::Kind, weights::Vector{T})
+function drop{d,V,N<:Integer,K}(i::Index{d,V}, L::N, indexset::IndexSet{K,d})
+  p = 1
+  returnvalue = zero(i)
   while i != -1 # at most two iterations
     i[p] += 1
-    if ( kind == ML && all(i[:].>K) ) ||
-      ( kind == FT && (i*weights)[p] > K ) ||
-      ( kind == TD && sum(i*weights) > K ) ||
-      ( kind == HC && prod(max(1,i*weights)) > K )     
+     if ( K == ML && all(i[:].>L) ) ||
+        ( K == FT && (i.*indexset.weights)[p] > L ) ||
+        ( K == TD && sum(i.*indexset.weights) > L ) ||
+        ( K == HC && prod(max(1,i.*indexset.weights)) > L )     
       if p == ndims(i)
-        return -one(i)
+        returnvalue = -one(i)
+        break
       end
       i[p] = 0
       p = p + 1
     else
-      p = 1
-      return i
+      returnvalue = i
+      break
     end
   end
+  return returnvalue
 end
 
-# return index set of given kind for certain parameter K
-function getIndexSet{S<:IndexSet,N<:Integer}(indexset::S, K::N)
-  d = ndims(indexset)
-  indices = Index{d,Vector{N}}[]
-  if K ≥ 0
-    i = Index(zeros(N,d))
-    p = 1
+# return index set of given kind for certain parameter L
+function getIndexSet{K,d,N<:Integer}(indexset::IndexSet{K,d}, L::N)
+  indices = Set{Index{d,Vector{N}}}()
+  if L ≥ 0
+    i = Index(zeros(N,d))::Index{d,Vector{N}}
     while i != -1
       push!(indices,copy(i))
-      i = drop(p,i,K,indexset.kind,indexset.weights)
+      i = drop(i,L,indexset)::Index{d,Vector{N}}
     end
   end
-  return Set(indices)
+  return indices
 end
 
 # returns the "boundary" indices of the given index set
 # we define an index as a boundary index when it is not dominated
 # by another index in its maximum direction(s)
-function getBoundary{S<:IndexSet,N<:Integer}(indexset::S, K::N)
-  indices = getIndexSet(indexset,K)
-  return getBoundary(indices)
-end
-
-# returns the "boundary" indices of an adaptive index set
 function getBoundary{d,V}(indices::Set{Index{d,V}}) # must have explicit d in signature
   boundary = Set{Index{d,V}}()
-  for index in indices
+  for index in indices # could be made more efficient for TD and FT types, but uses same rules now for all types
     maxs = find(index.==maximum(index)) # maximum direction(s)
     isboundary = true
     for m in 1:length(maxs)
@@ -189,4 +202,21 @@ function isAdmissable{d,V}(set::Set{Index{d,V}}, i::Index{d,V}) # must have expl
     end
   end
   return ad
+end
+
+# sort index sets (for nicer printing)
+function sort{I<:Index}(indexSet::Set{I})
+  sortedIndexSet = Index[]
+  for index in indexSet
+    if isempty(sortedIndexSet)
+      push!(sortedIndexSet,index)
+    else
+      i = 1
+      while ( i <= length(sortedIndexSet) ) && ( index > sortedIndexSet[i] )
+        i += 1
+      end
+      insert!(sortedIndexSet,i,index)
+    end
+  end
+  return sortedIndexSet
 end

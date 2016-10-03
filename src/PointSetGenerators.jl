@@ -27,13 +27,23 @@ function UniformMCgenerator{N<:Integer,T<:AbstractFloat}(s::N,lb::Vector{T},ub::
 end
 
 # utilities
+nshifts{s}(generator::UniformMCgenerator{s}) = 1
+reset{s}(generator::UniformMCgenerator{s}) = Void
+
+# methods
+isValid{s}(U::UniformMCgenerator{s}) = G.λ == 0.5 && length(lb) == s && length(ub) == s
+
+function show{s}(io::IO,U::UniformMCgenerator{s})
+  @assert isValid(U)
+  str = "$(ndims(G))-dimensional uniform Monte Carlo sampler with λ= $(U.λ) and \n"
+  str *= " - lower bound = $(U.lb)\n"
+  str *= " - upper bound = $(U.lb)\n"
+  print(io,str)
+end
+
 function getPoint{s,N<:Integer}(generator::UniformMCgenerator{s},k::N)
   return generator.lb + (generator.ub - generator.lb).*rand(s)
 end
-
-nshifts{s}(generator::UniformMCgenerator{s}) = 1
-
-reset{s}(generator::UniformMCgenerator{s}) = Void
 
 # randomized QMC generator
 type UniformQMCgenerator{s,q,R<:RandWrapper,T<:AbstractFloat,V<:AbstractVector} <: QMCgenerator{s}
@@ -66,14 +76,29 @@ function UniformQMCgenerator{T<:AbstractFloat}(randlat::RandWrapper,lb::Vector{T
   return UniformQMCgenerator{s,q,typeof(randlat),T,Vector{T}}(randlat,1.,lb,ub)
 end
 
+function UniformQMCgenerator{T<:AbstractFloat}(randlat::RandWrapper,λ::T,lb::Vector{T},ub::Vector{T})
+  @assert length(ub) == s && length(lb) == s
+  return UniformQMCgenerator{s,q,typeof(randlat),T,Vector{T}}(randlat,λ,lb,ub)
+end
+
 # utilities
+nshifts{s,q}(generator::UniformQMCgenerator{s,q}) = q
+reset(generator::UniformQMCgenerator) = reset(generator.generator)
+
+# methods
+isValid{s}(U::UniformQMCgenerator{s}) = G.λ >= 0.5 && length(lb) == s && length(ub) == s
+
+function show{s,q}(io::IO,U::UniformQMCgenerator{s,q})
+  @assert isValid(U)
+  str = "$(nshifts(U)) x $(ndims(U))-dimensional uniform Quasi-Monte Carlo sampler with λ= $(U.λ) and \n"
+  str *= " - lower bound = $(U.lb)\n"
+  str *= " - upper bound = $(U.lb)\n"
+  print(io,str)
+end
+
 function getPoint{s,q,N<:Integer}(generator::UniformQMCgenerator{s,q},k::N)
     return generator.lb + (generator.ub - generator.lb).*getPoint(generator.generator,k)
 end
-
-nshifts{s,q}(generator::UniformQMCgenerator{s,q}) = q
-
-reset(generator::UniformQMCgenerator) = reset(generator.generator)
 
 #
 # Gaussian random number generators
@@ -90,11 +115,19 @@ function GaussianMCgenerator{N<:Integer}(s::N)
 end
 
 # utilities
-getPoint{s,N<:Integer}(generator::GaussianMCgenerator{s},k::N) = randn(s)
-
 nshifts{s}(generator::GaussianMCgenerator{s}) = 1
-
 reset{s}(generator::GaussianMCgenerator{s}) = Void
+
+# methods
+isValid(G::GaussianMCgenerator) = G.λ == 0.5
+
+function show{s}(io::IO,G::GaussianMCgenerator{s})
+  @assert isValid(G)
+  str = "$(ndims(G))-dimensional Gaussian Monte Carlo sampler with λ= $(G.λ)"
+  print(io,str)
+end
+
+getPoint{s,N<:Integer}(generator::GaussianMCgenerator{s},k::N) = randn(s)
 
 # randomised lattice rule generator
 type GaussianQMCgenerator{s,q,R<:RandWrapper,T<:AbstractFloat} <: QMCgenerator{s}
@@ -114,12 +147,34 @@ function GaussianQMCgenerator(randlat::RandWrapper)
 end
 
 # utilities
+nshifts{s,q}(generator::GaussianQMCgenerator{s,q}) = q
+ndims{s}(generator::NumberGenerator{s}) = s
+
+# methods
+isValid(G::GaussianQMCgenerator) = G.λ >= 0.5
+
+function show{s,q}(io::IO,G::GaussianQMCgenerator{s,q})
+  @assert isValid(G)
+  str = "$(nshifts(G)) x $(ndims(G))-dimensional Gaussian Quasi-Monte Carlo sampler with λ= $(G.λ)"
+  print(io,str)
+end
+
 function getPoint{s,q,N}(generator::GaussianQMCgenerator{s,q},k::N)
     return sqrt(2)*erfinv(2*getPoint(generator.generator,k)-1)
 end
 
-nshifts{s,q}(generator::GaussianQMCgenerator{s,q}) = q
-
 reset(generator::GaussianQMCgenerator) = reset(generator.generator)
 
-ndims{s}(generator::NumberGenerator{s}) = s
+
+
+
+
+
+
+
+
+
+
+
+
+

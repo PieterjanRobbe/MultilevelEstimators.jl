@@ -9,28 +9,94 @@ end
 # KL expansion
 type KLexpansion{d,N<:Integer,A<:AbstractVector,B<:AbstractVector} <: GaussianFieldSampler
   mkl::N # number of terms in KL expansion
-  eigenval::A # d-dimensional KL eigenvalues
+  eigenval::A # d-dimensional KL eigenvalues (Array of tupples with index and value)
   eigenfunc::B # 1d KL eigenfunctions
+  ad::Bool # true if adaptive in number of terms
 end
 
-# constructor
-function createKLexpansion{T<:AbstractFloat,N<:Integer}(d::N, λ::T, σ::T, ν::T, mkl::N; m0::N = 4, maxK::N = 15, cov::Function = nothing)
-  d > 0 || error("dimension cannot be negative or zero!")
+# utilities
+ndims{d}(G::KLexpansion{d}) = d
+inttype{d,N}(G::KLexpansion{d,N}) = N
+floattype(G::KLexpansion) = eltype(eltype(G.eigenfunc))
+
+# methods
+isValid(G::EmptySampler) = true
+
+function show(io::IO, G::EmptySampler)
+  print(io, "emtyp Gaussian field sampler")
+end
+
+function isValid(G::KLexpansion)
+  d = ndims(G)
+  N = inttype(G)
+  T = floattype(G)
+  return G.mkl > 0 && typeof(G.eigenval) == Vector{Tuple{Index{d,Vector{N}},T}} && typeof(G.eigenfunc) == Vector{Array{T,2}}
+end
+
+function show(io::IO, G::KLexpansion)
+  str = G.ad ? "level-adaptive " : ""
+  print(io, str*"KL-expansion with $(G.mkl) terms")
+end
+
+# covariance kernel
+abstract Kernel
+
+type MaternKernel{T<:AbstractFloat} <: Kernel
+  λ::T # correlation length
+  σ::T # variance
+  ν::T # smoothness parameter
+  p::T # p-norm
+end
+
+function createMaternKernel{T<:AbstractFloat}(λ::T, σ::T, ν::T, p::T)
   λ > 0 || error("correlation length of random field cannot be negative or zero!")
   σ > 0 || error("variance of random field cannot be negative or zero!")
   ν > 0 || error("smoothness of random field cannot be negative or zero!")
+  p >= 1 || error("p-norm needs p>1!")
+
+  return MaternKernel(λ, σ, ν, p)
+end
+
+# methods
+isValid(M::MaternKernel) = ( λ > 0 && σ > 0 && ν > 0 && p >= 1 )
+
+function applyKernel{T<:AbstractFloat}(K::MaternKernel,x::AbstractArray{T},y::AbstractArray{T})
+  cov = zeros(T,size(x.-y))
+  for i in 1:length(x)
+    for j in 1:length(y)
+      @inbounds cov[i,j] = K.σ^2*2^(1-K.ν)/gamma(K.ν)*(sqrt(2*K.ν)*norm(x[i]-y[j],K.p)/K.λ).^K.ν.*besselk(K.ν,sqrt(2*K.ν)*norm(x[i]-y[j],K.p)/K.λ)
+    end
+  end
+  cov[(x.-y).==zero(T)]=one(T)
+
+  return cov
+end
+
+function show(io::IO, M::MaternKernel)
+  print(io, "Matern kernel with correlation length λ = $λ, variance σ^2 = $(σ^2), smoothness ν = $ν and $(p)-norm.")
+end
+
+#
+# Main methods for creating and composing the KL expansion
+#
+
+# constructor for separable kernels (non-separable is not implemented yet...)
+function createKLexpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxK::N = 15, ad::Bool = false, x::Vector{Vector{T}} = Vector{Vector{Float64}}())
+  d > 0 || error("dimension cannot be negative or zero!")
   mkl > 0 || error("number of KL-terms must be a positive integer!")
+  maxK > 0 || error("maximum indexset indicator must be postitive")
+  isempty(x) || ( length(x) == maxK || error("supply as many points at each level as maxK+1") )
 
   # calculate eigenvalues
-  if ν == 0.5
-    ω = findroots(λ, mkl+1)
-    θ = 2*σ^2*λ./(λ^2*ω.^2+1)
+  if typeof(kernel) == MaternKernel && kernel.ν == 0.5
+    ω = findroots(kernel.λ, mkl+1)
+    θ = 2*kernel.σ^2*kernel.λ./(kernel.λ^2*ω.^2+1)
   else
-    θ,dummy = nystrom(cov,0,mkl+1)
+    θ,dummy = nystrom(kernel,0,mkl+1)
   end
 
   # compose the d-dimensional eigenvalues by adaptive search
-  O = Array{T,1}[] #Dict{Index{d},T}()
+  O = Vector{Tuple{Index{d,Vector{N}},T}}() # could be oredered dict as well
   A = Dict{Index{d,Vector{N}},T}()
   A[one(Index{d,Vector{N}})] = θ[1]^d
   converged = false
@@ -38,7 +104,7 @@ function createKLexpansion{T<:AbstractFloat,N<:Integer}(d::N, λ::T, σ::T, ν::
   while length(O) < mkl
     idx = collect(keys(A))[indmax(values(A))] # find minimum of values
     max_mkl = maximum([max_mkl maximum(idx)])
-    push!(O,[idx.indices;A[idx]])
+    push!(O,(idx,A[idx]))
     for p = 1:d # check each new admissable index
       idx = copy(idx)
       idx[p] = idx[p] + 1
@@ -50,48 +116,58 @@ function createKLexpansion{T<:AbstractFloat,N<:Integer}(d::N, λ::T, σ::T, ν::
     end
     delete!(A,idx)
   end
-  ev = zeros(length(O))
-  for i in 1:mkl
-    ev[i] = O[i][end]
-  end
 
   # calculate 1d eigenfunctions
-  if ν == 0.5
+  eigenfunc = Array{T,2}[]
+  if typeof(kernel) == MaternKernel && kernel.ν == 0.5
     ω = ω[1:max_mkl] # cut off ω
-    eigenfunc = Array{T,2}[]
-    n = sqrt(2)/2*sqrt(1./ω.*(λ^2*ω.^2.*cos(ω).*sin(ω)+λ^2*ω.^3-2*λ*ω.*cos(ω).^2-cos(ω).*sin(ω)+ω)+2*λ)
+    n = sqrt(2)/2*sqrt(1./ω.*(kernel.λ^2*ω.^2.*cos(ω).*sin(ω)+kernel.λ^2*ω.^3-2*kernel.λ*ω.*cos(ω).^2-cos(ω).*sin(ω)+ω)+2*kernel.λ)
     for K in 0:maxK
-      m = m0*2^K
-      x = collect(1/2/m:1/m:1-1/2/m)
-      push!(eigenfunc,diagm(1./n)*( sin(ω*x') + λ*diagm(ω)*cos(ω*x') ))
+      if isempty(x)
+        m = m0*2^K
+        pts = collect(1/2/m:1/m:1-1/2/m)
+      else
+        pts = collect(x[K+1])
+      end
+      push!(eigenfunc,diagm(1./n)*( sin(ω*pts') + kernel.λ*diagm(ω)*cos(ω*pts') ))
     end
   else
-    eigenfunc = Array{T,2}[]
     for K in 0:maxK
-      dummy,temp = nystrom(cov,m0*2^K,max_mkl)
+      dummy,temp = nystrom(kernel,m0*2^K,max_mkl)
       push!(eigenfunc, temp)
     end
   end
 
-  return KLexpansion{d,N,typeof(O),typeof(eigenfunc)}(mkl,O,eigenfunc)
+  return KLexpansion{d,N,typeof(O),typeof(eigenfunc)}(mkl,O,eigenfunc,ad)
 end
 
-# utilities
-ndims{d}(kl::KLexpansion{d}) = d
-inttype{d,N}(kl::KLexpansion{d,N}) = N
-
 # function to compose KL expansion
-function compose{K<:KLexpansion,T<:AbstractFloat,I<:Index}(kl::K, xi::Vector{T}, index::I)
+function compose{K<:KLexpansion,T<:AbstractFloat,t,V}(kl::K, xi::Vector{T}, index::Index{t,V})
   N = inttype(kl)
   d = ndims(kl)
-  index = ndims(index) < d ? Index(repeat([index[1]],inner=[d])) : index # FIX for multilevel case
-  k = 0
-  for i in 1:length(kl.eigenval)
-    v = kl.eigenfunc[index[1]+1][convert(N,kl.eigenval[i][1]),:]
+  nterms = length(kl.eigenval)
+  if kl.ad
+    nterms = index.indices[end]
+    index_ = Index(index.indices[1:end-1])::Index{t-1,V}
+  end
+  if ndims(index) < d # FIX for multilevel case
+    index_ = Index(repeat([index[1]],inner=[d]))::Index{d,V}
+  end
+
+  # first term for type-stability of k
+  v = kl.eigenfunc[index_[1]+1][kl.eigenval[1][1][1],:]::Array{T,2}
+  for p = 2:d
+    v = kron(kl.eigenfunc[index_[p]+1][kl.eigenval[1][1][p],:],v)::Array{T,2}
+  end
+  k = xi[1]*sqrt(kl.eigenval[1][2])*v
+
+  # rest of the terms
+  for i in 2:nterms
+    v = kl.eigenfunc[index_[1]+1][kl.eigenval[i][1][1],:]::Array{T,2}
     for p = 2:d
-      v = kron(kl.eigenfunc[index[p]+1][convert(N,kl.eigenval[i][p]),:],v)
+      v = kron(kl.eigenfunc[index_[p]+1][kl.eigenval[i][1][p],:],v)::Array{T,2}
     end
-    k += xi[i]*sqrt(kl.eigenval[i][d+1])*v
+    k += xi[i]*sqrt(kl.eigenval[i][2])*v
   end
   return k
 end
@@ -114,7 +190,7 @@ function findroots{T<:AbstractFloat,N<:Integer}(λ::T, n::N)
     left_point = π/2
     right_point = 1*π
     for i = 1:length(roots)
-      roots[i] = bisect_root(f,left_point,right_point)[1]
+      @inbounds roots[i] = bisect_root(f,left_point,right_point)[1]
       right_point = roots[i] + π
       left_point = left_point + π
     end
@@ -138,7 +214,7 @@ function findroots{T<:AbstractFloat,N<:Integer}(λ::T, n::N)
     left_point = (2*ceil(1/(π*λ)-1/2)+2)*π/2
     right_point = (2*ceil(1/(π*λ)-1/2)+3)*π/2
     for i = startindex:length(roots)
-      roots[i] = bisect_root(f,left_point,right_point)[1]
+      @inbounds roots[i] = bisect_root(f,left_point,right_point)[1]
       right_point = roots[i] + π
       left_point = left_point + π
     end
@@ -198,30 +274,18 @@ function gauss_legendre_0_1(m)
   return nodes, weights
 end
 
-# matern kernel
-function matern{T<:AbstractFloat}(λ::T,σ::T,ν::T,p::T,x::AbstractArray{T},y::AbstractArray{T})
-  cov = zeros(T,size(x.-y))
-  for i in 1:length(x)
-    for j in 1:length(y)
-      @inbounds cov[i,j] = σ^2*2^(1-ν)/gamma(ν)*(sqrt(2*ν)*norm(x[i]-y[j],p)/λ).^ν.*besselk(ν,sqrt(2*ν)*norm(x[i]-y[j],p)/λ)
-    end
-  end
-  cov[(x.-y).==zero(T)]=one(T)
-
-  return cov
-end
-
 # nystrom method
-function nystrom{N<:Integer}(covariance::Function,m::N,nterms::N)
+function nystrom{N<:Integer}(kernel::Kernel,m::N,nterms::N)
   # compute covariance matrix
   nodes, weights = gauss_legendre_0_1(nterms)
-  K = covariance(nodes,nodes')
+  K = applyKernel(kernel,nodes,nodes')
 
   # obtain eigenvalues and eigenfunctions
   D = diagm(weights)
   Dsqrt = sqrt(D)
-  eigenval, eigenfunc = eig(Dsqrt*K*Dsqrt)
-  eigenval = real(eigenval)
+  Z = Symmetric(triu(Dsqrt*K*Dsqrt))
+  eigenval, eigenfunc = eig(Z)
+  #eigenval = real(eigenval)
   idx = sortperm(eigenval,rev=true)
   sort!(eigenval,rev=true)
   eigenfunc = eigenfunc[:,idx]
@@ -232,7 +296,7 @@ function nystrom{N<:Integer}(covariance::Function,m::N,nterms::N)
   # nystrom method
   eigenfunc = zeros(nterms,m)
   x = 1/2/m:1/m:1-1/2/m
-  K = covariance(x,nodes')
+  K = applyKernel(kernel,x,nodes')
   for j in 1:nterms
     @inbounds eigenfunc[j,:] = lambda[j]*K*f[:,j]
   end
