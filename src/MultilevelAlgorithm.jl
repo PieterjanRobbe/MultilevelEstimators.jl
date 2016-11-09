@@ -276,7 +276,7 @@ function updateDicts{d,N,T}(sampler::Sampler, indices::Set{Index{d,Vector{N}}},
       W[index] = C*prod(2.^(γ.*index))
       Vest[index] = haskey(sampler.samples,index) ? V[index]/size(sampler.samples[index],dir) : [zero(T)]
       if typeof(sampler.indexSet) == AD && haskey(profit,index)
-        profit[index] = abs(E[index])./(Vf[index].*W[index])
+        profit[index] = abs(E[index])./sqrt(Vf[index].*W[index])
       end
     end
   end

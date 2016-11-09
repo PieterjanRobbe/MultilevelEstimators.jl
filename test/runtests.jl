@@ -119,8 +119,14 @@ end
 # run first test
 test1(1e-3)
 
+# reset random number generator for reproducibility
+@everywhere srand(2016)
+
 # run second test
 test2(1e-3)
+
+# reset random number generator for reproducibility
+@everywhere srand(2016)
 
 # run third test
 test3(1e-3)
