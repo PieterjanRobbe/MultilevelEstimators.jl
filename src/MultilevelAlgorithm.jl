@@ -226,10 +226,10 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, absTOL::T, relTOL::T, fai
   # PRINT OVERVIEW TABLE
   #
   if ( sampler.showInfo )
-    @printf(sampler.ioStream,"%s","--------------------------------------------------------------------------------")
+    @printf(sampler.ioStream,"%s","-------------------------------------------------------------------------------- \n")
     itype = ndims(sampler.indexSet) == 1 ? "level" : "index"
-    @printf(sampler.ioStream,"%s","  "*itype*"       E              V               N               W                  ")
-    @printf(sampler.ioStream,"%s","--------------------------------------------------------------------------------")
+    @printf(sampler.ioStream,"%s","  "*itype*"       E              V               N               W               \n")
+    @printf(sampler.ioStream,"%s","-------------------------------------------------------------------------------- \n")
     for index::Index{d,Vector{N}} in sort(Set(collect(keys(E))))
       str = ("  $(index.indices)            "[1:13])::ASCIIString
       str *= @sprintf("%12.5e",maximum(E[index]))
