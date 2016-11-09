@@ -42,7 +42,7 @@ function show{s}(io::IO,U::UniformMCgenerator{s})
 end
 
 function getPoint{s,N<:Integer}(generator::UniformMCgenerator{s},k::N)
-  return generator.lb + (generator.ub - generator.lb).*rand(s)
+  return generator.lb .+ (generator.ub - generator.lb).*rand(s)
 end
 
 # randomized QMC generator
@@ -61,7 +61,7 @@ function UniformQMCgenerator{N<:Integer}(s::N, q::N)
 end
 
 function UniformQMCgenerator(randlat::RandWrapper)
-  return UniformQMCgenerator{s,q,typeof(randlat),Float64,Vector{Float64}}(randlat,1.,zeros(s),ones(s))
+  return UniformQMCgenerator{ndims(s),nshifts(q),typeof(randlat),Float64,Vector{Float64}}(randlat,1.,zeros(s),ones(s))
 end
 
 function UniformQMCgenerator{N<:Integer,T<:AbstractFloat}(s::N, q::N,lb::Vector{T},ub::Vector{T})
@@ -72,13 +72,13 @@ function UniformQMCgenerator{N<:Integer,T<:AbstractFloat}(s::N, q::N,lb::Vector{
 end
 
 function UniformQMCgenerator{T<:AbstractFloat}(randlat::RandWrapper,lb::Vector{T},ub::Vector{T})
-  @assert length(ub) == s && length(lb) == s
-  return UniformQMCgenerator{s,q,typeof(randlat),T,Vector{T}}(randlat,1.,lb,ub)
+  @assert length(ub) == ndims(randlat) && length(lb) == ndims(randlat)
+  return UniformQMCgenerator{ndims(randlat),q = nshifts(randlat),typeof(randlat),T,Vector{T}}(randlat,1.,lb,ub)
 end
 
 function UniformQMCgenerator{T<:AbstractFloat}(randlat::RandWrapper,λ::T,lb::Vector{T},ub::Vector{T})
   @assert length(ub) == s && length(lb) == s
-  return UniformQMCgenerator{s,q,typeof(randlat),T,Vector{T}}(randlat,λ,lb,ub)
+  return UniformQMCgenerator{ndims(randlat),q = nshifts(randlat),typeof(randlat),T,Vector{T}}(randlat,λ,lb,ub)
 end
 
 # utilities
@@ -97,7 +97,7 @@ function show{s,q}(io::IO,U::UniformQMCgenerator{s,q})
 end
 
 function getPoint{s,q,N<:Integer}(generator::UniformQMCgenerator{s,q},k::N)
-    return generator.lb + (generator.ub - generator.lb).*getPoint(generator.generator,k)
+    return generator.lb .+ (generator.ub - generator.lb).*getPoint(generator.generator,k)
 end
 
 #
@@ -163,7 +163,7 @@ function getPoint{s,q,N}(generator::GaussianQMCgenerator{s,q},k::N)
     return sqrt(2)*erfinv(2*getPoint(generator.generator,k)-1)
 end
 
-reset(generator::GaussianQMCgenerator) = reset(generator.generator)
+# reset(generator::GaussianQMCgenerator) = reset(generator.generator)
 
 
 

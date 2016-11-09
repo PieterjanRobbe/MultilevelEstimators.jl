@@ -8,30 +8,32 @@ using FastGaussQuadrature
 # import statements
 import Base: +, -, *, .*, /, ==, !=, .==
 
-import Base: getindex, setindex!
+import Base: getindex, setindex!, length
 
-import Base: maximum, indmax, sum, prod, one, zero, length
+import Base: maximum, indmax
+
+import Base: sum, prod
+
+import Base: one, zero
 
 import Base: show, reset, sort
 
 import Base: copy, hash, isequal, isless
 
-import Base.isvalid
-
 import Base: hcat, vcat, append!
+
+import Base: collect
 
 import QMC: getPoint
 
 # export statements
+export Index, SL, ML, FT, TD, HC, AD, getIndexSet # from Indexsets.jl
 
-export Index, IndexSet, createIndexSet, getIndexSet # from Indexsetsjl
+export Sampler, setup, save, load, reset # from Sampler.jl
 
-export Sampler, Settings, createSampler, createSettings # from Sampler.jl
+export KLExpansion, MaternKernel, compose # from GaussianFieldSamplers.jl
 
-export KLexpansion, createKLexpansion, createMaternKernel, compose # from GaussianFieldSamplers.jl
-
-export MCgenerator, GaussianMCgenerator, UniformMCgenerator,
-	QMCgenerator, GaussianQMCgenerator, UniformQMCgenerator, reset # from PointSetGenerators.jl
+export GaussianMCgenerator, UniformMCgenerator, GaussianQMCgenerator, UniformQMCgenerator, reset # from PointSetGenerators.jl
 
 export simulate # from MultilevelAlgorithm.jl
 
@@ -45,10 +47,5 @@ include("PointSetGenerators.jl")
 include("Sampler.jl")
 
 include("MultilevelAlgorithm.jl")
-
-# export all index sets
-for k in instances(Kind) 
-	@eval export $(symbol(k))
-end 
 
 end # module

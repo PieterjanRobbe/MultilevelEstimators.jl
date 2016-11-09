@@ -6,7 +6,7 @@ module TestModule
 
     @reexport using MultilevelEstimators
 
-	export parametrizedPDEpointEvaluation, parametrizedPDEEffectiveConductivity
+	export parametrizedPDEPointEvaluation, parametrizedPDEEffectiveConductivity
 
 	include("../2d/epde2.jl")
 

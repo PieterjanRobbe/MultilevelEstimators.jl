@@ -10,6 +10,39 @@ ndims{d}(index::Index{d}) = d
 Index{N<:Integer}(index::Vector{N}) = Index{length(index),Vector{N}}(index)
 Index{N<:Integer}(i::N...) = Index{length(i),Vector{N}}([i...]) # slurping and splatting
 
+# create Index form String
+function Index{S<:AbstractString}(index_string::S)
+  index_array = split(index_string,',')
+  if length(index_array) == 1
+    idx = tryparse(Int64,index_array[1][2:end-1])
+    !isnull(idx) || error("could not parse $(index_array[1][2:end-1]) into Int64")
+    return Index(parse(Int64,index_array[1][2:end-1]))
+  else
+    idx = zeros(Int64,length(index_array))
+    tmp = tryparse(Int64,index_array[1][2:end])
+    if !isnull(tmp)
+      idx[1] = get(tmp)
+    else
+      error("could not parse $(index_array[1][2:end]) into Int64")
+    end
+    tmp = tryparse(Int64,index_array[end][1:end-1])
+    if !isnull(tmp)
+      idx[end] = get(tmp)
+    else
+      error("could not parse $(index_array[end][1:end-1]) into Int64")
+    end
+    for i = 2:length(index_array)-1
+      tmp = tryparse(Int64,index_array[i])
+      if !isnull(tmp)
+        idx[i] = get(tmp)
+      else
+        error("could not parse $(index_array[i]) into Int64")
+      end
+    end
+    return Index(idx)
+  end
+end
+
 # methods
 isvalid{I<:Index}(index::I) = all(index.indices .≥ 0)::Bool
 
@@ -70,37 +103,119 @@ function show(io::IO, index::Index)
   print(io, @sprintf("%i]",index[d]))
 end
 
-# enum with index set types
-@enum Kind ML FT TD HC AD
-
 # representation of an index set
-type IndexSet{K, d, W<:AbstractVector}
+abstract IndexSet{d}
+
+type SL{d} <: IndexSet{d}
+end
+
+type ML{d} <: IndexSet{d}
+end
+
+type FT{d, W<:AbstractVector} <: IndexSet{d}
   weights::W
 end
 
+type TD{d, W<:AbstractVector} <: IndexSet{d}
+  weights::W
+end
+
+type HC{d, W<:AbstractVector} <: IndexSet{d}
+  weights::W
+end
+
+type AD{d} <: IndexSet{d}
+end
+
 # utilities
-ndims{K,d}(::IndexSet{K,d}) = d
-kind{K,d}(::IndexSet{K,d}) = K
+ndims{d}(::IndexSet{d}) = d
 
 # constructor for index sets
-IndexSet{T<:AbstractFloat}(K::Kind, weights::Vector{T}) = IndexSet{K,length(weights),Vector{T}}(weights)
+function SL()
+  return SL{1}()
+end
 
-# create index set
-function createIndexSet{N<:Integer,T<:AbstractFloat}(K::Kind, d::N; weights::Vector{T} = ones(Float64,d))
-  d > 0 || error("dimension of index set cannot be negative or zero!")
-  K == ML ? ( d == 1 || error("can only perform MLMC when d=1") ) : ( d != 1 || error("cannot perform MIMC simulation with d=1, choose ML or increase dimension!") )
-  K == ML ? weights == ones(T,d) || error("cannot assign weights to index set of type ML!") : []
-  ( ( length(weights) == d ) && all(weights .> 0) ) || error("incorrect weights specified!")
+function ML()
+  return ML{1}()
+end
 
-  return IndexSet(K, weights)
+function FT{N<:Int}(d::N)
+  if d <= 1
+    error("can only use FT with d>1!")
+  end
+  return FT{d,Vector{Float64}}(ones(Float64,d))
+end
+
+function FT{T<:AbstractFloat}(weights::Vector{T})
+  if ( length(weights) <= 1 ) || !all(weights .> 0)
+    error("incorrect weights for type FT, must be of length d>1 and positive!")
+  end
+  return FT{length(weights),Vector{T}}(weights)
+end
+
+function TD{N<:Int}(d::N)
+  if d <= 1
+    error("can only use TD with d>1!")
+  end
+  return TD{d,Vector{Float64}}(ones(Float64,d))
+end
+
+function TD{T<:AbstractFloat}(weights::Vector{T})
+  if ( length(weights) <= 1 ) || !all(weights .> 0)
+    error("incorrect weights for type TD, must be of length d>1 and positive!")
+  end
+  return TD{length(weights),Vector{T}}(weights)
+end
+
+HC{T<:AbstractFloat}(weights::Vector{T}) = HC{length(weights),Vector{T}}(weights)
+function HC{N<:Int}(d::N)
+  if d <= 1
+    error("can only use HC with d>1!")
+  end
+  return HC{d,Vector{Float64}}(ones(Float64,d))
+end
+
+function HC{T<:AbstractFloat}(weights::Vector{T})
+  if ( length(weights) <= 1 ) || !all(weights .> 0)
+    error("incorrect weights for type HC, must be of length d>1 and positive!")
+  end
+  return HC{length(weights),Vector{T}}(weights)
+end
+
+function AD{N<:Int}(d::N)
+  if d<=1
+    error("can only use AD with d>1!")
+  end
+  return AD{d}()
 end
 
 # methods
 isValid{I<:IndexSet}(indexset::I) = ( typeof(ndims(indexset)) <: Integer && ndims(indexset) > 0 && length(indexset.weights) == ndims(indexset) )
 
-function show(io::IO, indexset::IndexSet)
-  print(io, "$(ndims(indexset))-dimensional index set of type $(kind(indexset)) with weights $(indexset.weights)")
+function show(io::IO, sl::SL)
+  print(io, "Single level index set")
 end
+
+function show(io::IO, ml::ML)
+  print(io, "Multilevel index set")
+end
+
+function show(io::IO, ft::FT)
+  print(io, "$(ndims(ft))-dimensional index set of type FT with weights $(ft.weights)")
+end
+
+function show(io::IO, td::TD)
+  print(io, "$(ndims(td))-dimensional index set of type TD with weights $(td.weights)")
+end
+
+function show(io::IO, hc::HC)
+  print(io, "$(ndims(hc))-dimensional index set of type HC with weights $(hc.weights)")
+end
+
+function show(io::IO, ad::AD)
+  print(io, "$(ndims(ad))-dimensional adaptive index set")
+end
+
 
 #
 # Main methods for working with indices and index sets
@@ -129,15 +244,12 @@ end
 
 # drop algorithm for the iterative enumeration of all indices of given kind
 # see "M. Holz, Sparse Grid Quadrature in High Dimensions with Applications, Springer, 2010"
-function drop{d,V,N<:Integer,K}(i::Index{d,V}, L::N, indexset::IndexSet{K,d})
+function drop{d,N<:Integer}(i::Index{d}, L::N, indexset::IndexSet{d})
   p = 1
   returnvalue = zero(i)
   while i != -1 # at most two iterations
     i[p] += 1
-     if ( K == ML && all(i[:].>L) ) ||
-        ( K == FT && (i.*indexset.weights)[p] > L ) ||
-        ( K == TD && sum(i.*indexset.weights) > L ) ||
-        ( K == HC && prod(max(1,i.*indexset.weights)) > L )     
+     if check_drop(p,i,L,indexset)
       if p == ndims(i)
         returnvalue = -one(i)
         break
@@ -152,8 +264,28 @@ function drop{d,V,N<:Integer,K}(i::Index{d,V}, L::N, indexset::IndexSet{K,d})
   return returnvalue
 end
 
+function check_drop{d,N<:Integer}(p::N, i::Index{d}, L::N, indexset::SL{d})
+  return i[1] > L
+end
+
+function check_drop{d,N<:Integer}(p::N, i::Index{d}, L::N, indexset::ML{d})
+  return i[1] > L
+end
+
+function check_drop{d,N<:Integer}(p::N, i::Index{d}, L::N, indexset::FT{d})
+  return (i.*indexset.weights)[p] > L
+end
+
+function check_drop{d,N<:Integer}(p::N, i::Index{d}, L::N, indexset::TD{d})
+  return sum(i.*indexset.weights) > L
+end
+
+function check_drop{d,N<:Integer}(p::N, i::Index{d}, L::N, indexset::HC{d})
+  return prod(max(1,i.*indexset.weights)) > L
+end
+
 # return index set of given kind for certain parameter L
-function getIndexSet{K,d,N<:Integer}(indexset::IndexSet{K,d}, L::N)
+function getIndexSet{d,N<:Integer}(indexset::IndexSet{d}, L::N)
   indices = Set{Index{d,Vector{N}}}()
   if L ≥ 0
     i = Index(zeros(N,d))::Index{d,Vector{N}}

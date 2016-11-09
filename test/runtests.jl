@@ -22,25 +22,33 @@ function test1(TOL::AbstractFloat)
 	λ = 1.
 	σ = 1.
 	ν = 0.5
-	p = 1
-	rho(x,y) = matern(λ,σ,ν,p,x,y)
+	p = 1.
 
 	s = 100
 	
-	indexset = createIndexSet(ML,d)
-	numberGenerator = GaussianMCgenerator(s)
-	gaussianFieldSampler = createKLexpansion(pd,λ,σ,ν,s,cov=rho)
-	sampleFunction = parametrizedPDEpointEvaluation
+	myIndexSet = ML() # set-up for multilevel
+	myNumberGenerator = GaussianMCgenerator(s) # Monte Carlo sampler
+	myMaternKernel = MaternKernel(λ,σ,ν,p)
+	myGaussianFieldSampler = KLExpansion(myMaternKernel,pd,s,m0=4,maxL=6)
 
-	mySettings = Settings(indexset, numberGenerator, sampleFunction, gaussianFieldSampler=gaussianFieldSampler, Z=9)
+	myDict = Dict(
+    	"indexSet" => myIndexSet,
+    	"numberGenerator" => myNumberGenerator,
+    	"sampleFunction" => parametrizedPDEPointEvaluation,
+    	"gaussianFieldSampler" => myGaussianFieldSampler,
+    	"Z" => 9
+	)
 
-	mySampler = createSampler(mySettings)
+	mySampler = setup(myDict)
 
-	(E, V, A, B, splitting, S) = simulate(mySampler,TOL)
+	t = simulate(mySampler,TOL)
 
-	@test_approx_eq_eps E[5] 0.5 TOL
+	E = 0.
+	for index in keys(mySampler.samples)
+      E += squeeze(mean(mySampler.samples[index],(1,2)),(1,2))[5]
+  	end
 
-	@test maximum(A + B) <= TOL
+	@test_approx_eq_eps E 0.5 TOL
 end
 
 #########################################################################
@@ -53,31 +61,68 @@ function test2(TOL::AbstractFloat)
 	λ = 1.
 	σ = 1.
 	ν = 0.5
-	p = 1
-	rho(x,y) = matern(λ,σ,ν,p,x,y)
+	p = 1.
+
+	s = 100
+	q = 16
+	
+	myIndexSet = TD(d) # set-up for multilevel
+	myNumberGenerator = GaussianQMCgenerator(s,q) # Quasi-Monte Carlo sampler
+	myMaternKernel = MaternKernel(λ,σ,ν,p)
+	myGaussianFieldSampler = KLExpansion(myMaternKernel,pd,s,m0=4,maxL=6)
+
+	myDict = Dict(
+    	"indexSet" => myIndexSet,
+    	"numberGenerator" => myNumberGenerator,
+    	"sampleFunction" => parametrizedPDEEffectiveConductivity,
+    	"gaussianFieldSampler" => myGaussianFieldSampler
+	)
+
+	mySampler = setup(myDict)
+
+	t = simulate(mySampler,TOL)
+end
+
+#########################################################################
+# 2D ELLIPTIC SPDE WITH NEUMANN BOUNDARY CONDITIONS, ACMIMC
+#########################################################################
+function test3(TOL::AbstractFloat)
+	pd = 2 # physical dimension of the problem
+	d = 2 # dimension of the index set
+
+	λ = 1.
+	σ = 1.
+	ν = 0.5
+	p = 1.
 
 	s = 100
 	
-	q = 16
+	myIndexSet = AD(d) # set-up for multilevel
+	myNumberGenerator = GaussianMCgenerator(s) # Monte Carlo sampler
+	myMaternKernel = MaternKernel(λ,σ,ν,p)
+	myGaussianFieldSampler = KLExpansion(myMaternKernel,pd,s,m0=4,maxL=6)
 
-	indexset = createIndexSet(TD,d)
-	numberGenerator = GaussianQMCgenerator(s,q)
-	gaussianFieldSampler = createKLexpansion(pd,λ,σ,ν,s,cov=rho)
-	sampleFunction = parametrizedPDEEffectiveConductivity
+	myDict = Dict(
+    	"indexSet" => myIndexSet,
+    	"numberGenerator" => myNumberGenerator,
+    	"sampleFunction" => parametrizedPDEEffectiveConductivity,
+    	"gaussianFieldSampler" => myGaussianFieldSampler,
+    	"continuate" => true
+	)
 
-	mySettings = Settings(indexset, numberGenerator, sampleFunction, gaussianFieldSampler=gaussianFieldSampler)
+	mySampler = setup(myDict)
 
-	mySampler = createSampler(mySettings)
-
-	(E, V, A, B, splitting, S) = simulate(mySampler,TOL)
-
-	@test maximum(A + B) <= TOL
+	t = simulate(mySampler,TOL)
 end
 
+# reset random number generator for reproducibility
+srand(2016)
+
 # run first test
-test1(1e-1)
-@time test1(1e-3)
+test1(1e-3)
 
 # run second test
-test2(1e-1)
-@time test2(1e-3)
+test2(1e-3)
+
+# run third test
+test3(1e-3)

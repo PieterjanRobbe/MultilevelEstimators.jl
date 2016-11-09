@@ -7,7 +7,7 @@ type EmptySampler <: GaussianFieldSampler
 end
 
 # KL expansion
-type KLexpansion{d,N<:Integer,A<:AbstractVector,B<:AbstractVector} <: GaussianFieldSampler
+type KLExpansion{d,N<:Integer,A<:AbstractVector,B<:AbstractVector} <: GaussianFieldSampler
   mkl::N # number of terms in KL expansion
   eigenval::A # d-dimensional KL eigenvalues (Array of tupples with index and value)
   eigenfunc::B # 1d KL eigenfunctions
@@ -15,9 +15,9 @@ type KLexpansion{d,N<:Integer,A<:AbstractVector,B<:AbstractVector} <: GaussianFi
 end
 
 # utilities
-ndims{d}(G::KLexpansion{d}) = d
-inttype{d,N}(G::KLexpansion{d,N}) = N
-floattype(G::KLexpansion) = eltype(eltype(G.eigenfunc))
+ndims{d}(G::KLExpansion{d}) = d
+inttype{d,N}(G::KLExpansion{d,N}) = N
+floattype(G::KLExpansion) = eltype(eltype(G.eigenfunc))
 
 # methods
 isValid(G::EmptySampler) = true
@@ -26,14 +26,14 @@ function show(io::IO, G::EmptySampler)
   print(io, "emtyp Gaussian field sampler")
 end
 
-function isValid(G::KLexpansion)
+function isValid(G::KLExpansion)
   d = ndims(G)
   N = inttype(G)
   T = floattype(G)
   return G.mkl > 0 && typeof(G.eigenval) == Vector{Tuple{Index{d,Vector{N}},T}} && typeof(G.eigenfunc) == Vector{Array{T,2}}
 end
 
-function show(io::IO, G::KLexpansion)
+function show(io::IO, G::KLExpansion)
   str = G.ad ? "level-adaptive " : ""
   print(io, str*"KL-expansion with $(G.mkl) terms")
 end
@@ -46,16 +46,18 @@ type MaternKernel{T<:AbstractFloat} <: Kernel
   σ::T # variance
   ν::T # smoothness parameter
   p::T # p-norm
+
+  function MaternKernel(λ, σ, ν, p)
+    λ > 0 || error("correlation length of random field cannot be negative or zero!")
+    σ > 0 || error("variance of random field cannot be negative or zero!")
+    ν > 0 || error("smoothness of random field cannot be negative or zero!")
+    p >= 1 || error("p-norm needs p>1!")
+
+    return new(λ, σ, ν, p)
+  end
 end
 
-function createMaternKernel{T<:AbstractFloat}(λ::T, σ::T, ν::T, p::T)
-  λ > 0 || error("correlation length of random field cannot be negative or zero!")
-  σ > 0 || error("variance of random field cannot be negative or zero!")
-  ν > 0 || error("smoothness of random field cannot be negative or zero!")
-  p >= 1 || error("p-norm needs p>1!")
-
-  return MaternKernel(λ, σ, ν, p)
-end
+MaternKernel{T<:AbstractFloat}(λ::T,σ::T,ν::T,p::T) = MaternKernel{T}(λ,σ,ν,p)
 
 # methods
 isValid(M::MaternKernel) = ( λ > 0 && σ > 0 && ν > 0 && p >= 1 )
@@ -73,7 +75,7 @@ function applyKernel{T<:AbstractFloat}(K::MaternKernel,x::AbstractArray{T},y::Ab
 end
 
 function show(io::IO, M::MaternKernel)
-  print(io, "Matern kernel with correlation length λ = $λ, variance σ^2 = $(σ^2), smoothness ν = $ν and $(p)-norm.")
+  print(io, "Matern kernel with correlation length λ = $(M.λ), variance σ^2 = $((M.σ)^2), smoothness ν = $(M.ν) and $(M.p)-norm.")
 end
 
 #
@@ -81,11 +83,11 @@ end
 #
 
 # constructor for separable kernels (non-separable is not implemented yet...)
-function createKLexpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxK::N = 15, ad::Bool = false, x::Vector{Vector{T}} = Vector{Vector{Float64}}())
+function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 15, ad::Bool = false, x::Vector{Vector{T}} = Vector{Vector{Float64}}())
   d > 0 || error("dimension cannot be negative or zero!")
   mkl > 0 || error("number of KL-terms must be a positive integer!")
-  maxK > 0 || error("maximum indexset indicator must be postitive")
-  isempty(x) || ( length(x) == maxK || error("supply as many points at each level as maxK+1") )
+  maxL > 0 || error("maximum indexset indicator must be postitive")
+  isempty(x) || ( length(x) == maxL || error("supply as many points at each level as maxL+1") )
 
   # calculate eigenvalues
   if typeof(kernel) == MaternKernel && kernel.ν == 0.5
@@ -122,36 +124,37 @@ function createKLexpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxK::N
   if typeof(kernel) == MaternKernel && kernel.ν == 0.5
     ω = ω[1:max_mkl] # cut off ω
     n = sqrt(2)/2*sqrt(1./ω.*(kernel.λ^2*ω.^2.*cos(ω).*sin(ω)+kernel.λ^2*ω.^3-2*kernel.λ*ω.*cos(ω).^2-cos(ω).*sin(ω)+ω)+2*kernel.λ)
-    for K in 0:maxK
+    for L in 0:maxL
       if isempty(x)
-        m = m0*2^K
-        pts = collect(1/2/m:1/m:1-1/2/m)
+        m = m0*2^L
+        pts = collect(1/2/m:1/m:1-1/2/m) # finite volume method, cell centered values
       else
-        pts = collect(x[K+1])
+        pts = collect(x[L+1]) # other values if specified
       end
       push!(eigenfunc,diagm(1./n)*( sin(ω*pts') + kernel.λ*diagm(ω)*cos(ω*pts') ))
     end
   else
-    for K in 0:maxK
-      dummy,temp = nystrom(kernel,m0*2^K,max_mkl)
+    for L in 0:maxL
+      dummy,temp = nystrom(kernel,m0*2^L,max_mkl)
       push!(eigenfunc, temp)
     end
   end
 
-  return KLexpansion{d,N,typeof(O),typeof(eigenfunc)}(mkl,O,eigenfunc,ad)
+  return KLExpansion{d,N,typeof(O),typeof(eigenfunc)}(mkl,O,eigenfunc,ad)
 end
 
 # function to compose KL expansion
-function compose{K<:KLexpansion,T<:AbstractFloat,t,V}(kl::K, xi::Vector{T}, index::Index{t,V})
+function compose{K<:KLExpansion,T<:AbstractFloat,t,V}(kl::K, xi::Vector{T}, index::Index{t,V})
   N = inttype(kl)
   d = ndims(kl)
   nterms = length(kl.eigenval)
   if kl.ad
     nterms = index.indices[end]
     index_ = Index(index.indices[1:end-1])::Index{t-1,V}
-  end
-  if ndims(index) < d # FIX for multilevel case
+  elseif ndims(index) < d # FIX for multilevel case
     index_ = Index(repeat([index[1]],inner=[d]))::Index{d,V}
+  else
+    index_ = index
   end
 
   # first term for type-stability of k

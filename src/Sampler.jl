@@ -1,213 +1,510 @@
-# settings type
-type Settings{d,V<:AbstractVector,W<:AbstractVector,N<:Integer,T<:AbstractFloat,I<:IndexSet,G<:NumberGenerator,F<:GaussianFieldSampler,D<:Dict}
-  indexset::I # type of index set
-  numberGenerator::G # type of point generator
-  sampleFunction::Function # quantity of interest
-  m0::V # coarsest mesh size
-  maxL::N # max index number
-  γ::W # solver complexity
-  splitting::T # desired MSE splitting
-  Z::N # number of QOI's to determine
-  Nstar::N # number of warm-up samples
-  gaussianFieldSampler::F # type of Gaussian field sampler
-  showInfo::Bool # boolean to decide if something must be printed to screen
-  useTime::Bool # boolean to indicate if true simulation time must be used as cost measure
-  safety::Bool # for MLMC, if true then it is guaranteed that variance of estimator is less than TOL^2/2
-  generatorState::D # save states of number generator
-  procMap::D # maps index to number of processors to be used
-end
-
-# utilities
-inttype{d,V,W,N}(settings::Settings{d,V,W,N}) = N
-floattype{d,V,W,N,T}(settings::Settings{d,V,W,N,T}) = T
-ndims{d}(settings::Settings{d}) = d
-
-# outer constructor
-function createSettings{I,G,V,W,N,T,F}(
-  indexset::I,
-  numberGenerator::G,
-  sampleFunction::Function;
-  m0::V = 4*ones(Int64,1),
-  maxL::N = 6,
-  γ::W = 1.2*ones(Float64,1),
-  splitting::T = 0.5,
-  Z::N = 1,
-  Nstar::N = 16,
-  gaussianFieldSampler::F = EmptySampler(),
-  showInfo::Bool = true,
-  useTime::Bool = false,
-  safety = true,
-  procMap = Dict{Index,Integer}() )
-
-  # assertions
-  @assert isValid(indexset) && isValid(numberGenerator) && all(m0.>0) && maxL >= 0 && 
-    all(γ.>0) && splitting >= 0 && splitting <= 1 && Z >= 1 && isValid(gaussianFieldSampler) && Nstar > 0
-  
-  # get dimenion
-  d = ndims(indexset)
-
-  # check coarsest mesh sizes
-  length(m0) == d || warn("length of vector m0 with coarsest mesh sizes is not equal to d, I will try to proceed by adapting length(m0).")
-  if length(m0) > d
-    m0 = m0[1:d]
-  elseif length(m0) < d
-    while length(m0) < d
-      push!(m0,m0[1])
-    end
-  end
-
-  # check solver complexities
-  length(γ) == d || warn("length of vector γ with solver complexities is not equal to d, I will try to proceed by adapting length(γ).")
-  if length(γ) > d
-    γ = γ[1:d]
-  elseif length(γ) < d
-    while length(γ) < d
-      push!(γ,γ[1])
-    end
-  end 
-
-  # assert m0[1] is equal to the one set by the gaussianFieldSampler
-  if typeof(gaussianFieldSampler) != EmptySampler
-    m0[1] == size(gaussianFieldSampler.eigenfunc[1],2) || warn("coarsest mesh size is not equal for gaussianFieldSampler and this Settings, I will try to proceed anyway.")
-  end
-
-  # if we use a QMC generator, safety must be turned on
-  G <: QMCgenerator ? safety == true : error("when using a QMC generator, safety must be turned on!")
-
-  # dict for point generator states
-  generatorState = Dict{Index{d,Vector{N}},N}()
-
-  # compose worker map, if not empty
-  if isempty(procMap)
-    id_set = ( d == 1 ? createIndexSet(ML,d) : createIndexSet(FT,d) )
-    id_x = getIndexSet(id_set,maxL)
-    [setindex!(procMap,nprocs(),Index(i)) for i in id_x]
-  else
-    minimum(values(procMap)) > 0 || error("wrong procMap provided, nprocs must be positive!")
-    maximum(values(procMap)) <= nprocs() || error("I only have $(nprocs()) processor(s) available. Lower the requested number of processors in the procMap or start Julia with more processors.")
-  end
-
-  return Settings{d,V,W,N,T,I,G,F,typeof(generatorState)}(indexset,numberGenerator,sampleFunction,m0,maxL,γ,splitting,Z,
-    Nstar,gaussianFieldSampler,showInfo,useTime,safety,generatorState,procMap)
-end
-
-# methods
-function isValid(settings::Settings)
-  d = ndims(settings)
-  N = inttype(settings)
-  returnvalue = isValid(settings.indexset) && isValid(settings.numberGenerator) && all(settings.m0.>0) && settings.maxL >= 0 && 
-    all(settings.γ.>0) && settings.splitting >= 0 && settings.splitting <= 1 && settings.Z >= 1 && isValid(settings.gaussianFieldSampler) &&
-    length(settings.m0) == d && ( typeof(settings.gaussianFieldSampler) == EmptySampler || settings.m0[1] == size(settings.gaussianFieldSampler.eigenfunc[1],2)) &&
-    minimum(values(settings.procMap)) > 0 && maximum(values(settings.procMap)) <= nprocs() && typeof(settings.generatorState) == Dict{Index{d,Vector{N}},N} &&
-    typeof(settings.procMap) == Dict{Index{d,Vector{N}},N} && length(settings.γ) == d && settings.Nstar  > 0 && (typeof(settings.numberGenerator) <: QMCgenerator ? settings.safety == true : false)
-end
-
-function show(io::IO, settings::Settings)
-  itype = ndims(settings.indexset) == 1 ? "level" : "index"
-  str  = "  ****************************************************** \n"
-  str *= "  *                    Settings with                   * \n"
-  str *= "  ****************************************************** \n"
-  str *= "  \n"
-  str *= "  indexset = $(settings.indexset) \n"
-  str *= "  numberGenerator = $(settings.numberGenerator) \n"
-  str *= "  sampleFunction = $(settings.sampleFunction) \n"
-  str *= "  m0 = $(settings.m0) # coarsest mesh sizes (vector of length d) \n"
-  str *= "  maxL = $(settings.maxL) # maximum level parameter for index sets \n"
-  str *= "  γ= $(settings.γ) # solver complexities (vector of length d) \n"
-  str *= "  splitting = $(settings.splitting) # desired splitting between bias and variance (0.5) \n"
-  str *= "  Z = $(settings.Z) # number of qoi's \n"
-  str *= "  Nstar = $(settings.Nstar) # number of warm-up samples"
-  str *= "  gaussianFieldSampler = $(settings.gaussianFieldSampler) \n"
-  str *= "  showInfo = $(settings.showInfo) \n"
-  str *= "  useTime = $(settings.useTime) # use true simulation time as cost measure \n"
-  str *= "  safety = $(settings.safety) # guarantee that variance of estimator < 0.5*TOL^2 \n"
-  str *= "  generator states: \n"
-  str *= "  -------------------------------------- \n"
-  str *= "    $itype             generator state   \n"
-  str *= "  -------------------------------------- \n"
-  for index in sort(collect(keys(settings.generatorState)))
-    str *= "    $(index.indices)                         "[1:18]
-    str *= "    $(settings.generatorState[index])\n"
-  end
-  str *= "  processor map: \n"
-  str *= "  -------------------------------------- \n"
-  str *= "    $itype             processor map     \n"
-  str *= "  -------------------------------------- \n"
-  for index in sort(collect(keys(settings.procMap)))
-    str *= "    $(index.indices)                        "[1:18]
-    str *= "    $(settings.procMap[index])\n"
-  end
-  print(io, str)
-end
-
-# reset settings
-function reset{S<:Settings}(settings::S)
-  d = ndims(settings)
-  N = inttype(settings)
-  reset(settings.numberGenerator)
-  settings.generatorState = Dict{Index{d,Vector{N}},N}()
-end
-
 # sampler type
-type Sampler{d,N<:Integer,S<:Settings,D<:Dict,E<:Dict}
-  L::N # keeps track of the size of the index set
-  settings::S # simulation settings
-  samples::D # stores all the samples
-  times::E # store the times for taking these samples
-end
+type Sampler{d,I<:IndexSet,G<:NumberGenerator,F<:GaussianFieldSampler,D1<:Dict,D2<:Dict,D3<:Dict,UType}
 
-# outer constructor
-function createSampler{d,V,W,N,T}(settings::Settings{d,V,W,N,T})
-  isValid(settings) || error("incorrect settings specified")
-  samples = Dict{Index{d,Vector{N}},Array{T,3}}()
-  times = Dict{Index{d,Vector{N}},T}()
-  return Sampler{d,N,typeof(settings),typeof(samples),typeof(times)}(0, settings, samples, times)
+  # settings that must be provided by the user
+  indexSet::I                   # type of index set
+  numberGenerator::G            # type of point generator
+  sampleFunction::Function      # quantity of interest (qoi)
+
+  # settings that can be altered by the user
+# coarseGrids::Vector{Float64}  # coarsest mesh sizes (vector of length d) (obsolete ???)
+  maxL::Int64                   # max index number
+  γ::Vector{Float64}            # solver complexity (vector of length d)
+# splitting::Float64            # desired MSE splitting (obsolete ???)
+  Z::Int64                      # number of qoi's to determine
+  Nstar::Int64                  # number of warm-up samples
+  gaussianFieldSampler::F       # type of Gaussian field sampler
+  useTime::Bool                 # use true simulation time as cost measure
+  safety::Bool                  # guarantee that variance of estimator is less than θ^2*TOL^2
+  continuate::Bool              # use Bayesian inversion for parameter estimation
+  nTOL::Int64                   # number of iterations in the continuation algorithm
+  k::Tuple{Float64,Float64}     # trust parameters for normal-gamma prior in continuation algorithm
+  showInfo::Bool                # print diagnostics to screen
+  ioStream::IO                  # where to write output to (file or std out)
+  storeSamples0::Bool           # store non-difference samples for problem analysis
+  procMap::D1                   # maps index to number of processors to be used
+  userType::UType
+
+  # unchangeable
+  generatorStates::D1           # save states of number generator
+  samples::D2                   # stores all the difference samples
+  samples0::D2                  # stores all the non-difference samples
+  times::D3                     # store the time / index
 end
 
 # utilities
-inttype(sampler::Sampler) = inttype(sampler.settings)
-floattype(sampler::Sampler) = floattype(sampler.settings)
 ndims{d}(sampler::Sampler{d}) = d
-kind(sampler::Sampler) = kind(sampler.settings.indexset)
 
-# methods
-function isValid(S::Sampler)
-  d = ndims(sampler.settings)
-  N = inttype(sampler.settings)
-  T = floattype(sampler.settings)
-  returnvalue = L > 0 && isValid(sampler.settings) && typeof(sampler.samples) == Dict{Index{d,Vector{N}},Array{T,3}} &&
-  typeof(sampler.times) == Dict{Index{d,Vector{N}},T}
+# constructor
+function setup{S<:AbstractString}(dict::Dict{S,Any})
+
+  settings = copy(dict)
+
+  if !haskey(settings,"indexSet")
+    error("I need an indexSet (SL/ML/FT/TD/HC/AD) before I can do anything!")
+  else
+    indexSet = settings["indexSet"]
+    delete!(settings,"indexSet")
+    if !(typeof(indexSet) <: IndexSet)
+      error("incorrect indexSet specified!")
+    end
+  end
+  d = ndims(indexSet)
+
+  if !haskey(settings,"numberGenerator")
+    error("I need a numberGenerator before I can do anything!")
+  else
+    numberGenerator = settings["numberGenerator"]
+    delete!(settings,"numberGenerator")
+    if !(typeof(numberGenerator) <: NumberGenerator)
+      error("incorrect numberGenerator specified!")
+    end
+  end
+
+  if !haskey(settings,"sampleFunction")
+    error("I need a sampleFunction (aka qoi) before I can do anything!")
+  else
+    sampleFunction = settings["sampleFunction"]
+    delete!(settings,"sampleFunction")
+    if !(typeof(sampleFunction) == Function)
+      error("incorrect sampleFunction specified!")
+    end
+  end
+
+  # if haskey(settings,"coarseGrids")
+  #   if length(coarseGrids) > d
+  #     warn("length of vector coarseGrids with coarsest mesh sizes is larger than d, but I will try to proceed by adapting length(coarseGrids).")
+  #     coarseGrids = coarseGrids[1:d]
+  #   elseif length(coarseGrids) < d
+  #     warn("length of vector coarseGrids with coarsest mesh sizes is smaller than d, but I will try to proceed by adapting length(coarseGrids).")
+  #     while length(coarseGrids) < d
+  #       push!(coarseGrids,coarseGrids[1])
+  #     end
+  #   end
+  # else
+  #   coarseGrids = 4*ones(Int64,d)
+  # end
+
+  if haskey(settings,"maxL")
+    maxL = settings["maxL"]
+    delete!(settings,"maxL")
+    if !(typeof(maxL) == Int64)
+      error("incorrect maxL specified!")
+    elseif maxL < 0
+      error("maximum level parameter maxL must be positive!")
+    end
+  else
+    maxL = 6
+  end
+  if ( typeof(indexSet) == SL && maxL != 0 )
+    warn("for SL simulation, maxL must equal zero. I will try to proceed with maxL=0")
+    maxL = 0
+  end
+
+  if haskey(settings,"γ")
+    γ = settings["γ"]
+    # delete!(settings,"γ")
+    if !(typeof(γ) == Vector{Float64})
+      error("incorrect solver complexities γ specified!")
+    elseif length(γ) > d
+      warn("length of vector γ with solver complexities is larger than d, but I will try to proceed by adapting length(γ).")
+      γ = γ[1:d]
+    elseif length(γ) < d
+      warn("length of vector γ with solver complexities is smaller than d, but I will try to proceed by adapting length(γ).")
+      while length(γ) < d
+        push!(γ,γ[1])
+      end
+    elseif !all(γ.>0)
+      error("solver complexities γ must be positive!")
+    elseif any(γ.<1)
+      warn("one of the solver complexities γ < 1, are you sure this is correct?")
+    end
+  else
+    γ = 1.5*ones(Float64,d)
+  end
+
+  # if haskey(settings,"splitting")
+  #   splitting = settings["splitting"]
+  #   delete!(settings,"splitting")
+  #   if !(typeof(splitting) == Float64)
+  #     error("incorrect splitting specified!")
+  #   elseif (splitting < 0 || splitting > 1)
+  #     error("splitting parameter must be between 0 and 1")
+  #   end
+  # else
+  #   splitting = 0.5
+  # end
+
+  if haskey(settings,"Z")
+    Z = settings["Z"]
+    delete!(settings,"Z")
+    if !(typeof(Z) == Int64)
+      error("incorrect number of qoi's Z specified!")
+    elseif Z < 1
+      error("number of qoi's Z must be positive!")
+    end
+  else
+    Z = 1
+  end
+
+  if haskey(settings,"Nstar")
+    Nstar = settings["Nstar"]
+    delete!(settings,"Nstar")
+    if !(typeof(Nstar) == Int64)
+      error("incorrect number of warm-up samples Nstar specified!")
+    elseif Nstar < 1
+      error("number of warm-up samples Nstar must be positive!")
+    end
+  else
+    Nstar = convert(Int64,ceil(32/nshifts(numberGenerator)))
+  end
+
+  if haskey(settings,"gaussianFieldSampler")
+    gaussianFieldSampler = settings["gaussianFieldSampler"]
+    delete!(settings,"gaussianFieldSampler")
+    if !(typeof(gaussianFieldSampler) <: GaussianFieldSampler || (typeof(gaussianFieldSampler) <: Array & eltype(gaussianFieldSampler) <: GaussianFieldSampler ) )
+      error("incorrect Gaussian field sampler gaussianFieldSampler specified!")
+    elseif typeof(gaussianFieldSampler) == KLExpansion && maxL+1 < length(gaussianFieldSampler.eigenfunc)
+      warn("you asked for $(maxL+1) levels, but the KL expansion only provides $(length(gaussianFieldSampler.eigenfunc)) eigenfunctions. I will try to continue anyway.")
+    elseif typeof(gaussianFieldSampler) <: Array
+      for i in 1:length(gaussianFieldSampler)
+        if typeof(gaussianFieldSampler[i]) == KLExpansion && maxL+1 < length(gaussianFieldSampler[i].eigenfunc)
+          warn("you asked for $(maxL+1) levels, but the $(i)-th KL expansion only provides $(length(gaussianFieldSampler.eigenfunc)) eigenfunctions. I will try to continue anyway.")
+        end
+      end
+    end
+    # if coarseGrids[1] != size(gaussianFieldSampler.eigenfunc[1],2)
+    #   warn("coarsest mesh size in coarseGrids is not equal to the mesh size of the eigenfunctions in gaussianFieldSampler, but I will try to proceed anyway.")
+    # end
+  else
+    gaussianFieldSampler = EmptySampler()
+  end
+
+  if haskey(settings,"useTime")
+    useTime = settings["useTime"]
+    delete!(settings,"useTime")
+    if !(typeof(useTime) == Bool)
+      error("incorrect boolean useTime specified!")
+    end
+  else
+    useTime = false
+  end
+  # check that either useTime is false and γ was provided or useTime is true and a cost model γ is provided
+  if useTime == false && !haskey(settings,"γ")
+    warn("useTime is set to false, but no cost model γ was provided. I will use the standard cost model γ= 1.5*ones(d) and try to continue.")
+  elseif useTime == true && haskey(settings,"γ")
+    warn("useTime is set to true, but also a cost model γ was provided. I will use the true simulation times and try to continue.")
+  end
+  delete!(settings,"γ")
+
+  if haskey(settings,"safety")
+    safety = settings["safety"]
+    delete!(settings,"safety")
+    if !(typeof(safety) == Bool)
+      error("incorrect boolean safety specified!")
+    end
+  else
+    safety = true
+  end
+  if typeof(numberGenerator) <: QMCgenerator && safety == false
+    warn("when using a QMC generator, safety must be turned on!")
+    safety = true
+  end
+
+  if haskey(settings,"continuate")
+    continuate = settings["continuate"]
+    delete!(settings,"continuate")
+    if !(typeof(continuate) == Bool)
+      error("incorrect boolean continuate specified!")
+    end
+  else
+    continuate = false
+  end
+
+  if haskey(settings,"nTOL")
+    nTOL = settings["nTOL"]
+    delete!(settings,"nTOL")
+    if !(typeof(nTOL) == Int64)
+      error("incorrect number of continuation tolerances nTOL specified!")
+    elseif nTOL < 0
+      error("number of continuation tolerances nTOL must be positive!")
+    elseif !continuate
+      warn("number of continuation tolerances nTOL was provided, but continuation is set to false. I will ignore entry 'nTOL'")
+    end
+  else
+    nTOL = 10
+  end
+
+  if haskey(settings,"k")
+    k = settings["k"]
+    delete!(settings,"k")
+    if !(typeof(k) == Tuple{Float64,Float64})
+      error("incorrect trust parameters k specified!")
+    elseif length(k) != 2
+      error("I can only accept 2 trust parameters k0 and k1")
+    elseif k[1]<0 || k[2]<0
+      error("trust parameters k must be positive")
+    elseif !continuate
+      warn("trust parameters k where provided, but continuation is set to false. I will ignore entry 'k'")
+    end
+  else
+    k = (0.1,0.1)
+  end
+
+  if haskey(settings,"showInfo")
+    showInfo = settings["showInfo"]
+    delete!(settings,"showInfo")
+    if !(typeof(showInfo) == Bool)
+      error("incorrect boolean showInfo specified!")
+    end
+  else
+    showInfo = true
+  end
+
+  if haskey(settings,"ioStream")
+    ioStream = settings["ioStream"]
+    if !(typeof(ioStream) == IO)
+      error("incorrect ioStream specified!")
+    end
+  else
+    ioStream = STDOUT
+  end
+
+  if haskey(settings,"storeSamples0")
+    storeSamples0 = settings["storeSamples0"]
+    delete!(settings,"storeSamples0")
+    if !(typeof(storeSamples0) == Bool)
+      error("incorrect boolean storeSamples0 specified!")
+    end
+  else
+    storeSamples0 = false
+  end
+
+  if haskey(settings,"procMap")
+    procMap = settings["procMap"]
+    delete!(settings,"procMap")
+    if !(typeof(ioStream) == Dict{Index{d,Vector{Int64}},Int64})
+      error("incorrect procMap specified!")
+    elseif minimum(values(procMap)) <= 0
+      error("wrong procMap provided, nprocs must be positive!")
+    elseif maximum(values(procMap)) > nprocs()
+      error("I only have $(nprocs()) processor(s) available. Lower the requested number of processors in the procMap or start Julia with more processors.")
+    end
+  else
+    procMap = Dict{Index{d,Vector{Int64}},Int64}()
+    dummyIndexSet = typeof(indexSet) <: AD ? TD(d) : indexSet
+    id_x = getIndexSet(dummyIndexSet,maxL)
+    [setindex!(procMap,nprocs(),i) for i in id_x]
+  end
+
+  if haskey(settings,"userType")
+    userType = settings["userType"]
+    delete!(settings,"userType")
+  else
+    userType = Void()
+  end
+
+  if !isempty(settings)
+    str = ""
+    for s in keys(settings)
+      str *= s*", "
+    end
+    str = str[1:end-2]
+    error("could not parse the following entries: "*str)
+  end
+
+  generatorStates = Dict{Index{d,Vector{Int64}},Int64}()
+
+  samples = Dict{Index{d,Vector{Int64}},Array{Float64,3}}()
+
+  samples0 = Dict{Index{d,Vector{Int64}},Array{Float64,3}}()
+
+  times = Dict{Index{d,Vector{Int64}},Float64}()
+  
+  return Sampler{d,typeof(indexSet),typeof(numberGenerator),typeof(gaussianFieldSampler),typeof(generatorStates),typeof(samples),typeof(times),typeof(userType)}(
+    indexSet, numberGenerator, sampleFunction, maxL, γ, Z, Nstar, gaussianFieldSampler, useTime,
+      safety, continuate, nTOL, k, showInfo, ioStream, storeSamples0, procMap, userType, generatorStates, samples, samples0, times)
 end
 
 function show(io::IO, sampler::Sampler)
-  itype = ndims(sampler.settings.indexset) == 1 ? "level" : "index"
-  str  = "  ****************************************************** \n"
-  str *= "  *                    Sampler with                    * \n"
-  str *= "  ****************************************************** \n"
-  str *= "  \n"
-  str *= "  L = $(sampler.L) # current level parameter \n"
-  substr = isValid(sampler.settings) ? "*valid*" : "*invalid* !!!"
-  str *= "  settings = $(substr) \n"
-  str *= "  samples: \n"
-  str *= "  ------------------------------------------------------ \n"
-  str *= "    $itype           sample size           time/sample   \n"
-  str *= "  ------------------------------------------------------ \n"
+  itype = ndims(sampler) == 1 ? "level" : "index"
+  str  = "********************************************************************************\n"
+  str *= "*                                SAMPLER STATUS                                *\n"
+  str *= "********************************************************************************\n"
+  str *= "indexSet        | $(sampler.indexSet) \n"
+  str *= "numberGenerator | $(sampler.numberGenerator) \n"
+  str *= "sampleFunction  | $(sampler.sampleFunction) \n"
+# str *= "coarseGrids     | $(sampler.coarseGrids) # coarsest mesh sizes (vector of length d) \n"
+  str *= "maxL            | $(sampler.maxL) # maximum level parameter for index sets \n"
+  str *= "γ               | $(sampler.γ) # solver complexities (vector of length d) \n"
+# str *= "splitting       | $(sampler.splitting) # desired splitting between bias and variance (0.5) \n"
+  str *= "Z               | $(sampler.Z) # number of qoi's \n"
+  str *= "Nstar           | $(sampler.Nstar) # number of warm-up samples \n"
+  str *= "gaussianFiel... | $(sampler.gaussianFieldSampler) \n"
+  str *= "useTime         | $(sampler.useTime) # use true simulation time as cost measure \n"
+  str *= "safety          | $(sampler.safety) # guarantee that variance of estimator < θ*TOL^2 \n"
+  str *= "continuate      | $(sampler.continuate) # do Bayesian parameter estimation \n"
+  str *= "k               | $(sampler.k) # trust parameters in normal-gaussian prior \n"
+  str *= "showInfo        | $(sampler.showInfo) \n"
+  str *= "storeSamples0   | $(sampler.storeSamples0) \n"
+  str *= "ioStream        | $(sampler.ioStream) \n"
+  str *= "userType        | $(sampler.userType) \n"
+  str *= "--> processor map: \n"
+  str *= "-------------------------------------- \n"
+  str *= "  $itype             processor map     \n"
+  str *= "-------------------------------------- \n"
+  for index in sort(collect(keys(sampler.procMap)))
+    str *= "  $(index.indices)                        "[1:18]
+    str *= "  $(sampler.procMap[index])\n"
+  end
+  str *= "--> generator states: \n"
+  str *= "-------------------------------------- \n"
+  str *= "  $itype             generator state   \n"
+  str *= "-------------------------------------- \n"
+  for index in sort(collect(keys(sampler.generatorStates)))
+    str *= "  $(index.indices)                         "[1:18]
+    str *= "  $(sampler.generatorStates[index])\n"
+  end
+  dir = isa(sampler.numberGenerator,MCgenerator) ? 2 : 1
+  str *= "--> samples: \n"
+  str *= "------------------------------------------------------ \n"
+  str *= "  $itype           sample size           time/sample   \n"
+  str *= "------------------------------------------------------ \n"
   for index in sort(collect(keys(sampler.samples)))
-    str *= "    $(index.indices)                         "[1:16]
-    str *= "    $(size(sampler.samples[index]))                   "[1:22]
-    str *= @sprintf("    %0.6e\n",sampler.times[index])
+    nsamples = size(sampler.samples[index],dir)
+    str *= "  $(index.indices)                         "[1:16]
+    str *= "  $(size(sampler.samples[index]))                   "[1:22]
+    str *= @sprintf("  %0.6e\n",sampler.times[index]/nsamples)
   end
   print(io, str)
 end
 
-function reset{S<:Sampler}(sampler::S)
-  reset(sampler.settings)
+# save current state of the sampler for later reinitialisation
+function save(sampler::Sampler)
+  # make directory structure
+  current_dir = pwd()
+  dir_name = "data_"*Dates.format(now(),"dd_mm_yy_HH_MM")
+  mkdir(dir_name)
+  cd(dir_name)
+
+  # print sampler info to info.txt
+  file_handle = open("info.txt","a")
+  show(file_handle, sampler)
+  close(file_handle)
+
+  # save all samples
+  dir_name = "samples"
+  mkdir(dir_name)
+  cd(dir_name)
+  for idx in keys(sampler.samples)
+    dir_name = @sprintf("%s",idx.indices)
+    mkdir(dir_name)
+    cd(dir_name)
+    writedlm("gen_state.txt",sampler.generatorStates[idx])
+    writedlm("time.txt",sampler.times[idx])
+    for z in 1:sampler.Z
+      writedlm("Z$(z).txt",sampler.samples[idx][:,:,z])
+    end
+    cd("..")
+  end
+  cd("..")
+
+  # save all samples0 (non-difference samples)
+  if sampler.storeSamples0
+    dir_name = "samples0"
+    mkdir(dir_name)
+    cd(dir_name)
+    for idx in keys(sampler.samples)
+      dir_name = @sprintf("%s",idx.indices)
+      mkdir(dir_name)
+      cd(dir_name)
+      for z in 1:sampler.Z
+        writedlm("Z$(z).txt",sampler.samples0[idx][:,:,z])
+      end
+      cd("..")
+    end
+    cd("..")
+  end
+
+  # print mimc output table to current_state.txt
   d = ndims(sampler)
-  N = inttype(sampler)
-  T = floattype(sampler)
-  sampler.samples = Dict{Index{d,Vector{N}},Array{T,3}}()
-  sampler.times = Dict{Index{d,Vector{N}},T}()
+  E     = Dict{Index{d,Vector{Int64}},Vector{Float64}}()
+  V     = Dict{Index{d,Vector{Int64}},Vector{Float64}}()
+  W     = Dict{Index{d,Vector{Int64}},Float64}() # dict for costs
+  for index in keys(sampler.samples)
+    E[index] = squeeze(mean(sampler.samples[index],(1,2)),(1,2))
+    V[index] = squeeze(var(mean(sampler.samples[index],1),2),(1,2))
+    W[index] =  sampler.useTime ? sampler.times[index] : prod(2.^(index.indices.*sampler.γ))
+  end
+  str  = "-------------------------------------------------------------------------------- \n"
+  itype = ndims(sampler.indexSet) == 1 ? "level" : "index"
+  str *= "  "*itype*"       E              V               N               W               \n"
+  str *= "-------------------------------------------------------------------------------- \n"
+  for index in sort(Set(collect(keys(E))))
+    str *= ("  $(index.indices)            "[1:13])::ASCIIString
+    str *= @sprintf("%12.5e",maximum(E[index]))
+    str *= @sprintf("    %0.6e",maximum(V[index]))
+    str *= @sprintf("    %d               ",prod(size(sampler.samples[index])[1:2]))[1:16]
+    str *= @sprintf("    %0.6e \n",W[index])
+  end
+  file_handle = open("current_state.txt","a")
+  @printf(file_handle, "%s", str)
+  close(file_handle)
+
+  cd("..")
+end
+
+# reinitialize sampler
+function load(sampler::Sampler,dir::AbstractString)
+  isdir(dir) || error("$(dir) is not a directory")
+  cd(dir*"/samples")
+  for idx_dir in filter!(r",", readdir())
+    cd(idx_dir)
+    if !(idx_dir[1] == ".") # ignore hidden files/folders
+      idx = Index(idx_dir)
+      setindex!(sampler.generatorStates, readdlm("gen_state.txt")[1], idx)
+      setindex!(sampler.times, readdlm("time.txt")[1], idx)
+      # read Z1 to infer size of samples
+      (n,m) = size(readdlm("Z1.txt"))
+      l = length(filter!(r"^Z", readdir()))
+      samples = zeros(Float64,n,m,l)
+      for z in 1:l
+        samples[:,:,z] = readdlm("Z$(z).txt")
+      end
+      setindex!(sampler.samples, samples, idx)
+    end
+    cd("..")
+  end
+  cd("../..")
+  if sampler.storeSamples0
+    cd(dir*"/samples0")
+    for idx_dir in filter!(r",", readdir())
+      cd(idx_dir)
+      if !(idx_dir[1] == ".") # ignore hidden files/folders
+        idx = Index(idx_dir)
+        # read Z1 to infer size of samples0
+        (n,m) = size(readdlm("Z1.txt"))
+        l = length(filter!(r"^Z", readdir()))
+        samples0 = zeros(Float64,n,m,l)
+        for z in 1:l
+          samples0[:,:,z] = readdlm("Z$(z).txt")
+        end
+        setindex!(sampler.samples0, samples0, idx)
+      end
+      cd("..")
+    end
+  end
+  cd("../..")
+end
+
+# reset sampler
+function reset(sampler::Sampler)
+  d = ndims(sampler)
+  sampler.generatorStates = Dict{Index{d,Vector{Int64}},Int64}()
   sampler.L = 0
+  sampler.samples = Dict{Index{d,Vector{Int64}},Array{Float64,3}}()
+  sampler.samples0 = Dict{Index{d,Vector{Int64}},Array{Float64,3}}()
+  sampler.times = Dict{Index{d,Vector{Int64}},Float64}()
 end
 
 #
@@ -215,25 +512,26 @@ end
 #
 
 # sample nbOfSamples from the Sampler at the given index
-function sample{S<:Sampler,N<:Integer,I<:Index}(sampler::S, nbOfSamples::N, index::I)
+function sample{N<:Integer,I<:Index}(sampler::Sampler, nbOfSamples::N, index::I)
 
   # print some info to screen
-  itype = ndims(sampler.settings.indexset) == 1 ? "level" : "index"
-  if isa(sampler.settings.numberGenerator, MCgenerator)
-      !sampler.settings.showInfo || println(">> taking $(nbOfSamples) samples at "*itype*" $(index.indices)...")
+  itype = ndims(sampler.indexSet) == 1 ? "level" : "index"
+  idcs = ndims(sampler) == 1 ? 1 : 1:ndims(sampler)
+  if isa(sampler.numberGenerator, MCgenerator)
+      !sampler.showInfo || println(">> taking $(nbOfSamples) samples at "*itype*" $(index.indices[idcs])...")
   else
-      !sampler.settings.showInfo || println(">> taking $(nshifts(sampler.settings.numberGenerator))x$(nbOfSamples) samples at "*itype*" $(index.indices)...")
+      !sampler.showInfo || println(">> taking $(nshifts(sampler.numberGenerator))x$(nbOfSamples) samples at "*itype*" $(index.indices[idcs])...")
   end
 
   # ask state of generator
-  state = sampler.settings.generatorState
+  state = sampler.generatorStates
   if !haskey(state,index)
     state[index] = 0
   end
   gen_state = state[index]
 
   # total number of workers to be used
-  p = max(1,get(sampler.settings.procMap,index,Void) - 1) # nworkers() = nprocs() - 1
+  p = max(1,get(sampler.procMap,index,Void) - 1) # nworkers() = nprocs() - 1
 
   # take the samples
   r = RemoteRef{Channel{Any}}[]
@@ -241,57 +539,67 @@ function sample{S<:Sampler,N<:Integer,I<:Index}(sampler::S, nbOfSamples::N, inde
     push!(r,remotecall(pid,()->sample_p(sampler,nbOfSamples,index,gen_state)))
   end
 
-  samples = reduce(vcat,map(fetch,r))
-  @assert size(samples,1) == nbOfSamples
+  comb_samples = reduce(vcat,map(fetch,r))::Array{Float64,4}
+  @assert size(comb_samples,1) == nbOfSamples
+
+  samples = comb_samples[:,:,:,1]
+  samples0 = sampler.storeSamples0 ? comb_samples[:,:,:,2] : zeros(0,0,0)
 
   # set state of generator
   state[index] += nbOfSamples
 
   # add samples to the sampler
-  if isa(sampler.settings.numberGenerator, MCgenerator)
+  if isa(sampler.numberGenerator, MCgenerator)
     samples = permutedims(samples,[2,1,3]) # permute dims if MC
+    samples0 = permutedims(samples0,[2,1,3])
   end
 
   if !haskey(sampler.samples,index)
     setindex!(sampler.samples,samples,index)
+    setindex!(sampler.samples0,samples0,index)
   else
-    sampler.samples[index] = isa(sampler.settings.numberGenerator, MCgenerator) ?
+    sampler.samples[index] = isa(sampler.numberGenerator, MCgenerator) ?
       hcat(sampler.samples[index],samples) : vcat(sampler.samples[index],samples)
+    sampler.samples0[index] = isa(sampler.numberGenerator, MCgenerator) ?
+      hcat(sampler.samples0[index],samples0) : vcat(sampler.samples0[index],samples0)
   end
 
   return Void
-
 end
 
-# defines subfunction for pmap operation
-function sample_p{S<:Sampler,N<:Integer,I<:Index}(sampler::S, n::N, index::I, gen_state::N)
+# defines subfunction for pmap operation, but now returns samples and samples0 (not differenced)
+function sample_p{N<:Integer,I<:Index}(sampler::Sampler, n::N, index::I, gen_state::N)
 
   # aliases
-  nshift = nshifts(sampler.settings.numberGenerator)
-  Z = sampler.settings.Z
-  T = floattype(sampler)
+  nshift = nshifts(sampler.numberGenerator)
+  Z = sampler.Z
+  T = Float64
 
   # block distribution
-  p = max(1,get(sampler.settings.procMap,index,Void) - 1) # nworkers() = nprocs() - 1
+  p = max(1,get(sampler.procMap,index,Void) - 1) # nworkers() = nprocs() - 1
   s = max(1,myid() - 1) # processor id, range(2,p+1)
   b = convert(N,ceil(n/p)) # block size
 
   # preallocate samples
-  samples = zeros(T,max(0,min(n,s*b) - (s - 1)*b),nshift,Z)
+  samples = zeros(T,max(0,min(n,s*b) - (s - 1)*b),nshift,Z,2)
 
   for i = gen_state + (s - 1)*b + 1 : gen_state + min(n,s*b)
 
     # generate "random" numbers
-    XI = getPoint(sampler.settings.numberGenerator,i)
+    XI = getPoint(sampler.numberGenerator,i)
 
     # solve
-    mySample = zeros(T,1,nshift,Z)::Array{T,3}
+    mySample = zeros(T,1,nshift,Z,2)::Array{T,4}
     for q = 1:nshift
       xi = XI[:,q]::Vector{T}
       Qtot = 0. # local sum
+      Q0 = 0.
       j = copy(index)::I
       while j != -1
-        Q = sampler.settings.sampleFunction(xi,copy(j),sampler.settings) # ! copy
+        Q = sampler.sampleFunction(xi,copy(j),sampler) # ! copy
+        if j == index
+          Q0 = Q
+        end
         if mod(diff(j,index),2) == 0
           Qtot += Q
         else
@@ -299,9 +607,10 @@ function sample_p{S<:Sampler,N<:Integer,I<:Index}(sampler::S, n::N, index::I, ge
         end
         j = difference(j,index)
       end
-      mySample[1,q,:] = Qtot
+      mySample[1,q,:,1] = Qtot
+      mySample[1,q,:,2] = Q0
     end
-    samples[i - gen_state - (s - 1)*b,:,:] = mySample
+    samples[i - gen_state - (s - 1)*b,:,:,:] = mySample
   end
 
   return samples
