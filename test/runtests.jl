@@ -1,9 +1,6 @@
 # add procs
 addprocs(3)
 
-# set RNG for reproducability
-@everywhere srand(2016)
-
 # make sure the test module can be found
 push!(LOAD_PATH,".")
 
@@ -116,7 +113,7 @@ function test3(TOL::AbstractFloat)
 end
 
 # reset random number generator for reproducibility
-srand(2016)
+@everywhere srand(2016)
 
 # run first test
 test1(1e-3)

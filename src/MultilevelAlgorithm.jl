@@ -29,7 +29,6 @@ function simulate{T<:AbstractFloat}(sampler::Sampler; absTOL::T=Inf, relTOL::T=I
       absTOL_ = 2^(sampler.nTOL-1-i)*absTOL
       relTOL_ = 2^(sampler.nTOL-1-i)*relTOL
       push!(t, @elapsed mimc(sampler,absTOL_,relTOL_,failProb))
-      show(sampler)
     end
   else
       push!(t, @elapsed mimc(sampler,absTOL,relTOL,failProb)) # plain mimc
