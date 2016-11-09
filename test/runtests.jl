@@ -1,5 +1,5 @@
 # add procs
-addprocs(3)
+# addprocs(3)
 
 # make sure the test module can be found
 push!(LOAD_PATH,".")
