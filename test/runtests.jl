@@ -97,7 +97,7 @@ function test3(TOL::AbstractFloat)
 	myIndexSet = AD(d) # set-up for multilevel
 	myNumberGenerator = GaussianMCgenerator(s) # Monte Carlo sampler
 	myMaternKernel = MaternKernel(λ,σ,ν,p)
-	myGaussianFieldSampler = KLExpansion(myMaternKernel,pd,s,m0=4,maxL=6)
+	myGaussianFieldSampler = KLExpansion(myMaternKernel,pd,s,m0=4,maxL=8)
 
 	myDict = Dict(
     	"indexSet" => myIndexSet,
@@ -105,7 +105,7 @@ function test3(TOL::AbstractFloat)
     	"sampleFunction" => parametrizedPDEEffectiveConductivity,
     	"gaussianFieldSampler" => myGaussianFieldSampler,
     	"continuate" => true,
-    	"maxL" => 10
+    	"maxL" => 8
 	)
 
 	mySampler = setup(myDict)
