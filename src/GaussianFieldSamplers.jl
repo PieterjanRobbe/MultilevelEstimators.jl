@@ -86,8 +86,8 @@ end
 function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 15, ad::Bool = false, x::Vector{Vector{T}} = Vector{Vector{Float64}}())
   d > 0 || error("dimension cannot be negative or zero!")
   mkl > 0 || error("number of KL-terms must be a positive integer!")
-  maxL > 0 || error("maximum indexset indicator must be postitive")
-  isempty(x) || ( length(x) == maxL || error("supply as many points at each level as maxL+1") )
+  maxL >= 0 || error("maximum indexset indicator must be postitive")
+  isempty(x) || ( length(x) == maxL+1 || error("supply as many points at each level as maxL+1") )
 
   # calculate eigenvalues
   if typeof(kernel) == MaternKernel && kernel.ν == 0.5
