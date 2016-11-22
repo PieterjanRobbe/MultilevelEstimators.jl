@@ -231,7 +231,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, absTOL::T, relTOL::T, fai
     @printf(sampler.ioStream,"%s","  "*itype*"       E              V               N               W               \n")
     @printf(sampler.ioStream,"%s","-------------------------------------------------------------------------------- \n")
     for index::Index{d,Vector{N}} in sort(Set(collect(keys(E))))
-      str = ("  $(index.indices)            "[1:13])::ASCIIString
+      str = ("  $(index.indices)            "[1:13])
       str *= @sprintf("%12.5e",maximum(E[index]))
       str *= @sprintf("    %0.6e",maximum(Vf[index]))
       str *= @sprintf("    %d               ",prod(size(sampler.samples[index])[1:2]))[1:16]
@@ -382,9 +382,9 @@ function estimateProblemParameters{d}(sampler::Sampler{d})
 end
 
 # Bayesian update of variances
-function bayesianUpdateVariance{d,N<:Integer,T<:AbstractFloat}(sampler::Sampler,A::T,α::Vector{T},B::T,β::Vector{T}, E::Dict{Index{d,Vector{N}},Vector{T}}, V::Dict{Index{d,Vector{N}},Vector{T}})
+function bayesianUpdateVariance{d,N1<:Integer,T<:AbstractFloat}(sampler::Sampler,A::T,α::Vector{T},B::T,β::Vector{T}, E::Dict{Index{d,Vector{N1}},Vector{T}}, V::Dict{Index{d,Vector{N1}},Vector{T}})
   dir = isa(sampler.numberGenerator,MCgenerator) ? 2 : 1
-  Vtilde = Dict{Index{d,Vector{N}},T}()
+  Vtilde = Dict{Index{d,Vector{N1}},T}()
 
   for index in keys(E)
     N = size(sampler.samples[index],dir)
@@ -394,10 +394,10 @@ function bayesianUpdateVariance{d,N<:Integer,T<:AbstractFloat}(sampler::Sampler,
     Γ4 = sampler.k[2] + 0.5*(N-1)*maximum(V[index]) + sampler.k[1]*N*(maximum(E[index])-μ)^2/(2*(sampler.k[1]+N))
     Vtilde[index] = Γ4/Γ3
   end
-  zero_idx = Index(zeros(N,d))
+  zero_idx = Index(zeros(N1,d))
   Vtilde[zero_idx] = maximum(V[zero_idx]) # ! correction for level / index 0
 
-  return Vtilde::Dict{Index{d,Vector{N}},T}
+  return Vtilde::Dict{Index{d,Vector{N1}},T}
 end
 
 # do a least-squares fit of the indices and data provided in the dict

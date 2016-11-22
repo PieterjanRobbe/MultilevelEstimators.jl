@@ -2,7 +2,9 @@
 addprocs(2)
 
 # make sure the test module can be found
-push!(LOAD_PATH,".")
+m = match(r"MultilevelEstimators",pwd())
+PATH = pwd()[1:m.offset+19]*"/test"
+push!(LOAD_PATH,PATH)
 
 # include the test module
 using TestModule
@@ -13,6 +15,7 @@ using Base.Test
 # 2D ELLIPTIC SPDE WITH NEUMANN BOUNDARY CONDITIONS, MLMC, MULTIPLE QOI
 #########################################################################
 function test1(TOL::AbstractFloat)
+println("test1 inside")
 	pd = 2 # physical dimension of the problem
 	d = 1 # dimension of the index set (1 is multilevel)
 
@@ -22,12 +25,10 @@ function test1(TOL::AbstractFloat)
 	p = 1.
 
 	s = 100
-	
 	myIndexSet = ML() # set-up for multilevel
 	myNumberGenerator = GaussianMCgenerator(s) # Monte Carlo sampler
 	myMaternKernel = MaternKernel(λ,σ,ν,p)
 	myGaussianFieldSampler = KLExpansion(myMaternKernel,pd,s,m0=4,maxL=6)
-
 	myDict = Dict(
     	"indexSet" => myIndexSet,
     	"numberGenerator" => myNumberGenerator,
@@ -35,7 +36,6 @@ function test1(TOL::AbstractFloat)
     	"gaussianFieldSampler" => myGaussianFieldSampler,
     	"Z" => 9
 	)
-
 	mySampler = setup(myDict)
 
 	t = simulate(mySampler,TOL)

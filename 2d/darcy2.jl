@@ -1,6 +1,6 @@
 # sample function for parametrized PDE with point evaluation as QoI
 function parametrizedPDEPointEvaluation{T<:AbstractFloat,d,S<:Sampler}(xi::Vector{T},index::Index{d},sampler::S)
-  kl = compose(sampler.gaussianFieldSampler,xi,index)::Matrix{T} # apply KL expansion
+  kl = compose(sampler.gaussianFieldSampler,xi,index) # apply KL expansion
   m = 4.*2.^index.indices # grid sizes
   mx, my = length(index.indices) < 2 ? tuple(repeat(m,inner=[2])...) : tuple(m...)
   k = exp(reshape(kl,(mx,my)))
@@ -15,13 +15,13 @@ end
 
 # sample function for parametrized PDE with effective conductivity as QoI
 function parametrizedPDEEffectiveConductivity{T<:AbstractFloat,d,S<:Sampler}(xi::Vector{T},index::Index{d},sampler::S)
-  kl = compose(sampler.gaussianFieldSampler,xi,index)::Matrix{T} # apply KL expansion
+  kl = compose(sampler.gaussianFieldSampler,xi,index) # apply KL expansion
   m = 4.*2.^index.indices # grid sizes
   mx, my = length(index.indices) < 2 ? tuple(repeat(m,inner=[2])...) : tuple(m...)
   k = exp(reshape(kl,(mx,my)))
   p = epde2d(k) # solve the deterministic PDE (flow cell geometry)
 
-  return trapz(2.0*mx*squeeze(k[mx,:],1).*squeeze(p[mx,:],1),my)::T
+  return trapz(2.0*mx*k[mx,:].*p[mx,:],my)::T
   #return trapz(1/3.0*mx*squeeze(k[mx,:],1).*(9*squeeze(p[mx,:],1)-squeeze(p[mx-1,:],1)),my) # 2nd order approx
 end
 

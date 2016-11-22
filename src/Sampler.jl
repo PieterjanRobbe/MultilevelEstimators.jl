@@ -66,7 +66,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
   else
     sampleFunction = settings["sampleFunction"]
     delete!(settings,"sampleFunction")
-    if !(typeof(sampleFunction) == Function)
+    if !(typeof(sampleFunction) <: Function)
       error("incorrect sampleFunction specified!")
     end
   end
@@ -441,7 +441,7 @@ function save(sampler::Sampler)
   str *= "  "*itype*"       E              V               N               W               \n"
   str *= "-------------------------------------------------------------------------------- \n"
   for index in sort(Set(collect(keys(E))))
-    str *= ("  $(index.indices)            "[1:13])::ASCIIString
+    str *= ("  $(index.indices)            "[1:13])
     str *= @sprintf("%12.5e",maximum(E[index]))
     str *= @sprintf("    %0.6e",maximum(V[index]))
     str *= @sprintf("    %d               ",prod(size(sampler.samples[index])[1:2]))[1:16]
@@ -534,9 +534,9 @@ function sample{N<:Integer,I<:Index}(sampler::Sampler, nbOfSamples::N, index::I)
   p = max(1,get(sampler.procMap,index,Void) - 1) # nworkers() = nprocs() - 1
 
   # take the samples
-  r = RemoteRef{Channel{Any}}[]
+  r = Future[]
   for pid = workers()[1]:workers()[1]+p-1
-    push!(r,remotecall(pid,()->sample_p(sampler,nbOfSamples,index,gen_state)))
+    push!(r,remotecall(()->sample_p(sampler,nbOfSamples,index,gen_state),pid))
   end
 
   comb_samples = reduce(vcat,map(fetch,r))::Array{Float64,4}
