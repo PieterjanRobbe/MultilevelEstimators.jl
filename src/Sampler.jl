@@ -1,5 +1,5 @@
 # sampler type
-type Sampler{d,I<:IndexSet,G<:NumberGenerator,F<:GaussianFieldSampler,D1<:Dict,D2<:Dict,D3<:Dict,UType}
+type Sampler{d,I<:IndexSet,G<:NumberGenerator,F,D1<:Dict,D2<:Dict,D3<:Dict,UType}
 
   # settings that must be provided by the user
   indexSet::I                   # type of index set
@@ -162,7 +162,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
   if haskey(settings,"gaussianFieldSampler")
     gaussianFieldSampler = settings["gaussianFieldSampler"]
     delete!(settings,"gaussianFieldSampler")
-    if !(typeof(gaussianFieldSampler) <: GaussianFieldSampler || (typeof(gaussianFieldSampler) <: Array & eltype(gaussianFieldSampler) <: GaussianFieldSampler ) )
+    if !(typeof(gaussianFieldSampler) <: GaussianFieldSampler || (typeof(gaussianFieldSampler) <: Array && eltype(gaussianFieldSampler) <: GaussianFieldSampler ) )
       error("incorrect Gaussian field sampler gaussianFieldSampler specified!")
     elseif typeof(gaussianFieldSampler) == KLExpansion && maxL+1 < length(gaussianFieldSampler.eigenfunc)
       warn("you asked for $(maxL+1) levels, but the KL expansion only provides $(length(gaussianFieldSampler.eigenfunc)) eigenfunctions. I will try to continue anyway.")

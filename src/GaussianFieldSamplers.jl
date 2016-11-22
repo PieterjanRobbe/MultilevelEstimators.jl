@@ -7,11 +7,12 @@ type EmptySampler <: GaussianFieldSampler
 end
 
 # KL expansion
-type KLExpansion{d,N<:Integer,A<:AbstractVector,B<:AbstractVector} <: GaussianFieldSampler
+type KLExpansion{d,N<:Integer,A<:AbstractVector,B<:AbstractVector,C<:AbstractVector} <: GaussianFieldSampler
   mkl::N # number of terms in KL expansion
   eigenval::A # d-dimensional KL eigenvalues (Array of tupples with index and value)
   eigenfunc::B # 1d KL eigenfunctions
   ad::Bool # true if adaptive in number of terms
+  s::C
 end
 
 # utilities
@@ -65,8 +66,8 @@ isValid(M::MaternKernel) = ( λ > 0 && σ > 0 && ν > 0 && p >= 1 )
 function applyKernel{T<:AbstractFloat}(K::MaternKernel,x::AbstractArray{T},y::AbstractArray{T})
   cov = zeros(T,size(x.-y))
   for i in 1:length(x)
-    for j in 1:length(y)
-      @inbounds cov[i,j] = K.σ^2*2^(1-K.ν)/gamma(K.ν)*(sqrt(2*K.ν)*norm(x[i]-y[j],K.p)/K.λ).^K.ν.*besselk(K.ν,sqrt(2*K.ν)*norm(x[i]-y[j],K.p)/K.λ)
+    for j in 1:length(y) # HACK: we remove sigma^2 from the covariance matrix for numerical stability
+      @inbounds cov[i,j] = 2^(1-K.ν)/gamma(K.ν)*(sqrt(2*K.ν)*norm(x[i]-y[j],K.p)/K.λ).^K.ν.*besselk(K.ν,sqrt(2*K.ν)*norm(x[i]-y[j],K.p)/K.λ)
     end
   end
   cov[(x.-y).==zero(T)]=one(T)
@@ -83,14 +84,21 @@ end
 #
 
 # constructor for separable kernels (non-separable is not implemented yet...)
-function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 15, ad::Bool = false, x::Vector{Vector{T}} = Vector{Vector{Float64}}())
+function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 10, ad::Bool = false, x::Vector{Vector{T}} = Vector{Vector{T}}(), s::Vector{N} = Vector{N}())
   d > 0 || error("dimension cannot be negative or zero!")
   mkl > 0 || error("number of KL-terms must be a positive integer!")
   maxL >= 0 || error("maximum indexset indicator must be postitive")
   isempty(x) || ( length(x) == maxL+1 || error("supply as many points at each level as maxL+1") )
+  if isempty(s)
+    if isempty(x)
+      s = mkl*ones(N,maxL+1)
+    else
+      s = map(length,x)
+    end
+  end
 
   # calculate eigenvalues
-  if typeof(kernel) == MaternKernel && kernel.ν == 0.5
+  if typeof(kernel) <: MaternKernel && kernel.ν == 0.5
     ω = findroots(kernel.λ, mkl+1)
     θ = 2*kernel.σ^2*kernel.λ./(kernel.λ^2*ω.^2+1)
   else
@@ -121,7 +129,7 @@ function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 15,
 
   # calculate 1d eigenfunctions
   eigenfunc = Array{T,2}[]
-  if typeof(kernel) == MaternKernel && kernel.ν == 0.5
+  if typeof(kernel) <: MaternKernel && kernel.ν == 0.5
     ω = ω[1:max_mkl] # cut off ω
     n = sqrt(2)/2*sqrt(1./ω.*(kernel.λ^2*ω.^2.*cos(ω).*sin(ω)+kernel.λ^2*ω.^3-2*kernel.λ*ω.*cos(ω).^2-cos(ω).*sin(ω)+ω)+2*kernel.λ)
     for L in 0:maxL
@@ -135,12 +143,17 @@ function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 15,
     end
   else
     for L in 0:maxL
-      dummy,temp = nystrom(kernel,m0*2^L,max_mkl)
+      if isempty(x)
+        m = m0*2^L
+      else
+        m = length(x[L+1])
+      end
+      dummy,temp = nystrom(kernel,m,max_mkl) # HACK for now use points on [0,1]
       push!(eigenfunc, temp)
     end
   end
 
-  return KLExpansion{d,N,typeof(O),typeof(eigenfunc)}(mkl,O,eigenfunc,ad)
+  return KLExpansion{d,N,typeof(O),typeof(eigenfunc),typeof(s)}(mkl,O,eigenfunc,ad,s)
 end
 
 # function to compose KL expansion
@@ -149,7 +162,7 @@ function compose{K<:KLExpansion,T<:AbstractFloat,t,V}(kl::K, xi::Vector{T}, inde
   d = ndims(kl)
   nterms = length(kl.eigenval)
   if kl.ad
-    nterms = index.indices[end]
+    nterms = kl.s[index.indices[end]+1]
     index_ = Index(index.indices[1:end-1])::Index{t-1,V}
   elseif ndims(index) < d # FIX for multilevel case
     index_ = Index(repeat([index[1]],inner=[d]))::Index{d,V}
@@ -288,6 +301,7 @@ function nystrom{N<:Integer}(kernel::Kernel,m::N,nterms::N)
   Dsqrt = sqrt(D)
   Z = Symmetric(triu(Dsqrt*K*Dsqrt))
   eigenval, eigenfunc = eig(Z)
+  eigenval = eigenval*kernel.σ^2
   #eigenval = real(eigenval)
   idx = sortperm(eigenval,rev=true)
   sort!(eigenval,rev=true)
@@ -299,7 +313,7 @@ function nystrom{N<:Integer}(kernel::Kernel,m::N,nterms::N)
   # nystrom method
   eigenfunc = zeros(nterms,m)
   x = 1/2/m:1/m:1-1/2/m
-  K = applyKernel(kernel,x,nodes')
+  K = applyKernel(kernel,x,nodes')*kernel.σ^2
   for j in 1:nterms
     @inbounds eigenfunc[j,:] = lambda[j]*K*f[:,j]
   end
