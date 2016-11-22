@@ -84,7 +84,7 @@ end
 #
 
 # constructor for separable kernels (non-separable is not implemented yet...)
-function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 10, ad::Bool = false, x::Vector{Vector{T}} = Vector{Vector{T}}(), s::Vector{N} = Vector{N}())
+function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 10, ad::Bool = false, x::Vector{Vector{T}} = Vector{Vector{Float64}}(), s::Vector{N} = Vector{N}())
   d > 0 || error("dimension cannot be negative or zero!")
   mkl > 0 || error("number of KL-terms must be a positive integer!")
   maxL >= 0 || error("maximum indexset indicator must be postitive")

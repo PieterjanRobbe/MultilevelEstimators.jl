@@ -15,7 +15,6 @@ using Base.Test
 # 2D ELLIPTIC SPDE WITH NEUMANN BOUNDARY CONDITIONS, MLMC, MULTIPLE QOI
 #########################################################################
 function test1(TOL::AbstractFloat)
-println("test1 inside")
 	pd = 2 # physical dimension of the problem
 	d = 1 # dimension of the index set (1 is multilevel)
 
