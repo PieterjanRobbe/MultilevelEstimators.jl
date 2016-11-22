@@ -22,7 +22,7 @@ function parametrizedPDEEffectiveConductivity{T<:AbstractFloat,d,S<:Sampler}(xi:
   p = epde2d(k) # solve the deterministic PDE (flow cell geometry)
 
   return trapz(2.0*mx*k[mx,:].*p[mx,:],my)::T
-  #return trapz(1/3.0*mx*squeeze(k[mx,:],1).*(9*squeeze(p[mx,:],1)-squeeze(p[mx-1,:],1)),my) # 2nd order approx
+  #return trapz(1/3.0*mx*squeeze(k[mx,:],1).*(9*p[mx,:]-p[mx-1,:]),my) # 2nd order approx
 end
 
 #
