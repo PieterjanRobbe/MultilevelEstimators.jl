@@ -66,8 +66,8 @@ isValid(M::MaternKernel) = ( λ > 0 && σ > 0 && ν > 0 && p >= 1 )
 function applyKernel{T<:AbstractFloat}(K::MaternKernel,x::AbstractArray{T},y::AbstractArray{T})
   cov = zeros(T,size(x.-y))
   for i in 1:length(x)
-    for j in 1:length(y)
-      @inbounds cov[i,j] = K.σ^2*2^(1-K.ν)/gamma(K.ν)*(sqrt(2*K.ν)*norm(x[i]-y[j],K.p)/K.λ).^K.ν.*besselk(K.ν,sqrt(2*K.ν)*norm(x[i]-y[j],K.p)/K.λ)
+    for j in 1:length(y) # HACK: we remove sigma^2 from the covariance matrix for numerical stability
+      @inbounds cov[i,j] = 2^(1-K.ν)/gamma(K.ν)*(sqrt(2*K.ν)*norm(x[i]-y[j],K.p)/K.λ).^K.ν.*besselk(K.ν,sqrt(2*K.ν)*norm(x[i]-y[j],K.p)/K.λ)
     end
   end
   cov[(x.-y).==zero(T)]=one(T)
@@ -90,7 +90,11 @@ function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 10,
   maxL >= 0 || error("maximum indexset indicator must be postitive")
   isempty(x) || ( length(x) == maxL+1 || error("supply as many points at each level as maxL+1") )
   if isempty(s)
-    s = mkl*ones(maxL+1)
+    if isempty(x)
+      s = mkl*ones(N,maxL+1)
+    else
+      s = map(length,x)
+    end
   end
 
   # calculate eigenvalues
@@ -297,6 +301,7 @@ function nystrom{N<:Integer}(kernel::Kernel,m::N,nterms::N)
   Dsqrt = sqrt(D)
   Z = Symmetric(triu(Dsqrt*K*Dsqrt))
   eigenval, eigenfunc = eig(Z)
+  eigenval = eigenval*kernel.σ^2
   #eigenval = real(eigenval)
   idx = sortperm(eigenval,rev=true)
   sort!(eigenval,rev=true)
@@ -308,7 +313,7 @@ function nystrom{N<:Integer}(kernel::Kernel,m::N,nterms::N)
   # nystrom method
   eigenfunc = zeros(nterms,m)
   x = 1/2/m:1/m:1-1/2/m
-  K = applyKernel(kernel,x,nodes')
+  K = applyKernel(kernel,x,nodes')*kernel.σ^2
   for j in 1:nterms
     @inbounds eigenfunc[j,:] = lambda[j]*K*f[:,j]
   end

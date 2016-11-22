@@ -167,7 +167,6 @@ function TD{T<:AbstractFloat}(weights::Vector{T})
   return TD{length(weights),Vector{T}}(weights)
 end
 
-HC{T<:AbstractFloat}(weights::Vector{T}) = HC{length(weights),Vector{T}}(weights)
 function HC{N<:Int}(d::N)
   if d <= 1
     error("can only use HC with d>1!")
