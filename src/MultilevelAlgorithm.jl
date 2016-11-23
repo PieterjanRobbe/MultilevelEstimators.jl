@@ -23,7 +23,7 @@ function simulate{T<:AbstractFloat}(sampler::Sampler; absTOL::T=Inf, relTOL::T=I
     absTOL_ = 2^(sampler.nTOL-1)*absTOL
     relTOL_ = 2^(sampler.nTOL-1)*relTOL
     sampler.continuate = false # run initial hierarchy
-    mimc(sampler,absTOL_,relTOL_,failProb)
+    push!(t, @elapsed mimc(sampler,absTOL_,relTOL_,failProb))
     sampler.continuate = true
     for i in 1:sampler.nTOL-1
       absTOL_ = 2^(sampler.nTOL-1-i)*absTOL
