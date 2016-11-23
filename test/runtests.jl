@@ -104,7 +104,7 @@ function test3(TOL::AbstractFloat)
     	"sampleFunction" => parametrizedPDEEffectiveConductivity,
     	"gaussianFieldSampler" => myGaussianFieldSampler,
     	"continuate" => true,
-    	"maxL" => 8
+    	"maxL" => 24
 	)
 
 	mySampler = setup(myDict)

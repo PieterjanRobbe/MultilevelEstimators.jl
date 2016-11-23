@@ -79,6 +79,14 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, absTOL::T, relTOL::T, fai
   profit[Index(zeros(N,d))] = 0.
 
   while !converged
+    # empty dicts
+    E = Dict{Index{d,Vector{N}},Vector{T}}() # dict for expected values
+    V = Dict{Index{d,Vector{N}},Vector{T}}() # dict for variances
+    Vf = Dict{Index{d,Vector{N}},Vector{T}}() # dict for variance of the function
+    W = Dict{Index{d,Vector{N}},T}() # dict for costs
+    S = Dict{Index{d,Vector{N}},N}() # dict for optimal number of samples
+    Vest = Dict{Index{d,Vector{N}},Vector{T}}() # dict for variance of estimator
+
     # get index set in current iteration
     if typeof(sampler.indexSet) <: AD
       # find index with largest gain (sparse addition)
@@ -122,7 +130,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, absTOL::T, relTOL::T, fai
         end
       end
     end
-    (E,Vf,V,W,Vest,profit) = updateDicts(sampler,newindexset,E,Vf,V,W,Vest,profit)
+    updateDicts!(sampler,newindexset,sampler.continuate,E,Vf,V,W,Vest,profit)
 
     # determine actual absolute tolerance
     minTOL = min(absTOL,relTOL*maximum(sum(values(E))))
@@ -154,7 +162,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, absTOL::T, relTOL::T, fai
         sampler.times[index] = haskey(sampler.times,index) ? sampler.times[index] + time : time # cumulative time
       end
     end
-    (E,Vf,V,W,Vest,profit) = updateDicts(sampler,newindexset,E,Vf,V,W,Vest,profit)
+    updateDicts!(sampler,newindexset,sampler.continuate,E,Vf,V,W,Vest,profit)
 
     # safety
     F = C*sqrt(sum(values(Vest)))
@@ -166,7 +174,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, absTOL::T, relTOL::T, fai
     if sampler.safety
       while maximum(F) > splitting*minTOL
         # double number of samples on index with max ratio Vest/W
-        maxratio = G = zero(T)
+        maxratio = zero(T)
         maxindex = Index(zeros(N,d))::Index{d,Vector{N}}
         for index::Index{d,Vector{N}} in newindexset
           ratio = maximum(Vest[index])/W[index]
@@ -178,7 +186,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, absTOL::T, relTOL::T, fai
         n = size(sampler.samples[maxindex],dir)
         time = @elapsed sample(sampler, nextpow2(n+1)-n, maxindex ) # round to nearest power of two
         sampler.times[maxindex] += time # cumulative time
-        (E,Vf,V,W,Vest,profit) = updateDicts(sampler,newindexset,E,Vf,V,W,Vest,profit)
+        updateDicts!(sampler,newindexset,sampler.continuate,E,Vf,V,W,Vest,profit)
 
         # recompute statistical error and splitting
         F = C*sqrt(sum(values(Vest)))
@@ -191,20 +199,15 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, absTOL::T, relTOL::T, fai
     end
 
     # check for convergence
+    updateDicts!(sampler,Set(collect(keys(sampler.samples))),false,E,Vf,V,W,Vest,profit) # store true values in Dicts
     if ( L > 1 )
-      Etemp = Dict{Index{d,Vector{N}},Vector{T}}()
-      Vtemp = Dict{Index{d,Vector{N}},Vector{T}}()
-      for index::Index{d,Vector{N}} in newindexset # compute actual mean and variance also in continuation case
-        Etemp[index] = squeeze(mean(sampler.samples[index],(1,2)),(1,2))
-        Vtemp[index] = squeeze(mean(var(sampler.samples[index],2),1),(1,2))
-      end
       converged = ( maximum(F + G)::T < minTOL )
 
       # print some info to the screen
       !sampler.showInfo || print_with_color(:magenta, sampler.ioStream, 
         @sprintf("*** error estimate is %0.6e + %0.6e = %0.6e \n", maximum(F), maximum(G), maximum(F+G) ) )
-      μ = maximum(sum(values(Etemp)))
-      σ = sqrt(maximum(sum(values(Vtemp))))
+      μ = maximum(sum(values(E)))
+      σ = sqrt(maximum(sum(values(V))))
       !sampler.showInfo || ( !converged || print_with_color(:magenta, sampler.ioStream, 
         @sprintf("*** result is %0.6e ±(%0.6e, %0.6e, %0.6e) \n", μ, σ, 2*σ, 3*σ ) ) )
     end
@@ -230,7 +233,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, absTOL::T, relTOL::T, fai
     itype = ndims(sampler.indexSet) == 1 ? "level" : "index"
     @printf(sampler.ioStream,"%s","  "*itype*"       E              V               N               W              \n")
     @printf(sampler.ioStream,"%s","--------------------------------------------------------------------------------\n")
-    for index::Index{d,Vector{N}} in sort(Set(collect(keys(E))))
+    for index::Index{d,Vector{N}} in sort(Set(collect(keys(sampler.samples))))
       str = ("  $(index.indices)            "[1:13])
       str *= @sprintf("%12.5e",maximum(E[index]))
       str *= @sprintf("    %0.6e",maximum(Vf[index]))
@@ -242,7 +245,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, absTOL::T, relTOL::T, fai
 end
 
 # refactored function that updates E/Vf/V/W/Vest/profit from current sampler
-function updateDicts{d,N,T}(sampler::Sampler, indices::Set{Index{d,Vector{N}}}, 
+function updateDicts!{d,N,T}(sampler::Sampler, indices::Set{Index{d,Vector{N}}}, continuate::Bool,
   E::Dict{Index{d,Vector{N}},Vector{T}}, Vf::Dict{Index{d,Vector{N}},Vector{T}}, 
     V::Dict{Index{d,Vector{N}},Vector{T}}, W::Dict{Index{d,Vector{N}},T}, 
       Vest::Dict{Index{d,Vector{N}},Vector{T}}, profit::Dict{Index{d,Vector{N}},T})
@@ -265,7 +268,7 @@ function updateDicts{d,N,T}(sampler::Sampler, indices::Set{Index{d,Vector{N}}},
   end
 
   # correction when doing continuation
-  if sampler.continuate
+  if continuate
     (A,α,B,β,Bacc,βacc,C,γ) = estimateProblemParameters(sampler)  # ! fits only max E_\ell, V_\ell
     Vftilde = bayesianUpdateVariance(sampler,A,α,B,β,E,Vf)
     Vtilde = bayesianUpdateVariance(sampler,A,α,Bacc,βacc,E,V)
@@ -280,10 +283,6 @@ function updateDicts{d,N,T}(sampler::Sampler, indices::Set{Index{d,Vector{N}}},
       end
     end
   end
-
-  return (E::Dict{Index{d,Vector{N}},Vector{T}},Vf::Dict{Index{d,Vector{N}},Vector{T}},
-    V::Dict{Index{d,Vector{N}},Vector{T}},W::Dict{Index{d,Vector{N}},T},
-      Vest::Dict{Index{d,Vector{N}},Vector{T}},profit::Dict{Index{d,Vector{N}},T})
 end
 
 # estimate problem parameters A, α, B, β, Bacc, βacc, C, γ and Vtilde in the continuation problem
