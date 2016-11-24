@@ -49,6 +49,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, absTOL::T, relTOL::T, fai
     isCont = sampler.continuate ? "" : "not"
     idxSet = ( isa(sampler.indexSet,ML) || isa(sampler.indexSet,SL) || isa(sampler.indexSet,AD) ) ? "$(sampler.indexSet)" : "$(sampler.indexSet)"[1:34]
     @printf(sampler.ioStream,"%s","*** Using a $(idxSet), $isCont continuating \n")
+    @printf(sampler.ioStream,"%s","***    with $(sampler.numberGenerator)\n")
     @printf(sampler.ioStream,"%s",
     @sprintf("*** absTOL = %0.3e / relTOL = %0.3e (failure probability of %0.2f)\n",absTOL,relTOL,failProb))
     @printf(sampler.ioStream,"%s","--------------------------------------------------------------------------------\n")

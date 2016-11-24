@@ -35,9 +35,9 @@ isValid{s}(U::UniformMCgenerator{s}) = G.λ == 0.5 && length(lb) == s && length(
 
 function show{s}(io::IO,U::UniformMCgenerator{s})
   @assert isValid(U)
-  str = "$(ndims(G))-dimensional uniform Monte Carlo sampler with λ= $(U.λ) and \n"
-  str *= " - lower bound = $(U.lb)\n"
-  str *= " - upper bound = $(U.lb)\n"
+  str = "$(ndims(G))-dimensional uniform Monte Carlo points"# with λ= $(U.λ) and \n"
+  #str *= " - lower bound = $(U.lb)\n"
+  #str *= " - upper bound = $(U.lb)\n"
   print(io,str)
 end
 
@@ -90,9 +90,9 @@ isValid{s}(U::UniformQMCgenerator{s}) = G.λ >= 0.5 && length(lb) == s && length
 
 function show{s,q}(io::IO,U::UniformQMCgenerator{s,q})
   @assert isValid(U)
-  str = "$(nshifts(U)) x $(ndims(U))-dimensional uniform Quasi-Monte Carlo sampler with λ= $(U.λ) and \n"
-  str *= " - lower bound = $(U.lb)\n"
-  str *= " - upper bound = $(U.lb)\n"
+  str = "$(nshifts(U)) x $(ndims(U))-dimensional uniform Quasi-Monte Carlo points"# sampler with λ= $(U.λ) and \n"
+  #str *= " - lower bound = $(U.lb)\n"
+  #str *= " - upper bound = $(U.lb)\n"
   print(io,str)
 end
 
@@ -123,7 +123,7 @@ isValid(G::GaussianMCgenerator) = G.λ == 0.5
 
 function show{s}(io::IO,G::GaussianMCgenerator{s})
   @assert isValid(G)
-  str = "$(ndims(G))-dimensional Gaussian Monte Carlo sampler with λ= $(G.λ)"
+  str = "$(ndims(G))-dimensional Gaussian Monte Carlo points"# with λ= $(G.λ)"
   print(io,str)
 end
 
@@ -155,7 +155,7 @@ isValid(G::GaussianQMCgenerator) = G.λ >= 0.5
 
 function show{s,q}(io::IO,G::GaussianQMCgenerator{s,q})
   @assert isValid(G)
-  str = "$(nshifts(G)) x $(ndims(G))-dimensional Gaussian Quasi-Monte Carlo sampler with λ= $(G.λ)"
+  str = "$(nshifts(G)) x $(ndims(G))-dimensional Gaussian Quasi-Monte Carlo points"#sampler with λ= $(G.λ)"
   print(io,str)
 end
 
