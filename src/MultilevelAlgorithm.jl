@@ -147,7 +147,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, absTOL::T, relTOL::T, fai
     # calculate optimal number of samples
     mySum = zeros(T,sampler.Z)
     for index::Index{d,Vector{N}} in newindexset
-      mySum += ( ( Vf[index].*W[index].^(2*λ) ).^(1/(2*λ+1) ) )
+      mySum += ( ( Vf[index].*(W[index]*ones(sampler.Z)).^(2*λ) ).^(1/(2*λ+1) ) )
     end
     for index::Index{d,Vector{N}} in newindexset
       Nopt = ( ( C/(splitting*minTOL) )^2 * 1/q * (Vf[index]./W[index]).^(2*λ/(2*λ+1)) .* mySum ).^(1/(2*λ))
