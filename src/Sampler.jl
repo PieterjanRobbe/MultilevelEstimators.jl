@@ -293,7 +293,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
   else
     procMap = Dict{Index{d,Vector{Int64}},Int64}()
     dummyIndexSet = typeof(indexSet) <: AD ? TD(d) : indexSet
-    id_x = getIndexSet(dummyIndexSet,maxL)
+    id_x = getIndexSet(dummyIndexSet,min(20,maxL)) # hack
     [setindex!(procMap,nprocs(),i) for i in id_x]
   end
 
@@ -321,7 +321,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
 
   times = Dict{Index{d,Vector{Int64}},Float64}()
   
-  return Sampler{d,typeof(indexSet),typeof(numberGenerator),typeof(gaussianFieldSampler),typeof(generatorStates),typeof(samples),typeof(times),typeof(userType)}(
+	return Sampler{d,typeof(indexSet),typeof(numberGenerator),typeof(gaussianFieldSampler),typeof(generatorStates),typeof(samples),typeof(times),typeof(userType)}(
     indexSet, numberGenerator, sampleFunction, maxL, γ, Z, Nstar, gaussianFieldSampler, useTime,
       safety, continuate, nTOL, k, showInfo, ioStream, storeSamples0, procMap, userType, generatorStates, samples, samples0, times)
 end
@@ -528,18 +528,50 @@ function sample{N<:Integer,I<:Index}(sampler::Sampler, nbOfSamples::N, index::I)
   if !haskey(state,index)
     state[index] = 0
   end
-  gen_state = state[index]
-
-  # total number of workers to be used
+  #gen_state = state[index]
+	@debug println("current state of point generator is $(state[index])")
+  
+	# total number of workers to be used
   p = max(1,get(sampler.procMap,index,Void) - 1) # nworkers() = nprocs() - 1
+	wp = WorkerPool(collect(1:p)+1)	# workerpool
+ 	@debug println("running with $(p) workers: $(wp)")
 
+	# function definition
+	f(i) = take_a_sample(index,state[index]+i,sampler)
+
+	# parallel execution
+	r = pmap(wp, f, 1:nbOfSamples)
+
+
+
+
+#    sample_p(sampler,nbOfSamples,index,gen_state)
   # take the samples
-  r = Future[]
-  for pid = workers()[1]:workers()[1]+p-1
-    push!(r,remotecall(()->sample_p(sampler,nbOfSamples,index,gen_state),pid))
-  end
+  #r = Future[]
+  #myfunc = () -> sample_p(sampler,nbOfSamples,index,gen_state)
+  #startiter = workers()[1]
+  #for pid = startiter:startiter+p-1
+#	  println(pid)
+ #   push!(r,remotecall(myfunc,pid))
+  #  	println("pushed")
+  #end
 
-  comb_samples = reduce(vcat,map(fetch,r))::Array{Float64,4}
+  #r = [@spawnat pid sample_p(sampler,nbOfSamples,index,gen_state) for pid in startiter:startiter+p-1]
+
+
+#  println("start...")
+  #r = Vector{Array{Float64,4}}(nworkers())
+  #@sync begin
+  #for (idx, pid) in enumerate(workers())
+  #  @async r[idx] = remotecall_fetch(myfunc, pid)
+  #end
+  #end
+#  println("stop...")
+  
+  #r = Vector{Array{Float64,4}}(1)
+	#r[1] = myfunc()
+
+  comb_samples = reduce(vcat,r)::Array{Float64,4}
   @assert size(comb_samples,1) == nbOfSamples
 
   samples = comb_samples[:,:,:,1]
@@ -547,6 +579,7 @@ function sample{N<:Integer,I<:Index}(sampler::Sampler, nbOfSamples::N, index::I)
 
   # set state of generator
   state[index] += nbOfSamples
+	@debug println("current state of point generator is $(state[index])")
 
   # add samples to the sampler
   if isa(sampler.numberGenerator, MCgenerator)
@@ -563,15 +596,56 @@ function sample{N<:Integer,I<:Index}(sampler::Sampler, nbOfSamples::N, index::I)
     sampler.samples0[index] = isa(sampler.numberGenerator, MCgenerator) ?
       hcat(sampler.samples0[index],samples0) : vcat(sampler.samples0[index],samples0)
   end
-
   return Void
 end
 
+
+function take_a_sample{N<:Integer,I<:Index}(index::I, i::N, sampler::Sampler)
+
+	# getting some info from the sampler 
+	nshift = nshifts(sampler.numberGenerator)
+  Z = sampler.Z
+  T = Float64
+
+  # generate "random" numbers
+  XI = getPoint(sampler.numberGenerator,i)
+
+  # solve
+  mySample = zeros(T,1,nshift,Z,2)::Array{T,4}
+  for q = 1:nshift
+    xi = XI[:,q]::Vector{T}
+    Qtot = 0. # local sum
+    Q0 = 0.
+    j = copy(index)::I
+    while j != -1
+      Q = sampler.sampleFunction(xi,copy(j),sampler) # ! copy
+      if j == index
+        Q0 = Q
+      end
+      if mod(diff(j,index),2) == 0
+        Qtot += Q
+      else
+        Qtot -= Q
+      end
+      j = difference(j,index)
+    end
+    mySample[1,q,:,1] = Qtot
+    mySample[1,q,:,2] = Q0
+  end
+  return mySample
+	
+	#  println("donecomp")
+	return samples
+end
+
+
+
+
 # defines subfunction for pmap operation, but now returns samples and samples0 (not differenced)
 function sample_p{N<:Integer,I<:Index}(sampler::Sampler, n::N, index::I, gen_state::N)
-
-  # aliases
-  nshift = nshifts(sampler.numberGenerator)
+#	println("begincomp")
+	
+	nshift = nshifts(sampler.numberGenerator)
   Z = sampler.Z
   T = Float64
 
@@ -583,7 +657,10 @@ function sample_p{N<:Integer,I<:Index}(sampler::Sampler, n::N, index::I, gen_sta
   # preallocate samples
   samples = zeros(T,max(0,min(n,s*b) - (s - 1)*b),nshift,Z,2)
 
-  for i = gen_state + (s - 1)*b + 1 : gen_state + min(n,s*b)
+ # println(max(0,min(n,s*b) - (s - 1)*b))
+
+
+ for i = gen_state + (s - 1)*b + 1 : gen_state + min(n,s*b)
 
     # generate "random" numbers
     XI = getPoint(sampler.numberGenerator,i)
@@ -611,7 +688,7 @@ function sample_p{N<:Integer,I<:Index}(sampler::Sampler, n::N, index::I, gen_sta
       mySample[1,q,:,2] = Q0
     end
     samples[i - gen_state - (s - 1)*b,:,:,:] = mySample
-  end
-
-  return samples
+	end
+#  println("donecomp")
+return samples
 end

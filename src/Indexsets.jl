@@ -302,17 +302,18 @@ end
 function getBoundary{d,V}(indices::Set{Index{d,V}}) # must have explicit d in signature
   boundary = Set{Index{d,V}}()
   for index in indices # could be made more efficient for TD and FT types, but uses same rules now for all types
-    maxs = find(index.==maximum(index)) # maximum direction(s)
+    index_ = copy(index)
+    maxs = find(index_.==maximum(index_)) # maximum direction(s)
     isboundary = true
     for m in 1:length(maxs)
-      index[maxs[m]] += 1
-      if in(index,indices)
+      index_[maxs[m]] += 1
+      if in(index_,indices)
         isboundary = false
       end
-      index[maxs[m]] -= 1
+      index_[maxs[m]] -= 1
     end
     if isboundary
-      push!(boundary,index)
+      push!(boundary,index_)
     end
   end
   return boundary::Set{Index{d,V}}

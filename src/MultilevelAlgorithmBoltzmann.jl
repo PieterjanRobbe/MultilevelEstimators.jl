@@ -21,8 +21,8 @@ function simulate{T<:AbstractFloat}(sampler::Sampler; absTOL::T=Inf, relTOL::T=I
 
   # run mimc or cmimc
   if sampler.continuate
-    absTOL_ = 1.5^(sampler.nTOL-1)*absTOL
-    relTOL_ = 1.5^(sampler.nTOL-1)*relTOL
+    absTOL_ = 2^(sampler.nTOL-1)*absTOL
+    relTOL_ = 2^(sampler.nTOL-1)*relTOL
     sampler.continuate = false # run initial hierarchy
 		endtime = @elapsed mimc(sampler,absTOL_,relTOL_,failProb) 
 		push!(t, endtime)
@@ -51,30 +51,16 @@ function simulate{T<:AbstractFloat}(sampler::Sampler; absTOL::T=Inf, relTOL::T=I
 			push!(c, cost) 
 			print_with_color(:cyan, sampler.ioStream,"ELAPSED IS $(endtime)\n")
 			writedlm(folder*"/times.txt",cumsum(t))
-			writedlm(folder*"/cost.txt",cumsum(c))
-    					println("=== times below ===")
-							println(t)
-							println("=== times above ===")
-							println("=== cost below ===")
-							println(c)
-							println("=== cost above ===")
-						
-			if cumsum(t)[end] > 2*3600
-							println("=== times below ===")
-							println(t)
-							println("=== times above ===")
-							println("=== cost below ===")
-							println(c)
-							println("=== cost above ===")
-							
-							return (cumsum(t),cumsum(c))
+			writedlm(folder*"/cost.txt",c)
+    	if cumsum(t)[end] > 10*3600
+				return cumsum(t)
 			end
 		end
   else
       push!(t, @elapsed mimc(sampler,absTOL,relTOL,failProb)) # plain mimc
   end
 
-	return (cumsum(t),cumsum(c)) # return timing results
+  return cumsum(t) # return timing results
 
 end
 
@@ -351,7 +337,7 @@ function updateDicts!{d,N,T}(sampler::Sampler, indices::Set{Index{d,Vector{N}}},
     Vftilde = bayesianUpdateVariance(sampler,A,α,B,β,E,Vf)
     Vtilde = bayesianUpdateVariance(sampler,A,α,Bacc,βacc,E,V)
     for index::Index{d,Vector{N}} in sort(indices) # use model fit on all indices
-#						println("<<< WARNING >>> I ONLY USE A FIT ON THE BOUNDARY INDICES <<< END WARNING >>>")
+						println("<<< WARNING >>> I ONLY USE A FIT ON THE BOUNDARY INDICES <<< END WARNING >>>")
 			if !haskey(sampler.samples,index)
 			E[index] = [A*prod(2.^(-α.*index))]
       Vf[index] = haskey(Vftilde,index) ? [Vftilde[index]] : [B*prod(2.^(-β.*index))]

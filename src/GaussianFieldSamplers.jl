@@ -165,25 +165,24 @@ function compose{K<:KLExpansion,T<:AbstractFloat,t,V}(kl::K, xi::Vector{T}, inde
     nterms = kl.s[index.indices[end]+1]
     index_ = Index(index.indices[1:end-1])::Index{t-1,V}
   elseif ndims(index) < d # FIX for multilevel case
-    index_ = Index(repeat([index[1]],inner=[d]))::Index{d,V}
+		index_ = Index(index[1]*ones(typeof(index[1]),d))::Index{d,V}
   else
     index_ = index
   end
-
+  
   # first term for type-stability of k
   v = kl.eigenfunc[index_[1]+1][kl.eigenval[1][1][1],:]::Array{T,1}
   for p = 2:d
-    v = kron(kl.eigenfunc[index_[p]+1][kl.eigenval[1][1][p],:],v)::Array{T,1}
+    @inbounds v = kron(kl.eigenfunc[index_[p]+1][kl.eigenval[1][1][p],:],v)::Array{T,1}
   end
   k = xi[1]*sqrt(kl.eigenval[1][2])*v
-
   # rest of the terms
   for i in 2:nterms
-    v = kl.eigenfunc[index_[1]+1][kl.eigenval[i][1][1],:]::Array{T,1}
+    @inbounds v = kl.eigenfunc[index_[1]+1][kl.eigenval[i][1][1],:]::Array{T,1}
     for p = 2:d
-      v = kron(kl.eigenfunc[index_[p]+1][kl.eigenval[i][1][p],:],v)::Array{T,1}
+      @inbounds v = kron(kl.eigenfunc[index_[p]+1][kl.eigenval[i][1][p],:],v)::Array{T,1}
     end
-    k += xi[i]*sqrt(kl.eigenval[i][2])*v
+    @inbounds k += xi[i]*sqrt(kl.eigenval[i][2])*v
   end
   return k
 end

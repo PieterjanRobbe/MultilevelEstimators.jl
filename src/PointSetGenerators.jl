@@ -61,7 +61,7 @@ function UniformQMCgenerator{N<:Integer}(s::N, q::N)
 end
 
 function UniformQMCgenerator(randlat::RandWrapper)
-  return UniformQMCgenerator{ndims(s),nshifts(q),typeof(randlat),Float64,Vector{Float64}}(randlat,1.,zeros(s),ones(s))
+  return UniformQMCgenerator{QMC.ndims(s),nshifts(q),typeof(randlat),Float64,Vector{Float64}}(randlat,1.,zeros(s),ones(s))
 end
 
 function UniformQMCgenerator{N<:Integer,T<:AbstractFloat}(s::N, q::N,lb::Vector{T},ub::Vector{T})
@@ -72,13 +72,13 @@ function UniformQMCgenerator{N<:Integer,T<:AbstractFloat}(s::N, q::N,lb::Vector{
 end
 
 function UniformQMCgenerator{T<:AbstractFloat}(randlat::RandWrapper,lb::Vector{T},ub::Vector{T})
-  @assert length(ub) == ndims(randlat) && length(lb) == ndims(randlat)
-  return UniformQMCgenerator{ndims(randlat),q = nshifts(randlat),typeof(randlat),T,Vector{T}}(randlat,1.,lb,ub)
+  @assert length(ub) == QMC.ndims(randlat) && length(lb) == QMC.ndims(randlat)
+  return UniformQMCgenerator{QMC.ndims(randlat),q = nshifts(randlat),typeof(randlat),T,Vector{T}}(randlat,1.,lb,ub)
 end
 
 function UniformQMCgenerator{T<:AbstractFloat}(randlat::RandWrapper,λ::T,lb::Vector{T},ub::Vector{T})
   @assert length(ub) == s && length(lb) == s
-  return UniformQMCgenerator{ndims(randlat),q = nshifts(randlat),typeof(randlat),T,Vector{T}}(randlat,λ,lb,ub)
+  return UniformQMCgenerator{QMC.ndims(randlat),q = nshifts(randlat),typeof(randlat),T,Vector{T}}(randlat,λ,lb,ub)
 end
 
 # utilities
@@ -143,7 +143,7 @@ function GaussianQMCgenerator{N<:Integer}(s::N, q::N)
 end
 
 function GaussianQMCgenerator(randlat::RandWrapper)
-  return GaussianQMCgenerator{s,q,typeof(randlat),Float64}(randlat,1.)
+				return GaussianQMCgenerator{QMC.ndims(randlat),nshifts(randlat),typeof(randlat),Float64}(randlat,1.)
 end
 
 # utilities
