@@ -9,7 +9,8 @@ end
 # KL expansion
 type KLExpansion{d,N<:Integer,A<:AbstractVector,B<:AbstractVector,C<:AbstractVector} <: GaussianFieldSampler
   mkl::N # number of terms in KL expansion
-  eigenval::A # d-dimensional KL eigenvalues (Array of tupples with index and value)
+  m0::N # coarsest grid number of points
+	eigenval::A # d-dimensional KL eigenvalues (Array of tupples with index and value)
   eigenfunc::B # 1d KL eigenfunctions
   ad::Bool # true if adaptive in number of terms
   s::C
@@ -102,8 +103,15 @@ function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 10,
     ω = findroots(kernel.λ, mkl+1)
     θ = 2*kernel.σ^2*kernel.λ./(kernel.λ^2*ω.^2+1)
   else
-    θ,dummy = nystrom(kernel,0,mkl+1)
-  end
+    #θ,dummy = nystrom(kernel,0,mkl+1)
+    if isempty(x)
+      m = m0*2^maxL
+      pts = collect(1/2/m:1/m:1-1/2/m) # finite volume method, cell centered values
+    else
+      pts = collect(x[L+1]) # other values if specified
+    end
+		θ, temp = nystrom(kernel, collect(pts), mkl+1) # solve EVP only once!	
+	end
 
   # compose the d-dimensional eigenvalues by adaptive search
   O = Vector{Tuple{Index{d,Vector{N}},T}}() # could be oredered dict as well
@@ -145,15 +153,24 @@ function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 10,
     for L in 0:maxL
       if isempty(x)
         m = m0*2^L
+				ipts = 1/2/m:1/m:1-1/2/m
       else
-        m = length(x[L+1])
+				m = length(x[L+1])
+       	ipts = x[L+1]
       end
-      dummy,temp = nystrom(kernel,m,max_mkl) # HACK for now use points on [0,1]
-      push!(eigenfunc, temp)
+			# loop over all eigenfunctions and interpolate
+			ar = zeros(T,mkl,m)
+			for r = 1:mkl
+				# set up interpolator
+				ip = interpolate((pts,), temp[r,:], Gridded(Linear()))
+				# now interpolate temp in 
+				ar[r,:] = ip[ipts]
+			end
+			push!(eigenfunc, ar)
     end
   end
 
-  return KLExpansion{d,N,typeof(O),typeof(eigenfunc),typeof(s)}(mkl,O,eigenfunc,ad,s)
+  return KLExpansion{d,N,typeof(O),typeof(eigenfunc),typeof(s)}(mkl,m0,O,eigenfunc,ad,s)
 end
 
 # function to compose KL expansion
@@ -290,7 +307,7 @@ function gauss_legendre_0_1(m)
 end
 
 # nystrom method
-function nystrom{N<:Integer}(kernel::Kernel,m::N,nterms::N)
+function nystrom{N<:Integer,T<:AbstractFloat}(kernel::Kernel,x::Vector{T},nterms::N)
   # compute covariance matrix
   nodes, weights = gauss_legendre_0_1(nterms)
   K = applyKernel(kernel,nodes,nodes')
@@ -310,8 +327,9 @@ function nystrom{N<:Integer}(kernel::Kernel,m::N,nterms::N)
   lambda = 1./eigenval
 
   # nystrom method
-  eigenfunc = zeros(nterms,m)
-  x = 1/2/m:1/m:1-1/2/m
+	m = length(x)
+	eigenfunc = zeros(nterms,m)
+  #x = 1/2/m:1/m:1-1/2/m
   K = applyKernel(kernel,x,nodes')*kernel.σ^2
   for j in 1:nterms
     @inbounds eigenfunc[j,:] = lambda[j]*K*f[:,j]

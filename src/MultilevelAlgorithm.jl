@@ -1,85 +1,76 @@
-# simulate(sampler, absTOL)
-simulate{T<:AbstractFloat}(sampler::Sampler, absTOL::T) = simulate(sampler, absTOL=absTOL)
+#
+# MULTILEVELALGORITHM.JL
+#
 
-# simulate(sampler, absTOL, failProb)
-simulate{T<:AbstractFloat}(sampler::Sampler, absTOL::T, failProb::T) = simulate(sampler, absTOL=absTOL, failProb=failProb)
+#	Collection of functions that implement the different algorithms, MLMC, MLQMC, MIMC, MIQMC...
+# Main function is "simulate", see below.
 
-# simulate(sampler, absTOL=..., relTOL=..., failProb=...)
-function simulate{T<:AbstractFloat}(sampler::Sampler; absTOL::T=Inf, relTOL::T=Inf, failProb::T=0.1, folder=".")
+# simulate(sampler, absTol)
+simulate{T<:AbstractFloat}(sampler::Sampler, absTol::T) = simulate(sampler, [absTol])
+
+# simulate(sampler, absTol, failProb)
+simulate{T<:AbstractFloat}(sampler::Sampler, absTol::T, failProb::T) = simulate(sampler, [absTol], failProb=failProb)
+
+# simulate(sampler, tol, failProb=..., is_relative=..., folder=...)
+# simulate takes a vector tol as input that contains the tolerances that must be solved for
+function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}, failProb::T=0.1, is_relative::Bool=false, folder::AbstractString=".", max_time::N=typemax(Int64))
 
   # checks on inputs
-  if absTOL < 0 || relTOL < 0
-    error("supplied tolerances (absolute and/or relative) must be positive!")
+	if any(tol .< 0) || any(isinf(tol))
+    error("supplied tolerances must be positive!")
   elseif failProb < 0 || failProb > 1
     error("failure probability failProb must be between 0 and 1!")
-  elseif isinf(absTOL) && isinf(relTOL)
-    error("supply a relative or absolute tolerance!")
-  end
+	elseif !isdir(folder)
+		error("unknown folder $(folder)!")
+  end # if
 
-  t = Vector{T}() # vector contains wall clock time
-	c = Vector{T}()
+	# if user provided a set of tolerances, sort them
+	sort!(tol,rev=true)
 
-  # run mimc or cmimc
-  if sampler.continuate
-    absTOL_ = 1.5^(sampler.nTOL-1)*absTOL
-    relTOL_ = 1.5^(sampler.nTOL-1)*relTOL
-    sampler.continuate = false # run initial hierarchy
-		endtime = @elapsed mimc(sampler,absTOL_,relTOL_,failProb) 
-		push!(t, endtime)
-		cost = 0.
-		dir = isa(sampler.numberGenerator,MCgenerator) ? 2 : 1
+	# else, use "optimal" sequence from CMLMC paper
+	if sampler.continuate && length(tol) == 1
+		tol = 1.5.^(sampler.nTOL-(1:sampler.nTOL))*tol[1]
+	end # if
+
+	# preallocate vector that will contain wall clock and standard cost
+	wctime = zeros(tol)
+	stcost = zeros(tol)
+
+  # run mimc 
+	for i in 1:length(tol)
+		# simulate
+		delta_t = @elapsed mimc(sampler,tol[i],is_relative,failProb) 
+		# compute wall clock time and standard cost
+		wctime[i] =  delta_t
 		for index in keys(sampler.samples)
-		  N = size(sampler.samples[index],dir)
-			cost = cost + N*prod(2.^(index.indices))
-		end
-		push!(c, cost)
-		print_with_color(:cyan, sampler.ioStream,"ELAPSED IS $(endtime)\n")
-		writedlm(folder*"/times.txt",t)
-		writedlm(folder*"/cost.txt",c)
-    sampler.continuate = true
-    for i in 1:sampler.nTOL-1 # run for smaller tolerances
-			absTOL_ = 2^(sampler.nTOL-1-i)*absTOL
-      relTOL_ = 2^(sampler.nTOL-1-i)*relTOL
-			endtime = @elapsed mimc(sampler,absTOL_,relTOL_,failProb)	
-			push!(t, endtime) 
-			cost = 0.
-			dir = isa(sampler.numberGenerator,MCgenerator) ? 2 : 1
-			for index in keys(sampler.samples)
-		  	N = size(sampler.samples[index],dir)
-				cost = cost + N*prod(2.^(index.indices))
+			stcost[i] += length(sampler.samples[index])*sampler.Wst[index]
+		end # for
+		@debug begin
+			if !isdir("data")
+				mkdir("data")
 			end
-			push!(c, cost) 
-			print_with_color(:cyan, sampler.ioStream,"ELAPSED IS $(endtime)\n")
-			writedlm(folder*"/times.txt",cumsum(t))
-			writedlm(folder*"/cost.txt",cumsum(c))
-    					println("=== times below ===")
-							println(t)
-							println("=== times above ===")
-							println("=== cost below ===")
-							println(c)
-							println("=== cost above ===")
-						
-			if cumsum(t)[end] > 2*3600
-							println("=== times below ===")
-							println(t)
-							println("=== times above ===")
-							println("=== cost below ===")
-							println(c)
-							println("=== cost above ===")
-							
-							return (cumsum(t),cumsum(c))
+			if !isdir("data/indexsets")
+				mkdir("data/indexsets")
 			end
-		end
-  else
-      push!(t, @elapsed mimc(sampler,absTOL,relTOL,failProb)) # plain mimc
-  end
+			print_with_color(:cyan,"ELAPSED IS $(delta_t)\n")
+			print("writing wall clock times into $(folder)/data/wctime.txt... ")
+			writedlm(folder*"/data/wctime.txt",cumsum(wctime))
+			println("done")
+			print("writing standard cost into $(folder)/data/stcost.txt... ")
+			writedlm(folder*"/data/stcost.txt",cumsum(stcost))
+			println("done")
+		end # begin
+		if cumsum(wctime)[end] > max_time
+			print_with_color(:red,"wall clock time exceeded maximum time of $(max_time) secondes, aborting...\n")
+			break
+		end # if
+	end # for
 
-	return (cumsum(t),cumsum(c)) # return timing results
+	return cumsum(wctime),cumsum(stcost)
+end # function
 
-end
-
-# mimc simulation
-function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, absTOL::T, relTOL::T, failProb::T)
+# actual mimc simulation
+function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool, failProb::T)
 
   # print some info to screen
   if ( sampler.showInfo )
@@ -89,70 +80,85 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, absTOL::T, relTOL::T, fai
     isCont = sampler.continuate ? "" : "not"
     idxSet = ( isa(sampler.indexSet,ML) || isa(sampler.indexSet,SL) || isa(sampler.indexSet,AD) ) ? "$(sampler.indexSet)" : "$(sampler.indexSet)"[1:34]
     @printf(sampler.ioStream,"%s","*** Using a $(idxSet), $isCont continuating \n")
-    @printf(sampler.ioStream,"%s",
-    @sprintf("*** absTOL = %0.3e / relTOL = %0.3e (failure probability of %0.2f)\n",absTOL,relTOL,failProb))
-    @printf(sampler.ioStream,"%s","--------------------------------------------------------------------------------\n")
-  end
+    printTOL = is_relative ? "relTOL" : "absTOL"
+    @printf(sampler.ioStream,"%s","*** $printTOL = "*@sprintf("%0.3e (failure probability of %0.2f)\n",TOL,failProb))
+		@printf(sampler.ioStream,"%s","--------------------------------------------------------------------------------\n")
+  end # if
 
   # loop variables
   converged = false
   L  = 0
 
+	# when debugging, keep track of parameter L, bias, stochastic error, total error
+	@debug Lcollection = zeros(T,sampler.maxL+1,3)
+
   # aliases
+	# TODO might be incorporated into the sampler object
   N = Int64
   λ = sampler.numberGenerator.λ
   q = nshifts(sampler.numberGenerator)
   dir = isa(sampler.numberGenerator,MCgenerator) ? 2 : 1
 
   # variable definition
-  F = zeros(T,sampler.Z) # holds stochastic error
-	G = zeros(T,sampler.Z) # holds bias
-  C = sqrt(2)*erfcinv(failProb) # failure probability constant
   oldindexset = Set{Index{d,Vector{N}}}()
 
 	# variables used when adaptive
   old = Set{Index{d,Vector{N}}}() # old index set
-  profit = Dict{Index{d,Vector{N}},T}() # active set
-  profit[Index(zeros(N,d))] = 0.
+  active = Dict{Index{d,Vector{N}},T}() # active set
+  active[Index(zeros(N,d))] = 0.
   
   while !converged
-    # empty dicts
-    E = Dict{Index{d,Vector{N}},Vector{T}}() # dict for expected values
-    V = Dict{Index{d,Vector{N}},Vector{T}}() # dict for variances
-    Vf = Dict{Index{d,Vector{N}},Vector{T}}() # dict for variance of the function
-    W = Dict{Index{d,Vector{N}},T}() # dict for costs
+    # print some info to the screen
+    !sampler.showInfo || print_with_color(:blue, sampler.ioStream, "*** currently running at L = $(L)...\n")
+    
+		# empty dicts
     S = Dict{Index{d,Vector{N}},N}() # dict for optimal number of samples
-    Vest = Dict{Index{d,Vector{N}},Vector{T}}() # dict for variance of estimator
 
     # get index set in current iteration
-    if typeof(sampler.indexSet) <: AD
-      if L<=2
+		if !(typeof(sampler.indexSet) <: AD)
+			newindexset = getIndexSet(sampler.indexSet,L)::Set{Index{d,Vector{N}}}	
+		elseif typeof(sampler.indexSet) <: AD && L <= 2
+						newindexset = getIndexSet(TD(d),L)::Set{Index{d,Vector{N}}}
+		else
+			if L <= 2 # assume TD index set for inial estimates
 				newindexset = getIndexSet(TD(d),L)
 				newindexsetboundary = getBoundary(newindexset)
 				for index in newindexsetboundary
-					profit[index]=0.
+					active[index]=0.
 				end
 				for index in setdiff(newindexset, newindexsetboundary)
 					push!(old,index)
 				end
       else
-        # find index with largest gain (sparse addition)
-				i = collect(keys(profit))[indmax(collect(values(profit)))]
-				delete!(profit,i) # delete from profit set
+        # find index with largest gain
+				i = collect(keys(active))[indmax(collect(values(profit)))]
+				delete!(active,i) # delete from active set
         push!(old,i) # add to old set and check admissables
         for p in 1:d 
           j = copy(i)::Index{d,Vector{N}}
           j[p] += 1
-          if isAdmissable(union(old, Set(keys(profit))),j)
-		  			profit[j] = 0.
+          if isAdmissable(old,j) # add when admissible in old set
+		  			active[j] = 0.
 	  			end
         end
         newindexset = union(old, Set(keys(profit)))::Set{Index{d,Vector{N}}}
       end
-    else
-      newindexset = getIndexSet(sampler.indexSet,L)::Set{Index{d,Vector{N}}}
     end
-	
+		# print index set
+		@debug print("the new index set is an ")
+		@debug prettyprint(newindexset)
+		# store the index set in a file
+		@debug begin
+			# store all indices in a matrix M
+			M = zeros(T, length(newindexset), d)
+			cntr = 1
+			for idx in sort(newindexset)
+				M[cntr,1:d] = idx.indices
+				cntr += 1
+			end
+			writedlm("data/indexsets/L$(L).txt",M)
+		end
+
     # get boundary in current iteration
     boundary = Set{Index{d,Vector{N}}}()::Set{Index{d,Vector{N}}} # empty set
     if typeof(sampler.indexSet) <: ML
@@ -162,134 +168,175 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, absTOL::T, relTOL::T, fai
     else
       boundary = union(boundary,getBoundary(getIndexSet(sampler.indexSet, L))::Set{Index{d,Vector{N}}})
     end
+		@debug print("the boundary is an ")
+		@debug prettyprint(boundary)
     
     # new indices to add
     indicesToAdd = setdiff( newindexset, oldindexset )
+		@debug print("the new indices are an ")
+		@debug prettyprint(indicesToAdd)
 
-    # print some info to the screen
-    !sampler.showInfo || print_with_color(:blue, sampler.ioStream, "*** currently running at L = $(L)...\n")
-
-    # take initial number of samples
-    if !sampler.continuate
+    # take initial number of samples at each new index when needed...
+    if L < 3
+			@debug println("now taking warm-up samples... ")
       for index::Index{d,Vector{N}} in indicesToAdd
-        if !haskey(sampler.times,index)
-          time = @elapsed sample(sampler, sampler.Nstar, index)
-          setindex!(sampler.times, time, index) # cumulative time
+        if !haskey(sampler.T,index) # when running repeatedly, might already have samples available
+          sample(sampler, sampler.Nstar, index)
   			end
       end
-    end
-    
-		updateDicts!(sampler,newindexset,false,E,Vf,V,W,Vest,profit)
-    minTOL = min(absTOL,relTOL*maximum(sum(values(E))))
-    updateDicts!(sampler,newindexset,sampler.continuate,E,Vf,V,W,Vest,profit)
-    
+			@debug println("done taking warm-up samples!")
+		# ... or else do regression over the new indices to get estimates for variances
+		else
+			@debug println("now doing regression... ")
+			do_regression(sampler,indicesToAdd)
+			@debug println("regression ok!")
+		end
+		@debug inspect(sampler)
+
+		# actual relative/absolute tolerance to solve for
+    realTOL = is_relative ? TOL*maximum(sum(values(sampler.E))) : TOL
+		@debug println("TOL is $(TOL), realTOL to solve for is is $(realTOL)")
+
 		# estimate initial bias and splitting
-    Gf = zeros(T,sampler.Z)
-    for index::Index{d,Vector{N}} in boundary
-						Gf += E[index]
-    end
-    G = maximum(abs(Gf))
-    !sampler.showInfo || print_with_color(:green, sampler.ioStream, @sprintf("   *** initial bias = %0.6e \n", G ) )
-    splitting = ( G < minTOL/2 ) ? 1 - G/minTOL : 0.5
-    !sampler.showInfo || print_with_color(:green, sampler.ioStream, @sprintf("   *** splitting = %0.6e \n", splitting ) )
+		B = maximum(compute_bias(sampler,boundary))
+    !sampler.showInfo || print_with_color(:green, sampler.ioStream, @sprintf("*** initial bias = %0.6e \n", B ) )
+		splitting = ( B < realTOL/2 ) ? 1 - B/realTOL : 0.5 # update splitting parameter \in [0.5,1)
+    !sampler.showInfo || print_with_color(:green, sampler.ioStream, @sprintf("*** splitting = %0.6e \n", splitting ) )
 
     # calculate optimal number of samples
     mySum = zeros(T,sampler.Z)
     for index::Index{d,Vector{N}} in newindexset
-      mySum += ( ( Vf[index].*(W[index]*ones(sampler.Z)).^(2*λ) ).^(1/(2*λ+1) ) )
+			mySum += ( ( sampler.Vf[index].*(sampler.W[index]*ones(sampler.Z)).^(2*λ) ).^(1/(2*λ+1) ) )
     end
     for index::Index{d,Vector{N}} in newindexset
-      Nopt = ( ( C/(splitting*minTOL) )^2 * 1/q * (Vf[index]./W[index]).^(2*λ/(2*λ+1)) .* mySum ).^(1/(2*λ))
+			Nopt = ( ( sqrt(2)*erfcinv(failProb)/(splitting*realTOL) )^2 * 1/q * (sampler.Vf[index]./sampler.W[index]).^(2*λ/(2*λ+1)) .* mySum ).^(1/(2*λ))
       S[index] = ceil(N,max(3.,maximum(Nopt)))
     end
+		@debug println("constant C is $(sqrt(2)*erfcinv(failProb))")
+		@debug begin
+  		str  = "-------------------------------------------------------------------------------- \n"
+  		itype = ndims(sampler.indexSet) == 1 ? "level" : "index"
+  		str *= "  "*itype*"       optimal number of samples \n"
+  		str *= "-------------------------------------------------------------------------------- \n"
+  		for index in sort(Set(collect(keys(S))))
+    		str *= ("  $(index.indices)            "[1:13])
+    		str *= @sprintf("    %d               \n",S[index])
+  		end
+			print(str)
+		end
 
     # take additional samples at each level
-    for index::Index{d,Vector{N}} in newindexset
-      samplesToTake = haskey(sampler.samples,index) ? max( 0, S[index]-size(sampler.samples[index],dir) ) : S[index]
+		@debug println("begin to take samples as shown above") 
+		for index::Index{d,Vector{N}} in newindexset
+			samplesToTake = max( 0, S[index]-size(get(sampler.samples,index,zeros(0,0)),dir) )
       if samplesToTake > 0
-        time = @elapsed sample(sampler, samplesToTake, index )
-        sampler.times[index] = haskey(sampler.times,index) ? sampler.times[index] + time : time # cumulative time
+        sample(sampler, samplesToTake, index )
       end
     end
-    updateDicts!(sampler,newindexset,sampler.continuate,E,Vf,V,W,Vest,profit)
+		@debug inspect(sampler)
     
 		# safety
-    Gf = zeros(T,sampler.Z)
-    for index::Index{d,Vector{N}} in boundary
-				Gf += E[index]
-    end
-    G = maximum(abs(Gf))
-    F = C*sqrt(sum(values(Vest)))
-    splitting = ( G < minTOL/2 ) ? 1 - G/minTOL : 0.5
-    if sampler.safety
-      while maximum(F) > splitting*minTOL
+		B = maximum(compute_bias(sampler,boundary))
+		splitting = ( B < realTOL/2 ) ? 1 - B/realTOL : 0.5 # update splitting parameter \in [0.5,1)
+		A = maximum(compute_stochastic_error(sampler, failProb, newindexset))
+    @debug print_with_color(:green, sampler.ioStream, @sprintf("*** bias = %0.6e \n", B ) )
+    @debug print_with_color(:green, sampler.ioStream, @sprintf("*** splitting = %0.6e \n", splitting ) )
+    @debug print_with_color(:green, sampler.ioStream, @sprintf("*** stochastic error is = %0.6e \n", A ) )	
+		@debug print_with_color(:red, "safety is on... ")
+		if sampler.safety
+			@debug print_with_color(:red, "yes\n")
+      while A > splitting*realTOL
+				@debug println(@sprintf("stochastic error (%0.6e) > splitting*realTOL (%0.6e), entering while loop...", A, splitting*realTOL))
         # double number of samples on index with max ratio Vest/W
         maxratio = zero(T)
         maxindex = Index(zeros(N,d))::Index{d,Vector{N}}
         for index::Index{d,Vector{N}} in newindexset
-          ratio = maximum(Vest[index])/W[index]
+          ratio = maximum(sampler.Vest[index])/sampler.W[index]
           if ratio > maxratio
             maxratio = ratio
             maxindex = index::Index{d,Vector{N}}
           end
         end
+				@debug println("the index with maximum ratio Vest/W is $(maxindex.indices)")
         n = size(sampler.samples[maxindex],dir)
-        time = @elapsed sample(sampler, nextpow2(n+1)-n, maxindex ) # round to nearest power of two
-        sampler.times[maxindex] += time # cumulative time
-        updateDicts!(sampler,newindexset,sampler.continuate,E,Vf,V,W,Vest,profit)
-				
-				#
-				# referee 1 addition
-    		#
-				minTOL = min(absTOL,relTOL*maximum(sum(values(E))))
-				# recalculate optimal number of samples
-    		mySum = zeros(T,sampler.Z)
-    		for index::Index{d,Vector{N}} in newindexset
-      		mySum += ( ( Vf[index].*(W[index]*ones(sampler.Z)).^(2*λ) ).^(1/(2*λ+1) ) )
+				@debug println("currently $(n) samples have been taken at index $(maxindex.indices), taking an additional $(nextpow2(n+1)-n)")
+        sample(sampler, nextpow2(n+1)-n, maxindex ) # round to nearest power of two
+				@debug inspect(sampler)
+    
+				# reevaluate optimal number of samples
+				# TODO maybe refactor into a function, since it is called twice
+    		@debug println("reevaluating optimal number of samples...")
+				for index::Index{d,Vector{N}} in newindexset
+					mySum += ( ( sampler.Vf[index].*(sampler.W[index]*ones(sampler.Z)).^(2*λ) ).^(1/(2*λ+1) ) )
     		end
     		for index::Index{d,Vector{N}} in newindexset
-      		Nopt = ( ( C/(splitting*minTOL) )^2 * 1/q * (Vf[index]./W[index]).^(2*λ/(2*λ+1)) .* mySum ).^(1/(2*λ))
+					Nopt = ( ( sqrt(2)*erfcinv(failProb)/(splitting*realTOL) )^2 * 1/q * (sampler.Vf[index]./sampler.W[index]).^(2*λ/(2*λ+1)) .* mySum ).^(1/(2*λ))
       		S[index] = ceil(N,max(3.,maximum(Nopt)))
     		end
-    		# take additional samples at each level
-    		for index::Index{d,Vector{N}} in newindexset
-      		samplesToTake = haskey(sampler.samples,index) ? max( 0, S[index]-size(sampler.samples[index],dir) ) : S[index]
+				@debug println("constant C is $(sqrt(2)*erfcinv(failProb))")
+				@debug begin
+  				str  = "-------------------------------------------------------------------------------- \n"
+  				itype = ndims(sampler.indexSet) == 1 ? "level" : "index"
+  				str *= "  "*itype*"       optimal number of samples \n"
+  				str *= "-------------------------------------------------------------------------------- \n"
+  				for index in sort(Set(collect(keys(S))))
+    				str *= ("  $(index.indices)            "[1:13])
+    				str *= @sprintf("    %d              \n ",S[index])
+  				end
+					println(str)
+				end
+    		
+				# take these additional samples at each level
+				# TODO same as above, maybe merge into a single loop
+				for index::Index{d,Vector{N}} in newindexset
+					samplesToTake = max( 0, S[index]-size(get(sampler.samples,index,zeros(0,0)),dir) )
       		if samplesToTake > 0
-        		time = @elapsed sample(sampler, samplesToTake, index )
-        		sampler.times[index] = haskey(sampler.times,index) ? sampler.times[index] + time : time # cumulative time
+        		sample(sampler, samplesToTake, index )
       		end
     		end
-    		updateDicts!(sampler,newindexset,sampler.continuate,E,Vf,V,W,Vest,profit)
-				#
-				# end referee 1 addition
-				#
-				# recompute statistical error and splitting
-        F = C*sqrt(sum(values(Vest)))
-     		Gf = zeros(T,sampler.Z)
-    		for index::Index{d,Vector{N}} in boundary
-					Gf += E[index]
-    		end
-    		G = maximum(abs(Gf))
-        splitting = ( G < minTOL/2 ) ? 1 - G/minTOL : 0.5
-      end
-    end
-
+				@debug inspect(sampler)
+			
+				B = maximum(compute_bias(sampler,boundary))
+    		splitting = ( B < realTOL/2 ) ? 1 - B/realTOL : 0.5
+				A = maximum(compute_stochastic_error(sampler, failProb, newindexset))	
+    		@debug print_with_color(:green, sampler.ioStream, @sprintf("*** bias = %0.6e \n", B ) )
+    		@debug print_with_color(:green, sampler.ioStream, @sprintf("*** splitting = %0.6e \n", splitting ) )
+    		@debug print_with_color(:green, sampler.ioStream, @sprintf("*** stochastic error is = %0.6e \n", A ) )	
+				@debug "I reached the end of another iteration."		
+			end
+			@debug print_with_color(:red, "finished safety loop!\n")
+		else
+			@debug print_with_color(:red, "no\n")
+		end
+		
     # check for convergence
-    updateDicts!(sampler,Set(collect(keys(sampler.samples))),false,E,Vf,V,W,Vest,profit) # store true values in Dicts
 		if ( L > 1 )
-      converged = ( maximum(F + G)::T < minTOL )
-      println("minTOL is $minTOL")
-      println("we have error $(maximum(F+G))")
+			@debug print("checking for convergence... ")
+			error = sqrt(A^2+B^2)::T  
+			converged = ( error < realTOL )
+			@debug converged ? println("yes") : println("no")
+			@debug println("the requested error is $(realTOL)")
+			@debug println("we have error $(error)")
       # print some info to the screen
       !sampler.showInfo || print_with_color(:magenta, sampler.ioStream, 
-        @sprintf("*** error estimate is %0.6e + %0.6e = %0.6e \n", maximum(F), maximum(G), maximum(F+G) ) )
-      μ = maximum(sum(values(E)))
-      σ = sqrt(maximum(sum(values(V))))
+				@sprintf("*** estimate for the bias is %0.6e \n", B ) )
+      !sampler.showInfo || print_with_color(:magenta, sampler.ioStream, 
+				@sprintf("*** estimate for the stochastic error is %0.6e \n", A ) )
+			!sampler.showInfo || print_with_color(:magenta, sampler.ioStream, 
+				@sprintf("*** estimate for the total error is %0.6e \n", error ) )
+			μ = mean(sampler, newindexset)
+			σ = std(sampler, newindexset)
       !sampler.showInfo || ( !converged || print_with_color(:magenta, sampler.ioStream, 
         @sprintf("*** result is %0.6e ±(%0.6e, %0.6e, %0.6e) \n", μ, σ, 2*σ, 3*σ ) ) )
-    end
+		else
+			@debug println("L < 1, not checking convergence... ")
+		end
 
-    # print warning if no convergence
+		# when debugging, update Lcollection
+		@debug Lcollection[L+1,:] = [B, A, sqrt(A^2+B^2)]
+		@debug writedlm("data/indexset_errors.txt",Lcollection)
+
+    # print warning if no convergence and maximum level reached
     if !converged
       if L == sampler.maxL
         warn("maximum level reached and no convergence yet, sorry! :(\n")
@@ -297,142 +344,29 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, absTOL::T, relTOL::T, fai
       end
     end
 
-    # update L
-    L += 1
-    oldindexset = newindexset
-  
-		#	
-		# PRINT OVERVIEW TABLE
-  	#
-  	if ( sampler.showInfo )
-    	@printf(sampler.ioStream,"%s","--------------------------------------------------------------------------------\n")
-    	itype = ndims(sampler.indexSet) == 1 ? "level" : "index"
-    	@printf(sampler.ioStream,"%s","  "*itype*"       E              V               N               W              \n")
-    	@printf(sampler.ioStream,"%s","--------------------------------------------------------------------------------\n")
-    	for index::Index{d,Vector{N}} in sort(newindexset)
-    	  str = ("  $(index.indices)            "[1:13])
-      	str *= @sprintf("%12.5e",maximum(E[index]))
-      	str *= @sprintf("    %0.6e",maximum(Vf[index]))
-      	str *= @sprintf("    %d               ",prod(size(sampler.samples[index])[1:2]))[1:16]
-      	str *= @sprintf("    %0.6e\n",W[index])
-      	#str *= @sprintf("    %0.6e\n",maximum(abs(E[index])./sqrt(Vf[index].*W[index])))
-      	@printf(sampler.ioStream,"%s",str)
-    	end
-  	end
-	end
-end
-
-# refactored function that updates E/Vf/V/W/Vest/profit from current sampler
-function updateDicts!{d,N,T}(sampler::Sampler, indices::Set{Index{d,Vector{N}}}, continuate::Bool,
-  E::Dict{Index{d,Vector{N}},Vector{T}}, Vf::Dict{Index{d,Vector{N}},Vector{T}}, 
-    V::Dict{Index{d,Vector{N}},Vector{T}}, W::Dict{Index{d,Vector{N}},T}, 
-      Vest::Dict{Index{d,Vector{N}},Vector{T}}, profit::Dict{Index{d,Vector{N}},T})
-
-  dir = isa(sampler.numberGenerator,MCgenerator) ? 2 : 1
-
-  # update all
-  for index::Index{d,Vector{N}} in sort(indices)
-    if haskey(sampler.samples,index)
-      E[index] = squeeze(mean(sampler.samples[index],(1,2)),(1,2))
-      Vf[index] = squeeze(mean(var(sampler.samples[index],2),1),(1,2))
-      V[index] = squeeze(var(mean(sampler.samples[index],1),2),(1,2))
-      nsamples = size(sampler.samples[index],dir)
-      W[index] =  sampler.useTime ? sampler.times[index]/nsamples : prod(2.^(sampler.γ.*index))
-      Vest[index] = V[index]/nsamples
-      if typeof(sampler.indexSet) <: AD && haskey(profit,index) # compute gains when adaptive
-	      profit[index] = maximum(abs(E[index])./sqrt(Vf[index].*W[index]))
-      end
-    end
-  end
-
-  # correction when doing continuation
-  if continuate
-    (A,α,B,β,Bacc,βacc,C,γ) = estimateProblemParameters(sampler)  # ! fits only max E_\ell, V_\ell
-    Vftilde = bayesianUpdateVariance(sampler,A,α,B,β,E,Vf)
-    Vtilde = bayesianUpdateVariance(sampler,A,α,Bacc,βacc,E,V)
-    for index::Index{d,Vector{N}} in sort(indices) # use model fit on all indices
-#						println("<<< WARNING >>> I ONLY USE A FIT ON THE BOUNDARY INDICES <<< END WARNING >>>")
-			if !haskey(sampler.samples,index)
-			E[index] = [A*prod(2.^(-α.*index))]
-      Vf[index] = haskey(Vftilde,index) ? [Vftilde[index]] : [B*prod(2.^(-β.*index))]
-      V[index] = haskey(Vtilde,index) ? [Vtilde[index]] : [Bacc*prod(2.^(-βacc.*index))]
-      W[index] = C*prod(2.^(γ.*index))
-      Vest[index] = haskey(sampler.samples,index) ? V[index]/size(sampler.samples[index],dir) : [zero(T)]
-      if typeof(sampler.indexSet) == AD && haskey(profit,index)
-	      profit[index] = maximum(abs(E[index])./sqrt(Vf[index].*W[index]))
-      end
+		# if burn-in of adaptive method has passed
+		if typeof(sampler.indexSet) <: AD && L == 2
+			for index in boundary
+				active[index]=0.
 			end
-    end
-  end
-	println("variance at index 0 is $(Vf[Index(zeros(N,d))])")
-	# correct level 0
-	#ndex = Index(zeros(N,d))
-	#E[ndex] = squeeze(mean(sampler.samples[ndex],(1,2)),(1,2))
-  #nsamples = size(sampler.samples[ndex],dir)
-  #W[ndex] =  sampler.useTime ? sampler.times[ndex]/nsamples : prod(2.^(sampler.γ.*ndex))
-  #Vest[ndex] = V[ndex]/nsamples
-  #if typeof(sampler.indexSet) <: AD && haskey(profit,ndex) # compute gains when adaptive
-	#  profit[ndex] = maximum(abs(E[ndex])./sqrt(Vf[ndex].*W[ndex]))
-  #end
-end
+			for index in oldindexset
+				push!(old,index)
+			end
+			L = length(newindexset)
+		end
+   
+		####
+		# @debug print_with_color(:red,"*********************\n")
+		# @debug print_with_color(:red,"*      WARNING      *\n")
+		# @debug print_with_color(:red,"*********************\n")
+		# @debug println("I set converged to false to test regression model")
+	  # converged = L == sampler.maxL ? true : false	
+		###
 
-# estimate problem parameters A, α, B, β, Bacc, βacc, C, γ and Vtilde in the continuation problem
-function estimateProblemParameters{d}(sampler::Sampler{d})
+		# update L
+		@debug converged || println("updating L form $(L) to $(L+1)")
+		L += 1
+    oldindexset = newindexset
 
-  # for now, let A, α, B, β, Bacc, βacc, C and γ follow from a fit through the available E_\ell, V_\ell and W_\ell
-  E = Dict{Index{d,Vector{Int64}},Float64}()
-  Vf = Dict{Index{d,Vector{Int64}},Float64}()
-  V = Dict{Index{d,Vector{Int64}},Float64}()
-  W = Dict{Index{d,Vector{Int64}},Float64}()
-  for index in keys(sampler.samples)
-    E[index] = maximum(squeeze(mean(sampler.samples[index],(1,2)),(1,2)))
-    Vf[index] = maximum(squeeze(mean(var(sampler.samples[index],2),1),(1,2)))
-    V[index] = maximum(squeeze(var(mean(sampler.samples[index],1),2),(1,2)))
-    W[index] = sampler.useTime ? sampler.times[index] : prod(2.^(index.*sampler.γ))
-  end
-
-  # least-squares fit
-  (A,α) = leastSquaresFit(E)
-  (B,β) = leastSquaresFit(Vf)
-  (Bacc,βacc) = leastSquaresFit(V)
-  (C,γ) = leastSquaresFit(W)
-
-  return (A::Float64, α::Vector{Float64}, B::Float64, β::Vector{Float64}, Bacc::Float64, βacc::Vector{Float64}, C::Float64, γ::Vector{Float64})
-end
-
-# Bayesian update of variances
-function bayesianUpdateVariance{d,N1<:Integer,T<:AbstractFloat}(sampler::Sampler,A::T,α::Vector{T},B::T,β::Vector{T}, E::Dict{Index{d,Vector{N1}},Vector{T}}, V::Dict{Index{d,Vector{N1}},Vector{T}})
-  dir = isa(sampler.numberGenerator,MCgenerator) ? 2 : 1
-  Vtilde = Dict{Index{d,Vector{N1}},T}()
-
-	for index in intersect(keys(E),keys(sampler.samples))
-    N = size(sampler.samples[index],dir)
-    μ = A*prod(2.^(-α.*index))
-    λ = 1/B*prod(2.^(β.*index))
-    Γ3 = sampler.k[2]*λ + N/2
-    Γ4 = sampler.k[2] + 0.5*(N-1)*maximum(V[index]) + sampler.k[1]*N*(maximum(E[index])-μ)^2/(2*(sampler.k[1]+N))
-    Vtilde[index] = Γ4/Γ3
-  end
-  zero_idx = Index(zeros(N1,d))
-  Vtilde[zero_idx] = maximum(V[zero_idx]) # ! correction for level / index 0
-
-  return Vtilde::Dict{Index{d,Vector{N1}},T}
-end
-
-# do a least-squares fit of the indices and data provided in the dict
-function leastSquaresFit{d,N<:Integer,T<:AbstractFloat}(dict::Dict{Index{d,Vector{N}},T})
-  keyz = sort(Set(collect(keys(dict))))
-  m = length(keyz)
-  data = zeros(m-1,d+1)
-  rhs = zeros(m-1)
-  for i in 1:m-1 # ! correction for level / index 0
-    data[i,1:d] = keyz[i+1].indices
-    data[i,d+1] = 1
-    rhs[i] = log2(abs(dict[keyz[i+1]][1]))
-  end
-  coeffs = data\rhs # least-squares system
-  X = 2^coeffs[d+1]
-  ξ = abs(coeffs[1:d])
-
-  return (X,ξ)
+	end
 end

@@ -1,5 +1,5 @@
 # sampler type
-type Sampler{d,I<:IndexSet,G<:NumberGenerator,F,D1<:Dict,D2<:Dict,D3<:Dict,UType}
+type Sampler{d,I<:IndexSet,G<:NumberGenerator,F,D1<:Dict,D2<:Dict,D3<:Dict,D4<:Dict,UType}
 
   # settings that must be provided by the user
   indexSet::I                   # type of index set
@@ -7,10 +7,8 @@ type Sampler{d,I<:IndexSet,G<:NumberGenerator,F,D1<:Dict,D2<:Dict,D3<:Dict,UType
   sampleFunction::Function      # quantity of interest (qoi)
 
   # settings that can be altered by the user
-# coarseGrids::Vector{Float64}  # coarsest mesh sizes (vector of length d) (obsolete ???)
   maxL::Int64                   # max index number
   γ::Vector{Float64}            # solver complexity (vector of length d)
-# splitting::Float64            # desired MSE splitting (obsolete ???)
   Z::Int64                      # number of qoi's to determine
   Nstar::Int64                  # number of warm-up samples
   gaussianFieldSampler::F       # type of Gaussian field sampler
@@ -27,9 +25,16 @@ type Sampler{d,I<:IndexSet,G<:NumberGenerator,F,D1<:Dict,D2<:Dict,D3<:Dict,UType
 
   # unchangeable
   generatorStates::D1           # save states of number generator
-  samples::D2                   # stores all the difference samples
-  samples0::D2                  # stores all the non-difference samples
-  times::D3                     # store the time / index
+  samples::D2                   # all the difference samples
+  samples0::D2                  # all the non-difference samples
+  T::D3                     		# cumulative time / index
+	E::D4													# mean value at each index 
+	Vf::D4												# mean of variances at each index
+	V::D4													# variance of means at each index (for QMC)
+	Vest::D4											# contribution of the variance at each index
+	Wst::D3												# standard cost at each index
+	W::D3													# true cost at each index used in algorithm, either by runtime or standard cost
+	P::D3													# profits at each index
 end
 
 # utilities
@@ -260,6 +265,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
   else
     showInfo = true
   end
+	@debug showInfo = true
 
   if haskey(settings,"ioStream")
     ioStream = settings["ioStream"]
@@ -283,7 +289,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
   if haskey(settings,"procMap")
     procMap = settings["procMap"]
     delete!(settings,"procMap")
-    if !(typeof(ioStream) == Dict{Index{d,Vector{Int64}},Int64})
+    if !(typeof(procMap) == Dict{Index{d,Vector{Int64}},Int64})
       error("incorrect procMap specified!")
     elseif minimum(values(procMap)) <= 0
       error("wrong procMap provided, nprocs must be positive!")
@@ -293,7 +299,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
   else
     procMap = Dict{Index{d,Vector{Int64}},Int64}()
     dummyIndexSet = typeof(indexSet) <: AD ? TD(d) : indexSet
-    id_x = getIndexSet(dummyIndexSet,min(20,maxL)) # hack
+    id_x = getIndexSet(dummyIndexSet,max(20,maxL)) # hack
     [setindex!(procMap,nprocs(),i) for i in id_x]
   end
 
@@ -316,15 +322,23 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
   generatorStates = Dict{Index{d,Vector{Int64}},Int64}()
 
   samples = Dict{Index{d,Vector{Int64}},Array{Float64,3}}()
-
   samples0 = Dict{Index{d,Vector{Int64}},Array{Float64,3}}()
 
-  times = Dict{Index{d,Vector{Int64}},Float64}()
+  T = Dict{Index{d,Vector{Int64}},Float64}()
+	E = Dict{Index{d,Vector{Int64}},Vector{Float64}}()
+	V = Dict{Index{d,Vector{Int64}},Vector{Float64}}()
+	Vf = Dict{Index{d,Vector{Int64}},Vector{Float64}}()
+  Wst = Dict{Index{d,Vector{Int64}},Float64}()
+  W = Dict{Index{d,Vector{Int64}},Float64}()
+	Vest = Dict{Index{d,Vector{Int64}},Vector{Float64}}()
+  P = Dict{Index{d,Vector{Int64}},Float64}()
   
-	return Sampler{d,typeof(indexSet),typeof(numberGenerator),typeof(gaussianFieldSampler),typeof(generatorStates),typeof(samples),typeof(times),typeof(userType)}(
+	return Sampler{d,typeof(indexSet),typeof(numberGenerator),typeof(gaussianFieldSampler),typeof(generatorStates),typeof(samples),typeof(T),typeof(E),typeof(userType)}(
     indexSet, numberGenerator, sampleFunction, maxL, γ, Z, Nstar, gaussianFieldSampler, useTime,
-      safety, continuate, nTOL, k, showInfo, ioStream, storeSamples0, procMap, userType, generatorStates, samples, samples0, times)
+      safety, continuate, nTOL, k, showInfo, ioStream, storeSamples0, procMap, userType, 
+			generatorStates, samples, samples0, T,E,V,Vf,Wst,W,Vest,P)
 end
+
 
 function show(io::IO, sampler::Sampler)
   itype = ndims(sampler) == 1 ? "level" : "index"
@@ -507,9 +521,224 @@ function reset(sampler::Sampler)
   sampler.times = Dict{Index{d,Vector{Int64}},Float64}()
 end
 
+function inspect(sampler)
+ 	@printf(sampler.ioStream,"%s","--------------------------------------------------------------------------------\n")
+ 	itype = ndims(sampler.indexSet) == 1 ? "level" : "index"
+ 	@printf(sampler.ioStream,"%s","  "*itype*"       E              V               N               W              \n")
+ 	@printf(sampler.ioStream,"%s","--------------------------------------------------------------------------------\n")
+ 	# TODO store index set in sampler, gives a correct image of all samples for plotting
+	for index in sort(Set(keys(sampler.E)))
+    str = ("  $(index.indices)            "[1:13])
+    str *= @sprintf("%12.5e",maximum(sampler.E[index]))
+    str *= @sprintf("    %0.6e",maximum(sampler.Vf[index]))
+		str *= @sprintf("    %d               ",prod(size(get(sampler.samples,index,zeros(0,0)))[1:2]))[1:16]
+    str *= @sprintf("    %0.6e\n",sampler.W[index])
+    @printf(sampler.ioStream,"%s",str)
+	end
+end
+
 #
 # Main methods for sampling from the sampler
 #
+
+# compute bias of estimator using the indices in the boundary set
+# TODO if we store the current index set in the sampler, we do not need to pass the boundary
+function compute_bias{d,N}(sampler, boundary::Set{Index{d,Vector{N}}})
+  B = zeros(Float64,sampler.Z)
+	for index::Index{d,Vector{N}} in boundary
+		B += sampler.E[index]
+  end
+  return abs(B)
+end
+
+# compute std of estimator using the indices in the index set
+# TODO if we store the current index set in the sampler, we do not need to pass the index set
+function compute_stochastic_error{d,N}(sampler, failProb, indexset::Set{Index{d,Vector{N}}})
+  V = zeros(Float64,sampler.Z)
+	for index::Index{d,Vector{N}} in indexset
+		V += sampler.Vest[index]
+  end
+  return sqrt(2)*erfcinv(failProb)*sqrt(sum(V))
+end
+
+# compute mean of the estimator
+# TODO same comment as above
+function mean{d,N}(sampler, indexset::Set{Index{d,Vector{N}}})
+  mu = zeros(Float64,sampler.Z)
+	for index::Index{d,Vector{N}} in indexset
+		mu += abs(sampler.E[index]) # TODO here we need a better estimate... abs or not? abs is consistent with regression model
+  end
+	return maximum(mu)
+end
+
+# compute std of the estimator
+# TODO same comment as above
+function std{d,N}(sampler, indexset::Set{Index{d,Vector{N}}})
+  sigma = zeros(Float64,sampler.Z)
+	for index::Index{d,Vector{N}} in indexset
+		sigma += sampler.V[index]
+  end
+	return maximum(sigma)
+end
+
+# do regression on the indices provided based on the information already present in neighbours
+# if the index falls inside the 3 x 3 x ... cube, do multilineair interpolation
+# else, do repeated lineair interpolation and take the average
+# linear regression of E / Vf / W for all given indices
+function do_regression{d,N}(sampler, indices::Set{Index{d,Vector{N}}}) 
+	Ds = [sampler.E, sampler.Vf, sampler.W]
+	for ds in 1:length(Ds)
+		corr = ds == 3 ? 1 : -1
+		@debug println("----------------------------------------")				
+		@debug which = ds == 1 ? "E" : ds == 2 ? "Vf" : "W"
+		@debug println("performing regression on $(which)")
+		@debug println("----------------------------------------")
+		D = Ds[ds]
+		# multi-linear regression of E / Vf / W for all given indices	
+		Dcopy = copy(D) # make a copy of the dict...
+		delete!(Dcopy, Index(zeros(N,d))) # ...and remove element 0
+		@debug print("using ")
+		@debug prettyprint(Set(keys(Dcopy)))
+		(X,xi) = leastSquaresFit(Dcopy, 0) # multi-linear regression
+		@debug println("results of multi-linear regression:")
+		@debug println("  xi = $(xi)")
+		@debug println("  X = $(X)")
+		for index in indices # now use the regression model to get the value at the unknown indices
+			@debug print_with_color(:cyan,"*** regression on index $(index.indices) ***\n")
+			# or do repeated lineair regression if possible
+			m = Float64[]
+			for i in 1:d
+							@debug print("checking if dimension $(i) is suitable for 1d regression... ")
+				if index[i] > 2 # this index is suitable for repeated 1d regression
+					@debug println("yes")
+					# make a dict that contains the indices
+					dict = typeof(D)()
+					for j in 1:index[i]-1
+						idx = copy(index)
+						idx[i] = j
+						@assert haskey(D,idx)
+						dict[idx] = D[idx]
+					end
+					@debug print("using ")
+					@debug prettyprint(Set(keys(dict)))
+					# regress and store the result in m
+					(Xacc,xiacc) = leastSquaresFit(dict,i)
+					@debug println("results of 1d-linear regression:")
+					@debug println("  xi = $(xiacc)")
+					@debug println("  X = $(Xacc)")
+					push!(m,Xacc*prod(2.^(corr*xiacc.*index)))
+					@debug println("I guess the value from dimension $(i) is $(m[end])")
+				else
+					@debug println("no")
+				end # if
+			end # for
+			val = isempty(m) ? X*prod(2.^(corr*xi.*index)) : mean(m)
+			@debug println("regressed the value $(val) on index $(index.indices)")
+			D[index] = eltype(values(D)) <: AbstractVector ? [val] : val
+		end # for
+	end # for
+end # function
+
+function t()
+
+  # correction when doing continuation
+  if continuate
+    (A,α,B,β,Bacc,βacc,C,γ) = estimateProblemParameters(sampler)  # ! fits only max E_\ell, V_\ell
+    Vftilde = bayesianUpdateVariance(sampler,A,α,B,β,E,Vf)
+    Vtilde = bayesianUpdateVariance(sampler,A,α,Bacc,βacc,E,V)
+    for index::Index{d,Vector{N}} in sort(indices) # use model fit on all indices
+#						println("<<< WARNING >>> I ONLY USE A FIT ON THE BOUNDARY INDICES <<< END WARNING >>>")
+			if !haskey(sampler.samples,index)
+			E[index] = [A*prod(2.^(-α.*index))]
+      Vf[index] = haskey(Vftilde,index) ? [Vftilde[index]] : [B*prod(2.^(-β.*index))]
+      V[index] = haskey(Vtilde,index) ? [Vtilde[index]] : [Bacc*prod(2.^(-βacc.*index))]
+      W[index] = C*prod(2.^(γ.*index))
+      Vest[index] = haskey(sampler.samples,index) ? V[index]/size(sampler.samples[index],dir) : [zero(T)]
+      if typeof(sampler.indexSet) == AD && haskey(profit,index)
+	      profit[index] = maximum(abs(E[index])./sqrt(Vf[index].*W[index]))
+      end
+			end
+    end
+  end
+	println("variance at index 0 is $(Vf[Index(zeros(N,d))])")
+	# correct level 0
+	#ndex = Index(zeros(N,d))
+	#E[ndex] = squeeze(mean(sampler.samples[ndex],(1,2)),(1,2))
+  #nsamples = size(sampler.samples[ndex],dir)
+  #W[ndex] =  sampler.useTime ? sampler.times[ndex]/nsamples : prod(2.^(sampler.γ.*ndex))
+  #Vest[ndex] = V[ndex]/nsamples
+  #if typeof(sampler.indexSet) <: AD && haskey(profit,ndex) # compute gains when adaptive
+	#  profit[ndex] = maximum(abs(E[ndex])./sqrt(Vf[ndex].*W[ndex]))
+  #end
+end
+
+# estimate problem parameters A, α, B, β, Bacc, βacc, C, γ and Vtilde in the continuation problem
+function estimateProblemParameters{d}(sampler::Sampler{d})
+
+  # for now, let A, α, B, β, Bacc, βacc, C and γ follow from a fit through the available E_\ell, V_\ell and W_\ell
+  E = Dict{Index{d,Vector{Int64}},Float64}()
+  Vf = Dict{Index{d,Vector{Int64}},Float64}()
+  V = Dict{Index{d,Vector{Int64}},Float64}()
+  W = Dict{Index{d,Vector{Int64}},Float64}()
+  for index in keys(sampler.samples)
+    E[index] = maximum(squeeze(mean(sampler.samples[index],(1,2)),(1,2)))
+    Vf[index] = maximum(squeeze(mean(var(sampler.samples[index],2),1),(1,2)))
+    V[index] = maximum(squeeze(var(mean(sampler.samples[index],1),2),(1,2)))
+    W[index] = sampler.useTime ? sampler.times[index] : prod(2.^(index.*sampler.γ))
+  end
+
+  # least-squares fit
+  (A,α) = leastSquaresFit(E)
+  (B,β) = leastSquaresFit(Vf)
+  (Bacc,βacc) = leastSquaresFit(V)
+  (C,γ) = leastSquaresFit(W)
+
+  return (A::Float64, α::Vector{Float64}, B::Float64, β::Vector{Float64}, Bacc::Float64, βacc::Vector{Float64}, C::Float64, γ::Vector{Float64})
+end
+
+# Bayesian update of variances
+function bayesianUpdateVariance{d,N1<:Integer,T<:AbstractFloat}(sampler::Sampler,A::T,α::Vector{T},B::T,β::Vector{T}, E::Dict{Index{d,Vector{N1}},Vector{T}}, V::Dict{Index{d,Vector{N1}},Vector{T}})
+  dir = isa(sampler.numberGenerator,MCgenerator) ? 2 : 1
+  Vtilde = Dict{Index{d,Vector{N1}},T}()
+
+	for index in intersect(keys(E),keys(sampler.samples))
+    N = size(sampler.samples[index],dir)
+    μ = A*prod(2.^(-α.*index))
+    λ = 1/B*prod(2.^(β.*index))
+    Γ3 = sampler.k[2]*λ + N/2
+    Γ4 = sampler.k[2] + 0.5*(N-1)*maximum(V[index]) + sampler.k[1]*N*(maximum(E[index])-μ)^2/(2*(sampler.k[1]+N))
+    Vtilde[index] = Γ4/Γ3
+  end
+  zero_idx = Index(zeros(N1,d))
+  Vtilde[zero_idx] = maximum(V[zero_idx]) # ! correction for level / index 0
+
+  return Vtilde::Dict{Index{d,Vector{N1}},T}
+end
+
+# do a least-squares fit of the indices and data provided in the dict
+# the optional argument d specifies the number of dimensions used in the interpolation
+# if dim = 0, we do a d-lineair interpolation, else we do 1-d interpolation in the dim-th dimension 
+function leastSquaresFit{d,N<:Integer,T}(dict::Dict{Index{d,Vector{N}},T}, dim::N)
+	@assert dim >= 0 && dim <= d
+  keyz = sort(Set(collect(keys(dict))))
+	effdim = dim == 0 ? d : 1
+	r = dim == 0 ? (1:d) : dim
+  m = length(keyz)
+  data = zeros(m,effdim+1)
+  rhs = zeros(m)
+  for i in 1:m # ! correction for level / index 0
+		data[i,1:effdim] = keyz[i].indices[r]
+    data[i,effdim+1] = 1
+		rhs[i] = log2(abs(maximum(dict[keyz[i]][1])))
+  end
+	coeffs = data\rhs # least-squares system
+  X = 2^coeffs[effdim+1]
+  ξ = abs(coeffs[1:effdim])
+	
+	# X is constant, xi are d-dimensional rates			
+  return (X,ξ)
+end
+
 
 # sample nbOfSamples from the Sampler at the given index
 function sample{N<:Integer,I<:Index}(sampler::Sampler, nbOfSamples::N, index::I)
@@ -518,9 +747,9 @@ function sample{N<:Integer,I<:Index}(sampler::Sampler, nbOfSamples::N, index::I)
   itype = ndims(sampler.indexSet) == 1 ? "level" : "index"
   idcs = ndims(sampler) == 1 ? 1 : 1:ndims(sampler)
   if isa(sampler.numberGenerator, MCgenerator)
-      !sampler.showInfo || println(">> taking $(nbOfSamples) samples at "*itype*" $(index.indices[idcs])...")
+      !sampler.showInfo || print("taking $(nbOfSamples) samples at "*itype*" $(index.indices[idcs])... ")
   else
-      !sampler.showInfo || println(">> taking $(nshifts(sampler.numberGenerator))x$(nbOfSamples) samples at "*itype*" $(index.indices[idcs])...")
+      !sampler.showInfo || print("taking $(nshifts(sampler.numberGenerator))x$(nbOfSamples) samples at "*itype*" $(index.indices[idcs])... ")
   end
 
   # ask state of generator
@@ -528,58 +757,22 @@ function sample{N<:Integer,I<:Index}(sampler::Sampler, nbOfSamples::N, index::I)
   if !haskey(state,index)
     state[index] = 0
   end
-  #gen_state = state[index]
-	@debug println("current state of point generator is $(state[index])")
   
 	# total number of workers to be used
   p = max(1,get(sampler.procMap,index,Void) - 1) # nworkers() = nprocs() - 1
 	wp = WorkerPool(collect(1:p)+1)	# workerpool
- 	@debug println("running with $(p) workers: $(wp)")
-
-	# function definition
-	f(i) = take_a_sample(index,state[index]+i,sampler)
 
 	# parallel execution
-	r = pmap(wp, f, 1:nbOfSamples)
+	t = @elapsed r = pmap(wp, (i)->take_a_sample(index,state[index]+i,sampler), 1:nbOfSamples)
 
-
-
-
-#    sample_p(sampler,nbOfSamples,index,gen_state)
-  # take the samples
-  #r = Future[]
-  #myfunc = () -> sample_p(sampler,nbOfSamples,index,gen_state)
-  #startiter = workers()[1]
-  #for pid = startiter:startiter+p-1
-#	  println(pid)
- #   push!(r,remotecall(myfunc,pid))
-  #  	println("pushed")
-  #end
-
-  #r = [@spawnat pid sample_p(sampler,nbOfSamples,index,gen_state) for pid in startiter:startiter+p-1]
-
-
-#  println("start...")
-  #r = Vector{Array{Float64,4}}(nworkers())
-  #@sync begin
-  #for (idx, pid) in enumerate(workers())
-  #  @async r[idx] = remotecall_fetch(myfunc, pid)
-  #end
-  #end
-#  println("stop...")
-  
-  #r = Vector{Array{Float64,4}}(1)
-	#r[1] = myfunc()
-
+	# fetch results
   comb_samples = reduce(vcat,r)::Array{Float64,4}
   @assert size(comb_samples,1) == nbOfSamples
-
   samples = comb_samples[:,:,:,1]
   samples0 = sampler.storeSamples0 ? comb_samples[:,:,:,2] : zeros(0,0,0)
 
   # set state of generator
   state[index] += nbOfSamples
-	@debug println("current state of point generator is $(state[index])")
 
   # add samples to the sampler
   if isa(sampler.numberGenerator, MCgenerator)
@@ -596,24 +789,35 @@ function sample{N<:Integer,I<:Index}(sampler::Sampler, nbOfSamples::N, index::I)
     sampler.samples0[index] = isa(sampler.numberGenerator, MCgenerator) ?
       hcat(sampler.samples0[index],samples0) : vcat(sampler.samples0[index],samples0)
   end
+	println("done")
+
+	# update dicts
+	print("updating dicts... ")
+  dir = isa(sampler.numberGenerator,MCgenerator) ? 2 : 1
+	sampler.E[index] = squeeze(mean(sampler.samples[index],(1,2)),(1,2))
+  sampler.Vf[index] = squeeze(mean(var(sampler.samples[index],2),1),(1,2))
+  sampler.V[index] = squeeze(var(mean(sampler.samples[index],1),2),(1,2))
+	n = size(sampler.samples[index],dir) # number of samples taken
+  sampler.Vest[index] = sampler.V[index]/n
+  sampler.Wst[index] =  prod(2.^(sampler.γ.*index))
+	sampler.T[index] = t + get(sampler.T,index,0.0) # cumulative time 
+  sampler.W[index] =  sampler.useTime ? sampler.T[index]/n : sampler.Wst[index]
+	sampler.P[index] = maximum(abs(sampler.E[index])./sqrt(sampler.Vf[index].*sampler.W[index]))
+
+	println("done")
   return Void
 end
 
-
+# take a single sample from the sampler, function to be run in parallel using pmap
 function take_a_sample{N<:Integer,I<:Index}(index::I, i::N, sampler::Sampler)
-
-	# getting some info from the sampler 
-	nshift = nshifts(sampler.numberGenerator)
-  Z = sampler.Z
-  T = Float64
 
   # generate "random" numbers
   XI = getPoint(sampler.numberGenerator,i)
 
-  # solve
-  mySample = zeros(T,1,nshift,Z,2)::Array{T,4}
-  for q = 1:nshift
-    xi = XI[:,q]::Vector{T}
+  # compute difference
+	mySample = zeros(Float64,1,nshifts(sampler.numberGenerator),sampler.Z,2)::Array{Float64,4}
+	for q = 1:nshifts(sampler.numberGenerator)
+    xi = XI[:,q]::Vector{Float64}
     Qtot = 0. # local sum
     Q0 = 0.
     j = copy(index)::I
@@ -634,61 +838,4 @@ function take_a_sample{N<:Integer,I<:Index}(index::I, i::N, sampler::Sampler)
   end
   return mySample
 	
-	#  println("donecomp")
-	return samples
-end
-
-
-
-
-# defines subfunction for pmap operation, but now returns samples and samples0 (not differenced)
-function sample_p{N<:Integer,I<:Index}(sampler::Sampler, n::N, index::I, gen_state::N)
-#	println("begincomp")
-	
-	nshift = nshifts(sampler.numberGenerator)
-  Z = sampler.Z
-  T = Float64
-
-  # block distribution
-  p = max(1,get(sampler.procMap,index,Void) - 1) # nworkers() = nprocs() - 1
-  s = max(1,myid() - 1) # processor id, range(2,p+1)
-  b = convert(N,ceil(n/p)) # block size
-
-  # preallocate samples
-  samples = zeros(T,max(0,min(n,s*b) - (s - 1)*b),nshift,Z,2)
-
- # println(max(0,min(n,s*b) - (s - 1)*b))
-
-
- for i = gen_state + (s - 1)*b + 1 : gen_state + min(n,s*b)
-
-    # generate "random" numbers
-    XI = getPoint(sampler.numberGenerator,i)
-
-    # solve
-    mySample = zeros(T,1,nshift,Z,2)::Array{T,4}
-    for q = 1:nshift
-      xi = XI[:,q]::Vector{T}
-      Qtot = 0. # local sum
-      Q0 = 0.
-      j = copy(index)::I
-      while j != -1
-        Q = sampler.sampleFunction(xi,copy(j),sampler) # ! copy
-        if j == index
-          Q0 = Q
-        end
-        if mod(diff(j,index),2) == 0
-          Qtot += Q
-        else
-          Qtot -= Q
-        end
-        j = difference(j,index)
-      end
-      mySample[1,q,:,1] = Qtot
-      mySample[1,q,:,2] = Q0
-    end
-    samples[i - gen_state - (s - 1)*b,:,:,:] = mySample
-	end
-#  println("donecomp")
-return samples
 end

@@ -14,7 +14,7 @@ import Base: getindex, setindex!, length
 
 import Base: maximum, indmax
 
-import Base: sum, prod
+import Base: sum, prod, mean, std
 
 import Base: one, zero
 
@@ -31,7 +31,7 @@ import Base: ndims
 import QMC: getPoint, nshifts
 
 # export statements
-export Index, SL, ML, FT, TD, HC, AD, getIndexSet, getBoundary # from Indexsets.jl
+export Index, SL, ML, FT, TD, HC, AD, getIndexSet, getBoundary, prettyprint # from Indexsets.jl
 
 export Sampler, setup, save, load, reset, sample, ndims # from Sampler.jl
 
@@ -44,6 +44,11 @@ export simulate # from MultilevelAlgorithm.jl
 export FEsolve, sample, sort # FEsolve only for test.jl
 
 export @debug
+
+
+# TRM
+export leastSquaresFit
+#
 
 # include statements
 include("ParseArgs.jl")

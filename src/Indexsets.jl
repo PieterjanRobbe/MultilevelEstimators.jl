@@ -352,3 +352,17 @@ function sort{I<:Index}(indexSet::Set{I})
   end
   return sortedIndexSet
 end
+
+# pretty print index set
+function prettyprint{d,N}(indexset::Set{Index{d,Vector{N}}})
+	println("indexset with $(length(indexset)) indices in $(d) dimensions:")
+	println(repeat("*",4+3*d))
+	for idx in sort(indexset)
+		str = "*  "
+		for i in 1:d
+			str *= "$(idx[i])  "[1:3]
+		end
+		println(str*"*")
+	end
+	println(repeat("*",4+3*d))
+end
