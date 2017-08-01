@@ -8,20 +8,26 @@
 # simulate(sampler, absTol)
 simulate{T<:AbstractFloat}(sampler::Sampler, absTol::T) = simulate(sampler, [absTol])
 
+# simulate(sampler, absTol, folder)
+simulate{T<:AbstractFloat}(sampler::Sampler, absTol::T, folder::AbstractString) = simulate(sampler, [absTol], folder=folder)
+
 # simulate(sampler, absTol, failProb)
 simulate{T<:AbstractFloat}(sampler::Sampler, absTol::T, failProb::T) = simulate(sampler, [absTol], failProb=failProb)
 
+# simulate(sampler, absTol, failProb, folder)
+simulate{T<:AbstractFloat}(sampler::Sampler, absTol::T, failProb::T, folder::AbstractString) = simulate(sampler, [absTol], failProb=failProb, folder=folder)
+
 # simulate(sampler, tol, failProb=..., is_relative=..., folder=...)
 # simulate takes a vector tol as input that contains the tolerances that must be solved for
-function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}, failProb::T=0.1, is_relative::Bool=false, folder::AbstractString=".", max_time::N=typemax(Int64))
+function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}; failProb::T=0.1, is_relative::Bool=false, folder::AbstractString=".", max_time::N=typemax(Int64))
 
   # checks on inputs
 	if any(tol .< 0) || any(isinf(tol))
     error("supplied tolerances must be positive!")
   elseif failProb < 0 || failProb > 1
     error("failure probability failProb must be between 0 and 1!")
-	elseif !isdir(folder)
-		error("unknown folder $(folder)!")
+	#elseif !isdir(folder)
+		#error("unknown folder $(folder)!")
   end # if
 
 	# if user provided a set of tolerances, sort them
@@ -38,27 +44,47 @@ function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}, failProb
 
   # run mimc 
 	for i in 1:length(tol)
-		# simulate
-		delta_t = @elapsed mimc(sampler,tol[i],is_relative,failProb) 
+		# make dir
+    @debug begin  
+      printdir = @sprintf("%0.4e",tol[i])
+			if !isdir(folder*"/data")
+				mkdir(folder*"/data")
+			end
+			if !isdir(folder*"/data/"*printdir)
+				mkdir(folder*"/data/"*printdir)
+			end
+			if !isdir(folder*"/data/"*printdir*"/indexsets")
+				mkdir(folder*"/data/"*printdir*"/indexsets")
+			end
+    end
+    # simulate
+		delta_t = @elapsed mimc(sampler,tol[i],is_relative,failProb,folder) 
 		# compute wall clock time and standard cost
 		wctime[i] =  delta_t
 		for index in keys(sampler.samples)
-			stcost[i] += length(sampler.samples[index])*sampler.Wst[index]
+			stcost[i] = length(sampler.samples[index])*sampler.Wst[index]
 		end # for
 		@debug begin
-			if !isdir("data")
-				mkdir("data")
-			end
-			if !isdir("data/indexsets")
-				mkdir("data/indexsets")
-			end
 			print_with_color(:cyan,"ELAPSED IS $(delta_t)\n")
-			print("writing wall clock times into $(folder)/data/wctime.txt... ")
-			writedlm(folder*"/data/wctime.txt",cumsum(wctime))
+			print("writing wall clock times into $(folder)/data/"*printdir*"/wctime.txt... ")
+			writedlm(folder*"/data/"*printdir*"/wctime.txt",cumsum(wctime))
 			println("done")
-			print("writing standard cost into $(folder)/data/stcost.txt... ")
-			writedlm(folder*"/data/stcost.txt",cumsum(stcost))
+			print("writing standard cost into $(folder)/data/"*printdir*"/stcost.txt... ")
+			writedlm(folder*"/data/"*printdir*"/stcost.txt",stcost)
 			println("done")
+			print("writing tolerances into $(folder)/data/"*printdir*"/tolerances.txt... ")
+			writedlm(folder*"/data/"*printdir*"/tolerances.txt",tol)
+			println("done")
+      # save all samples
+      dir_name = folder*"/data/samples"
+      isdir(dir_name) ? nothing : mkdir(dir_name)
+      for idx in keys(sampler.samples)
+        dir_name2 = @sprintf("%s",idx.indices)
+        isdir(dir_name*"/"*dir_name2) ? nothing : mkdir(dir_name*"/"*dir_name2)
+        for z in 1:sampler.Z
+          writedlm(dir_name*"/"*dir_name2*"/Z$(z).txt",sampler.samples[idx][:,:,z])
+        end
+      end
 		end # begin
 		if cumsum(wctime)[end] > max_time
 			print_with_color(:red,"wall clock time exceeded maximum time of $(max_time) secondes, aborting...\n")
@@ -70,16 +96,16 @@ function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}, failProb
 end # function
 
 # actual mimc simulation
-function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool, failProb::T)
+function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool, failProb::T, folder::AbstractString)
 
   # print some info to screen
   if ( sampler.showInfo )
     @printf(sampler.ioStream,"%s","--------------------------------------------------------------------------------\n")
     @printf(sampler.ioStream,"%s","*** MultilevelEstimators.jl @$(now())\n")
     @printf(sampler.ioStream,"%s","*** Simulating $(sampler.sampleFunction)\n")
-    isCont = sampler.continuate ? "" : "not"
+    isCont = sampler.continuate ? "" : "not "
     idxSet = ( isa(sampler.indexSet,ML) || isa(sampler.indexSet,SL) || isa(sampler.indexSet,AD) ) ? "$(sampler.indexSet)" : "$(sampler.indexSet)"[1:34]
-    @printf(sampler.ioStream,"%s","*** Using a $(idxSet), $isCont continuating \n")
+    @printf(sampler.ioStream,"%s","*** Using a $(idxSet), $(isCont)continuating \n")
     printTOL = is_relative ? "relTOL" : "absTOL"
     @printf(sampler.ioStream,"%s","*** $printTOL = "*@sprintf("%0.3e (failure probability of %0.2f)\n",TOL,failProb))
 		@printf(sampler.ioStream,"%s","--------------------------------------------------------------------------------\n")
@@ -88,9 +114,10 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
   # loop variables
   converged = false
   L  = 0
-
-	# when debugging, keep track of parameter L, bias, stochastic error, total error
-	@debug Lcollection = zeros(T,sampler.maxL+1,3)
+  printdir = @sprintf("%0.4e",TOL)
+	
+  # when debugging, keep track of parameter L, bias, stochastic error, total error
+	@debug Lcollection = zeros(T,0,3)
 
   # aliases
 	# TODO might be incorporated into the sampler object
@@ -98,14 +125,16 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
   λ = sampler.numberGenerator.λ
   q = nshifts(sampler.numberGenerator)
   dir = isa(sampler.numberGenerator,MCgenerator) ? 2 : 1
+  is_adaptive = (typeof(sampler.indexSet) <: AD)
+  is_qmc = isa(sampler.numberGenerator,QMCgenerator) 
 
   # variable definition
   oldindexset = Set{Index{d,Vector{N}}}()
 
 	# variables used when adaptive
   old = Set{Index{d,Vector{N}}}() # old index set
-  active = Dict{Index{d,Vector{N}},T}() # active set
-  active[Index(zeros(N,d))] = 0.
+  active = Set{Index{d,Vector{N}}}() # active set
+  deleted = Set{Index{d,Vector{N}}}() # deleted set
   
   while !converged
     # print some info to the screen
@@ -115,40 +144,59 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
     S = Dict{Index{d,Vector{N}},N}() # dict for optimal number of samples
 
     # get index set in current iteration
-		if !(typeof(sampler.indexSet) <: AD)
+		if !is_adaptive
 			newindexset = getIndexSet(sampler.indexSet,L)::Set{Index{d,Vector{N}}}	
-		elseif typeof(sampler.indexSet) <: AD && L <= 2
-						newindexset = getIndexSet(TD(d),L)::Set{Index{d,Vector{N}}}
+		elseif is_adaptive && L <= 2
+			imaxgain = Index(zeros(N,d))::Index{d,Vector{N}}
+      newindexset = getIndexSet(TD(d),L)::Set{Index{d,Vector{N}}}
 		else
-			if L <= 2 # assume TD index set for inial estimates
-				newindexset = getIndexSet(TD(d),L)
-				newindexsetboundary = getBoundary(newindexset)
-				for index in newindexsetboundary
-					active[index]=0.
-				end
-				for index in setdiff(newindexset, newindexsetboundary)
-					push!(old,index)
-				end
-      else
+			#if L <= 2 # assume TD index set for inial estimates
+			#	newindexset = getIndexSet(TD(d),L)
+			#	newindexsetboundary = getBoundary(newindexset)
+			#	for index in newindexsetboundary
+			#		push!(active,index)
+			#	end
+			#	for index in setdiff(newindexset, newindexsetboundary)
+			#		push!(old,index)
+			#	end
+      #else
         # find index with largest gain
-				i = collect(keys(active))[indmax(collect(values(profit)))]
+        maxgain = zero(T)
+        i = Index(zeros(N,d))::Index{d,Vector{N}}
+        for index::Index{d,Vector{N}} in active
+          @debug println("index $(index.indices) has gain $(sampler.P[index])")
+          gain = sampler.P[index]
+          if gain > maxgain
+            maxgain = gain
+            i = index::Index{d,Vector{N}}
+          end
+        end
+        imaxgain = i # store variable imaxgain for further reference
+        @debug println("index with maximum profit "*@sprintf("%0.6e",sampler.P[i])*" is $(i.indices)")
 				delete!(active,i) # delete from active set
         push!(old,i) # add to old set and check admissables
         for p in 1:d 
           j = copy(i)::Index{d,Vector{N}}
           j[p] += 1
           if isAdmissable(old,j) # add when admissible in old set
-		  			active[j] = 0.
+		  			push!(active,j)	
 	  			end
         end
-        newindexset = union(old, Set(keys(profit)))::Set{Index{d,Vector{N}}}
-      end
+		    @debug print("the old set is an ")
+		    @debug prettyprint(old)
+		    @debug print("the active set is an ")
+		    @debug prettyprint(active)
+		    @debug print("the deleted set is an ")
+		    @debug prettyprint(deleted)
+        newindexset = union(deleted,old, active)::Set{Index{d,Vector{N}}}
+      #end
     end
 		# print index set
 		@debug print("the new index set is an ")
 		@debug prettyprint(newindexset)
 		# store the index set in a file
 		@debug begin
+      print("writing the $(length(newindexset)) indices of L = $(L) into a file...")
 			# store all indices in a matrix M
 			M = zeros(T, length(newindexset), d)
 			cntr = 1
@@ -156,17 +204,57 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 				M[cntr,1:d] = idx.indices
 				cntr += 1
 			end
-			writedlm("data/indexsets/L$(L).txt",M)
+      writedlm(folder*"/data/"*printdir*"/indexsets/L$(L).txt",M)
+      println("done")
 		end
 
+		@debug begin
+      print("writing the $(length(active)) active indices of L = $(L) into a file...")
+      # store all indices in a matrix M
+			M = zeros(T, length(active), d)
+			cntr = 1
+			for idx in sort(active)
+				M[cntr,1:d] = idx.indices
+				cntr += 1
+			end
+      writedlm(folder*"/data/"*printdir*"/indexsets/La$(L).txt",M)
+      println("done")
+		end
+		
+    @debug begin
+      print("writing the $(length(deleted)) deleted indices of L = $(L) into a file...")
+      # store all indices in a matrix M
+			M = zeros(T, length(deleted), d)
+			cntr = 1
+			for idx in sort(deleted)
+				M[cntr,1:d] = idx.indices
+				cntr += 1
+			end
+      writedlm(folder*"/data/"*printdir*"/indexsets/Ld$(L).txt",M)
+      println("done")
+		end
+    
+		@debug if is_adaptive && L > 2
+      print("writing the max gain index of L = $(L) into a file...")
+      writedlm(folder*"/data/"*printdir*"/indexsets/Lg$(L).txt",imaxgain.indices)
+      println("done")
+		end
+    
     # get boundary in current iteration
     boundary = Set{Index{d,Vector{N}}}()::Set{Index{d,Vector{N}}} # empty set
     if typeof(sampler.indexSet) <: ML
       push!(boundary,Index(L*ones(N,d)))
-    elseif typeof(sampler.indexSet) <: AD
-      boundary = Set(keys(profit))
-    else
+    elseif !is_adaptive
       boundary = union(boundary,getBoundary(getIndexSet(sampler.indexSet, L))::Set{Index{d,Vector{N}}})
+    elseif is_adaptive && L < 3
+      boundary = union(boundary,getBoundary(getIndexSet(TD(d), L))::Set{Index{d,Vector{N}}})
+    else
+      boundary = union(active,deleted)
+      #boundary = union(active)
+      #print_with_color(:red,"WARNING WARNING WARNING WARNING\n")
+      #print_with_color(:red,"I IGNORED THE COST IN THE DELETED SETS NOW...\n")
+      print_with_color(:red,"WARNING WARNING WARNING WARNING\n")
+
     end
 		@debug print("the boundary is an ")
 		@debug prettyprint(boundary)
@@ -188,7 +276,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 		# ... or else do regression over the new indices to get estimates for variances
 		else
 			@debug println("now doing regression... ")
-			do_regression(sampler,indicesToAdd)
+      do_regression(sampler,setdiff(indicesToAdd,Set(collect(keys(sampler.samples)))))
 			@debug println("regression ok!")
 		end
 		@debug inspect(sampler)
@@ -198,7 +286,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 		@debug println("TOL is $(TOL), realTOL to solve for is is $(realTOL)")
 
 		# estimate initial bias and splitting
-		B = maximum(compute_bias(sampler,boundary))
+    B = maximum(compute_bias(sampler,boundary))
     !sampler.showInfo || print_with_color(:green, sampler.ioStream, @sprintf("*** initial bias = %0.6e \n", B ) )
 		splitting = ( B < realTOL/2 ) ? 1 - B/realTOL : 0.5 # update splitting parameter \in [0.5,1)
     !sampler.showInfo || print_with_color(:green, sampler.ioStream, @sprintf("*** splitting = %0.6e \n", splitting ) )
@@ -210,7 +298,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
     end
     for index::Index{d,Vector{N}} in newindexset
 			Nopt = ( ( sqrt(2)*erfcinv(failProb)/(splitting*realTOL) )^2 * 1/q * (sampler.Vf[index]./sampler.W[index]).^(2*λ/(2*λ+1)) .* mySum ).^(1/(2*λ))
-      S[index] = ceil(N,max(3.,maximum(Nopt)))
+      S[index] = is_qmc ? sampler.Nstar : ceil(N,max(3.,min(1000,maximum(Nopt))))
     end
 		@debug println("constant C is $(sqrt(2)*erfcinv(failProb))")
 		@debug begin
@@ -252,6 +340,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
         maxindex = Index(zeros(N,d))::Index{d,Vector{N}}
         for index::Index{d,Vector{N}} in newindexset
           ratio = maximum(sampler.Vest[index])/sampler.W[index]
+          @debug println("index $(index.indices) has ratio $(ratio)")
           if ratio > maxratio
             maxratio = ratio
             maxindex = index::Index{d,Vector{N}}
@@ -271,7 +360,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
     		end
     		for index::Index{d,Vector{N}} in newindexset
 					Nopt = ( ( sqrt(2)*erfcinv(failProb)/(splitting*realTOL) )^2 * 1/q * (sampler.Vf[index]./sampler.W[index]).^(2*λ/(2*λ+1)) .* mySum ).^(1/(2*λ))
-      		S[index] = ceil(N,max(3.,maximum(Nopt)))
+          S[index] = is_qmc ? sampler.Nstar : ceil(N,max(3.,min(1000,maximum(Nopt))))
     		end
 				@debug println("constant C is $(sqrt(2)*erfcinv(failProb))")
 				@debug begin
@@ -281,9 +370,9 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
   				str *= "-------------------------------------------------------------------------------- \n"
   				for index in sort(Set(collect(keys(S))))
     				str *= ("  $(index.indices)            "[1:13])
-    				str *= @sprintf("    %d              \n ",S[index])
+    				str *= @sprintf("    %d              \n",S[index])
   				end
-					println(str)
+					print(str)
 				end
     		
 				# take these additional samples at each level
@@ -310,7 +399,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 		end
 		
     # check for convergence
-		if ( L > 1 )
+    if ( !is_adaptive && L > 1 ) || ( is_adaptive && L > 2 )
 			@debug print("checking for convergence... ")
 			error = sqrt(A^2+B^2)::T  
 			converged = ( error < realTOL )
@@ -326,47 +415,94 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 				@sprintf("*** estimate for the total error is %0.6e \n", error ) )
 			μ = mean(sampler, newindexset)
 			σ = std(sampler, newindexset)
+      println("Error: std is computed wrongly")
       !sampler.showInfo || ( !converged || print_with_color(:magenta, sampler.ioStream, 
         @sprintf("*** result is %0.6e ±(%0.6e, %0.6e, %0.6e) \n", μ, σ, 2*σ, 3*σ ) ) )
 		else
-			@debug println("L < 1, not checking convergence... ")
+			@debug println("not checking convergence... ")
 		end
 
 		# when debugging, update Lcollection
-		@debug Lcollection[L+1,:] = [B, A, sqrt(A^2+B^2)]
-		@debug writedlm("data/indexset_errors.txt",Lcollection)
+    @debug Lcollection = vcat(Lcollection,[B A sqrt(A^2+B^2)])
+		@debug writedlm(folder*"/data/"*printdir*"/indexset_errors.txt",Lcollection)
 
     # print warning if no convergence and maximum level reached
-    if !converged
-      if L == sampler.maxL
+    if !is_adaptive
+      max_reached = any(sampler.maxL .== L) #|| !isempty(union(newindexset,sampler.max_indexset))
+      if !converged && max_reached
         warn("maximum level reached and no convergence yet, sorry! :(\n")
         converged = true
       end
+    else
+      max_reached = false
+      for index in sort(active)
+        @debug println("index $(index.indices) is in max_indexset? $(in(index,sampler.max_indexset))")
+        @debug println("index $(index.indices) has maxL? $(any( index.indices .== sampler.maxL))")
+        if in(index,sampler.max_indexset) || any( index.indices .== sampler.maxL )
+          # we should remove the index from the active set
+          delete!(active,index)
+          push!(old,index)
+          push!(deleted,index) # push into deleted, because it still counts for the "boundary"
+          warn("the index $(index.indices) exceeded maximum allowed level, removing from active set...")
+        end
+      end
+      if length(deleted) == length(sampler.max_indexset)
+        # fatal...
+        converged = true 
+        max_reached = true
+        warn("all possible indices used in the index set, still no convergence :(")
+      end
     end
-
-		# if burn-in of adaptive method has passed
+	  
+    # if burn-in of adaptive method has passed
 		if typeof(sampler.indexSet) <: AD && L == 2
-			for index in boundary
-				active[index]=0.
+			@debug println("adaptive and L = 2, setting up active and old sets")
+      for index in setdiff(getIndexSet(TD(d),3),newindexset)
+				push!(active,index)
 			end
-			for index in oldindexset
+      @debug print("active set is an ")
+      @debug prettyprint(active)
+      for index in newindexset
 				push!(old,index)
 			end
-			L = length(newindexset)
-		end
+      @debug print("old set is an ")
+      @debug prettyprint(old)
+			# LETS NOT UPDATE L FOR CONVENIENCE L = length(newindexset)
+      # regress on the active indices
+      do_regression(sampler,setdiff(active,Set(collect(keys(sampler.samples)))))
+    end
    
 		####
-		# @debug print_with_color(:red,"*********************\n")
-		# @debug print_with_color(:red,"*      WARNING      *\n")
-		# @debug print_with_color(:red,"*********************\n")
-		# @debug println("I set converged to false to test regression model")
-	  # converged = L == sampler.maxL ? true : false	
-		###
+		#@debug begin
+    #  if converged && !max_reached
+    #    print_with_color(:red,"*********************\n")
+		#    print_with_color(:red,"*      WARNING      *\n")
+		#    print_with_color(:red,"*********************\n")
+		#    println("I set converged to false to test regression model")
+	 	#    converged = false
+    #  end
+    #end
+    ###
+
+    # NaN safety
+#    Vfs = collect(values(sampler.Vf))
+#    for z in 1:sampler.Z
+ #     if any(abs(Vfs[z]).<1e-16)
+  #      print_with_color(:red,"ERROR : Var zero detected !!!")
+   #     print_with_color(:red,"ERROR : aborting... ")
+    #    converged = true
+     # end
+    #end
 
 		# update L
 		@debug converged || println("updating L form $(L) to $(L+1)")
 		L += 1
+    if L > 100
+      error("probably something went wrong, giving up now...")
+    end
     oldindexset = newindexset
+
+#######    converged = false  # NEVER FINISH TO DETECT OPT SHAPE OF INDEX SET
 
 	end
 end

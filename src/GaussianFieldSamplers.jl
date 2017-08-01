@@ -7,7 +7,7 @@ type EmptySampler <: GaussianFieldSampler
 end
 
 # KL expansion
-type KLExpansion{d,N<:Integer,A<:AbstractVector,B<:AbstractVector,C<:AbstractVector} <: GaussianFieldSampler
+immutable KLExpansion{d,N<:Integer,A<:AbstractVector,B<:AbstractVector,C<:AbstractVector} <: GaussianFieldSampler
   mkl::N # number of terms in KL expansion
   m0::N # coarsest grid number of points
 	eigenval::A # d-dimensional KL eigenvalues (Array of tupples with index and value)
@@ -99,7 +99,7 @@ function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 10,
   end
 
   # calculate eigenvalues
-  if typeof(kernel) <: MaternKernel && kernel.ν == 0.5
+  if typeof(kernel) <: MaternKernel && kernel.ν == 0.5 && kernel.p == 1.
     ω = findroots(kernel.λ, mkl+1)
     θ = 2*kernel.σ^2*kernel.λ./(kernel.λ^2*ω.^2+1)
   else
@@ -108,7 +108,7 @@ function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 10,
       m = m0*2^maxL
       pts = collect(1/2/m:1/m:1-1/2/m) # finite volume method, cell centered values
     else
-      pts = collect(x[L+1]) # other values if specified
+      pts = collect(x[maxL+1]) # other values if specified
     end
 		θ, temp = nystrom(kernel, collect(pts), mkl+1) # solve EVP only once!	
 	end
@@ -137,7 +137,7 @@ function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 10,
 
   # calculate 1d eigenfunctions
   eigenfunc = Array{T,2}[]
-  if typeof(kernel) <: MaternKernel && kernel.ν == 0.5
+  if typeof(kernel) <: MaternKernel && kernel.ν == 0.5 && kernel.p == 1.
     ω = ω[1:max_mkl] # cut off ω
     n = sqrt(2)/2*sqrt(1./ω.*(kernel.λ^2*ω.^2.*cos(ω).*sin(ω)+kernel.λ^2*ω.^3-2*kernel.λ*ω.*cos(ω).^2-cos(ω).*sin(ω)+ω)+2*kernel.λ)
     for L in 0:maxL
@@ -162,7 +162,7 @@ function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 10,
 			ar = zeros(T,mkl,m)
 			for r = 1:mkl
 				# set up interpolator
-				ip = interpolate((pts,), temp[r,:], Gridded(Linear()))
+        ip = interpolate((pts,), normalize_ef(temp[r,:],pts), Gridded(Linear()))
 				# now interpolate temp in 
 				ar[r,:] = ip[ipts]
 			end
@@ -171,6 +171,60 @@ function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 10,
   end
 
   return KLExpansion{d,N,typeof(O),typeof(eigenfunc),typeof(s)}(mkl,m0,O,eigenfunc,ad,s)
+end
+
+function normalize_ef{T}(f::Vector{T},pts)
+  A = sqrt(trapezium_rule(pts,f.^2))
+  return vec(f/A)
+end
+
+function trapezium_rule(pts, f)
+  return 1/2*diff(pts)'*(f[2:end]+f[1:end-1])
+end
+
+# TODO automate this!
+# function to precompute eigenfunctions for heat exchanger
+# interpolate from finest mesh, assumed to be finite volume scheme
+function preload_eigenfunctions{d,N,A,B,C,T}(kl::KLExpansion{d,N,A,B,C},ptsx::Vector{T},ptsy::Vector{T},cs::Vector{Array{T,2}},dim)
+  eigenfunc = Array{T,2}[]
+  m0 = kl.m0
+  mkl = kl.mkl
+  maxL = length(cs)
+  m = length(ptsx)
+  #pts = 1/2/m:1/m:1-1/2/m # finest grid points
+  ef = kl.eigenfunc[end] # all eigenfunctions
+  # loop over all "levels"
+  for L in 0:maxL-1
+    nc = size(cs[L+1],1)
+    ar = zeros(T,mkl,nc)
+    # TODO update mkl here to immulate TD set
+    #mkl = kl.s[min(max(end-L,0)+1,end)]
+    #mkl = kl.s[min(max(end-L,0)+2,end)]
+    mkl = kl.s[end]
+    @debug println("L = $(L)   mkl = $(mkl)")
+    # loop over all eigenfunctions
+    Threads.@threads for r = 1:mkl
+      # r-th eigenvalue
+      lambda = kl.eigenval[r][1]
+      # compose d-dim eigenfunc
+      v = ef[lambda[1],:]
+      for p = 2:dim
+        @inbounds v = kron(ef[lambda[2],:],v)
+      end
+      # reshape
+      myef = reshape(v,(m,m))
+      # set up interpolator
+      ip = interpolate((ptsx,ptsy), myef, Gridded(Linear()))
+      # now interpolate
+      for i = 1:nc
+        @inbounds ar[r,i] = ip[cs[L+1][i,1],cs[L+1][i,2]]
+      end
+      #@show ar[r,:]
+    end
+		push!(eigenfunc, ar)
+  end
+  
+  return KLExpansion{1,N,A,B,C}(mkl,m0,kl.eigenval,eigenfunc,kl.ad,kl.s) 
 end
 
 # function to compose KL expansion

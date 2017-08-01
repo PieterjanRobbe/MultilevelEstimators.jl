@@ -5,7 +5,10 @@ using Reexport
 
 @reexport using QMC
 
-using FastGaussQuadrature
+using Interpolations, FastGaussQuadrature
+
+using ProgressMeter
+using PmapProgressMeter
 
 # import statements
 import Base: +, -, *, .*, /, ==, !=, .==
@@ -14,7 +17,7 @@ import Base: getindex, setindex!, length
 
 import Base: maximum, indmax
 
-import Base: sum, prod, mean, std
+import Base: sum, prod, mean, std, diff
 
 import Base: one, zero
 
@@ -33,9 +36,9 @@ import QMC: getPoint, nshifts
 # export statements
 export Index, SL, ML, FT, TD, HC, AD, getIndexSet, getBoundary, prettyprint # from Indexsets.jl
 
-export Sampler, setup, save, load, reset, sample, ndims # from Sampler.jl
+export Sampler, setup, save, load, reset, sample, ndims, mi_cost  # from Sampler.jl
 
-export KLExpansion, MaternKernel, compose # from GaussianFieldSamplers.jl
+export KLExpansion, MaternKernel, compose, preload_eigenfunctions # from GaussianFieldSamplers.jl
 
 export GaussianMCgenerator, UniformMCgenerator, GaussianQMCgenerator, UniformQMCgenerator, reset # from PointSetGenerators.jl
 
