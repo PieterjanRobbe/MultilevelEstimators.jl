@@ -5,7 +5,7 @@ using Reexport
 
 @reexport using QMC
 
-using Interpolations, FastGaussQuadrature
+using Interpolations, FastGaussQuadrature, SpecialFunctions
 
 using ProgressMeter
 using PmapProgressMeter
@@ -34,7 +34,7 @@ import Base: ndims
 import QMC: getPoint, nshifts
 
 # export statements
-export Index, SL, ML, FT, TD, HC, AD, getIndexSet, getBoundary, prettyprint # from Indexsets.jl
+export Index, SL, ML, FT, TD, HC, AD, getIndexSet, getBoundary, prettyprint, isAdmissable # from Indexsets.jl
 
 export Sampler, setup, save, load, reset, sample, ndims, mi_cost  # from Sampler.jl
 

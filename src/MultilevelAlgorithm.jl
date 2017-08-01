@@ -22,7 +22,7 @@ simulate{T<:AbstractFloat}(sampler::Sampler, absTol::T, failProb::T, folder::Abs
 function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}; failProb::T=0.1, is_relative::Bool=false, folder::AbstractString=".", max_time::N=typemax(Int64))
 
   # checks on inputs
-	if any(tol .< 0) || any(isinf(tol))
+	if any(tol .< 0) || any(isinf.(tol))
     error("supplied tolerances must be positive!")
   elseif failProb < 0 || failProb > 1
     error("failure probability failProb must be between 0 and 1!")
@@ -249,12 +249,8 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
     elseif is_adaptive && L < 3
       boundary = union(boundary,getBoundary(getIndexSet(TD(d), L))::Set{Index{d,Vector{N}}})
     else
-      boundary = union(active,deleted)
-      #boundary = union(active)
-      #print_with_color(:red,"WARNING WARNING WARNING WARNING\n")
-      #print_with_color(:red,"I IGNORED THE COST IN THE DELETED SETS NOW...\n")
-      print_with_color(:red,"WARNING WARNING WARNING WARNING\n")
-
+      #boundary = union(active,deleted)
+      boundary = union(active)
     end
 		@debug print("the boundary is an ")
 		@debug prettyprint(boundary)
@@ -298,7 +294,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
     end
     for index::Index{d,Vector{N}} in newindexset
 			Nopt = ( ( sqrt(2)*erfcinv(failProb)/(splitting*realTOL) )^2 * 1/q * (sampler.Vf[index]./sampler.W[index]).^(2*λ/(2*λ+1)) .* mySum ).^(1/(2*λ))
-      S[index] = is_qmc ? sampler.Nstar : ceil(N,max(3.,min(1000,maximum(Nopt))))
+      S[index] = is_qmc ? sampler.Nstar : ceil(N,max(3.,maximum(Nopt)))
     end
 		@debug println("constant C is $(sqrt(2)*erfcinv(failProb))")
 		@debug begin
@@ -360,7 +356,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
     		end
     		for index::Index{d,Vector{N}} in newindexset
 					Nopt = ( ( sqrt(2)*erfcinv(failProb)/(splitting*realTOL) )^2 * 1/q * (sampler.Vf[index]./sampler.W[index]).^(2*λ/(2*λ+1)) .* mySum ).^(1/(2*λ))
-          S[index] = is_qmc ? sampler.Nstar : ceil(N,max(3.,min(1000,maximum(Nopt))))
+          S[index] = is_qmc ? sampler.Nstar : ceil(N,max(3.,maximum(Nopt)))
     		end
 				@debug println("constant C is $(sqrt(2)*erfcinv(failProb))")
 				@debug begin
@@ -415,7 +411,6 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 				@sprintf("*** estimate for the total error is %0.6e \n", error ) )
 			μ = mean(sampler, newindexset)
 			σ = std(sampler, newindexset)
-      println("Error: std is computed wrongly")
       !sampler.showInfo || ( !converged || print_with_color(:magenta, sampler.ioStream, 
         @sprintf("*** result is %0.6e ±(%0.6e, %0.6e, %0.6e) \n", μ, σ, 2*σ, 3*σ ) ) )
 		else
@@ -424,7 +419,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 
 		# when debugging, update Lcollection
     @debug Lcollection = vcat(Lcollection,[B A sqrt(A^2+B^2)])
-		@debug writedlm(folder*"/data/"*printdir*"/indexset_errors.txt",Lcollection)
+	@debug writedlm(folder*"/data/"*printdir*"/indexset_errors.txt",Lcollection)
 
     # print warning if no convergence and maximum level reached
     if !is_adaptive
@@ -467,42 +462,17 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 			end
       @debug print("old set is an ")
       @debug prettyprint(old)
-			# LETS NOT UPDATE L FOR CONVENIENCE L = length(newindexset)
       # regress on the active indices
       do_regression(sampler,setdiff(active,Set(collect(keys(sampler.samples)))))
     end
    
-		####
-		#@debug begin
-    #  if converged && !max_reached
-    #    print_with_color(:red,"*********************\n")
-		#    print_with_color(:red,"*      WARNING      *\n")
-		#    print_with_color(:red,"*********************\n")
-		#    println("I set converged to false to test regression model")
-	 	#    converged = false
-    #  end
-    #end
-    ###
-
-    # NaN safety
-#    Vfs = collect(values(sampler.Vf))
-#    for z in 1:sampler.Z
- #     if any(abs(Vfs[z]).<1e-16)
-  #      print_with_color(:red,"ERROR : Var zero detected !!!")
-   #     print_with_color(:red,"ERROR : aborting... ")
-    #    converged = true
-     # end
-    #end
-
-		# update L
-		@debug converged || println("updating L form $(L) to $(L+1)")
-		L += 1
+	# update L
+	@debug converged || println("updating L form $(L) to $(L+1)")
+	L += 1
     if L > 100
       error("probably something went wrong, giving up now...")
     end
     oldindexset = newindexset
-
-#######    converged = false  # NEVER FINISH TO DETECT OPT SHAPE OF INDEX SET
 
 	end
 end

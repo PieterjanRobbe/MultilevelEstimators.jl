@@ -1,10 +1,13 @@
-# representation of an index
-type Index{d,V<:AbstractVector}
+## Indexsets.jl : representation of indices and index sets
+
+## Index ##
+struct Index{d,V<:AbstractVector}
   indices::V
 end
 
 # utilities
 ndims{d}(index::Index{d}) = d
+isvalid(index::Index) = all(index.indices.>=0)
 
 # constructor for indices
 Index{N<:Integer}(index::Vector{N}) = Index{length(index),Vector{N}}(index)
@@ -15,7 +18,7 @@ function Index{S<:AbstractString}(index_string::S)
   index_array = split(index_string,',')
   if length(index_array) == 1
     idx = tryparse(Int64,index_array[1][2:end-1])
-    !isnull(idx) || error("could not parse $(index_array[1][2:end-1]) into Int64")
+	!isnull(idx) || throw(ArgumentError("could not parse $(index_array[1][2:end-1]) into Int64"))
     return Index(parse(Int64,index_array[1][2:end-1]))
   else
     idx = zeros(Int64,length(index_array))
@@ -23,20 +26,20 @@ function Index{S<:AbstractString}(index_string::S)
     if !isnull(tmp)
       idx[1] = get(tmp)
     else
-      error("could not parse $(index_array[1][2:end]) into Int64")
+	  throw(ArgumentError("could not parse $(index_array[1][2:end]) into Int64"))
     end
     tmp = tryparse(Int64,index_array[end][1:end-1])
     if !isnull(tmp)
       idx[end] = get(tmp)
     else
-      error("could not parse $(index_array[end][1:end-1]) into Int64")
+	  throw(ArgumentError("could not parse $(index_array[end][1:end-1]) into Int64"))
     end
     for i = 2:length(index_array)-1
       tmp = tryparse(Int64,index_array[i])
       if !isnull(tmp)
         idx[i] = get(tmp)
       else
-        error("could not parse $(index_array[i]) into Int64")
+		throw(ArgumentError("could not parse $(index_array[i]) into Int64"))
       end
     end
     return Index(idx)
@@ -44,8 +47,6 @@ function Index{S<:AbstractString}(index_string::S)
 end
 
 # methods
-isvalid{I<:Index}(index::I) = all(index.indices .≥ 0)::Bool
-
 zero{d,V}(::Type{Index{d,V}}) = Index(zeros(eltype(V),d))::Index{d,V}
 zero{d,V}(index::Index{d,V}) = Index(zeros(eltype(V),d))::Index{d,V}
 
@@ -53,14 +54,15 @@ one{d,V}(::Type{Index{d,V}}) = Index(ones(eltype(V),d))::Index{d,V}
 one{d,V}(index::Index{d,V}) = Index(ones(eltype(V),d))::Index{d,V}
 
 *{d,V}(index1::Index{d,V}, index2::Index{d,V}) = Index(index1.indices.*index2.indices)::Index{d,V} # can only multiply indices of same length
+*{d,V,T<:AbstractFloat}(index1::Index{d,V}, vec::Vector{T}) = index1.indices.*vec
+*{d,V,T<:AbstractFloat}(vec::Vector{T}, index1::Index{d,V}) = index1.indices.*vec
 *{N<:Integer,I<:Index}(s::N, index::I) = Index(s*index.indices)::I
 *{I<:Index,N<:Integer}(index::I, s::N) = Index(s*index.indices)::I
-.*{T,I<:Index}(s::Vector{T}, index::I) = (s.*index.indices)::Vector{T}
-.*{I<:Index,T}(index::I, s::Vector{T}) = (s.*index.indices)::Vector{T}
+*{N<:Number,I<:Index}(s::N, index::I) = s*index.indices
+*{I<:Index,N<:Number}(index::I, s::N) = s*index.indices
 
 =={d}(index1::Index{d}, index2::Index{d}) = ( index1.indices == index2.indices )::Bool
 =={I<:Index,N<:Integer}(index1::I, s::N) = ( index1.indices == (s*one(index1)).indices )::Bool
-.=={I<:Index,N<:Integer}(index1::I, s::N) = ( index1.indices .== (s*one(index1)).indices )
 
 function isless{d}(i1::Index{d},i2::Index{d})
   returnvalue = false
@@ -87,13 +89,14 @@ setindex!{I<:Index}(index::I, value, key) = index.indices[key] = value
 maximum{I<:Index}(index::I) = maximum(index.indices)
 indmax{I<:Index}(index::I) = indmax(index.indices)
 sum{I<:Index}(index::I) = sum(index.indices)
-prod{I<:Index}(index::I) = prod(max(1,index.indices))
+prod{I<:Index}(index::I) = prod(max.(1,index.indices))
 diff{I<:Index}(index1::I, index2::I) = count(!,index1.indices.==index2.indices) # returns number of indices that is different
 length{I<:Index}(index::I) = length(index.indices)
 
 copy{I}(index::I) = Index(copy(index.indices))
 hash(index::Index, h::UInt) = hash(index.indices, hash(:Index, h)) # needed for looking things up in a dict
 
+# output formatting
 function show(io::IO, index::Index)
   d = ndims(index)
   print(io, "$d-dimensional index with values [")
@@ -103,122 +106,81 @@ function show(io::IO, index::Index)
   print(io, @sprintf("%i]",index[d]))
 end
 
-# representation of an index set
-abstract IndexSet{d}
+## Indexset ##
+abstract type IndexSet{d} end
 
-type SL{d} <: IndexSet{d}
+struct SL{d} <: IndexSet{d}
 end
 
-type ML{d} <: IndexSet{d}
+struct ML{d} <: IndexSet{d}
 end
 
-type FT{d, W<:AbstractVector} <: IndexSet{d}
+struct FT{d, W<:AbstractVector} <: IndexSet{d}
   weights::W
 end
 
-type TD{d, W<:AbstractVector} <: IndexSet{d}
+struct TD{d, W<:AbstractVector} <: IndexSet{d}
   weights::W
 end
 
-type HC{d, W<:AbstractVector} <: IndexSet{d}
+struct HC{d, W<:AbstractVector} <: IndexSet{d}
   weights::W
 end
 
-type AD{d} <: IndexSet{d}
+struct AD{d} <: IndexSet{d}
 end
 
 # utilities
 ndims{d}(::IndexSet{d}) = d
 
-# constructor for index sets
-function SL()
-  return SL{1}()
-end
+# constructors for index sets
+SL() = SL{1}()
 
-function ML()
-  return ML{1}()
-end
+ML() = ML{1}()
 
-function FT{N<:Int}(d::N)
-  if d <= 1
-    error("can only use FT with d>1!")
-  end
-  return FT{d,Vector{Float64}}(ones(Float64,d))
-end
+FT{N<:Int}(d::N) = d <= 1 ? throw(BoundsError("can only use FT with d>1")) : FT{d,Vector{Float64}}(ones(Float64,d))
 
 function FT{T<:AbstractFloat}(weights::Vector{T})
   if ( length(weights) <= 1 ) || !all(weights .> 0)
-    error("incorrect weights for type FT, must be of length d>1 and positive!")
+	throw(ArgumentError("incorrect weights for type FT, must be of length d>1 and positive!"))
   end
   return FT{length(weights),Vector{T}}(weights)
 end
 
-function TD{N<:Int}(d::N)
-  if d <= 1
-    error("can only use TD with d>1!")
-  end
-  return TD{d,Vector{Float64}}(ones(Float64,d))
-end
+TD{N<:Int}(d::N) = d <= 1 ? throw(BoundsError("can only use TD with d>1")) : TD{d,Vector{Float64}}(ones(Float64,d))
 
 function TD{T<:AbstractFloat}(weights::Vector{T})
   if ( length(weights) <= 1 ) || !all(weights .> 0)
-    error("incorrect weights for type TD, must be of length d>1 and positive!")
+	throw(ArgumentError("incorrect weights for type TD, must be of length d>1 and positive!"))
   end
   return TD{length(weights),Vector{T}}(weights)
 end
 
-function HC{N<:Int}(d::N)
-  if d <= 1
-    error("can only use HC with d>1!")
-  end
-  return HC{d,Vector{Float64}}(ones(Float64,d))
-end
+HC{N<:Int}(d::N) = d <= 1 ? throw(BoundsError("can only use HC with d>1")) : HC{d,Vector{Float64}}(ones(Float64,d))
 
 function HC{T<:AbstractFloat}(weights::Vector{T})
   if ( length(weights) <= 1 ) || !all(weights .> 0)
-    error("incorrect weights for type HC, must be of length d>1 and positive!")
+	throw(ArgumentError("incorrect weights for type HC, must be of length d>1 and positive!"))
   end
   return HC{length(weights),Vector{T}}(weights)
 end
 
-function AD{N<:Int}(d::N)
-  if d<=1
-    error("can only use AD with d>1!")
-  end
-  return AD{d}()
-end
+AD{N<:Int}(d::N) = d <= 1 ? throw(BoundsError("can only use AD with d>1")) : AD{d}()
 
-# methods
-isValid{I<:IndexSet}(indexset::I) = ( typeof(ndims(indexset)) <: Integer && ndims(indexset) > 0 && length(indexset.weights) == ndims(indexset) )
+# output formatting
+show(io::IO, sl::SL) = print(io, "Single level index set")
 
-function show(io::IO, sl::SL)
-  print(io, "Single level index set")
-end
+show(io::IO, ml::ML) = print(io, "Multilevel index set")
 
-function show(io::IO, ml::ML)
-  print(io, "Multilevel index set")
-end
+show(io::IO, ft::FT) = print(io, "$(ndims(ft))-dimensional index set of type FT with weights $(ft.weights)")
 
-function show(io::IO, ft::FT)
-  print(io, "$(ndims(ft))-dimensional index set of type FT with weights $(ft.weights)")
-end
+show(io::IO, td::TD) = print(io, "$(ndims(td))-dimensional index set of type TD with weights $(td.weights)")
 
-function show(io::IO, td::TD)
-  print(io, "$(ndims(td))-dimensional index set of type TD with weights $(td.weights)")
-end
+show(io::IO, hc::HC) = print(io, "$(ndims(hc))-dimensional index set of type HC with weights $(hc.weights)")
 
-function show(io::IO, hc::HC)
-  print(io, "$(ndims(hc))-dimensional index set of type HC with weights $(hc.weights)")
-end
+show(io::IO, ad::AD) = print(io, "$(ndims(ad))-dimensional adaptive index set")
 
-function show(io::IO, ad::AD)
-  print(io, "$(ndims(ad))-dimensional adaptive index set")
-end
-
-
-#
-# Main methods for working with indices and index sets
-#
+## Main methods for working with indices and index sets ##
 
 # difference operator
 function difference{d}(i::Index{d}, current::Index{d})
@@ -263,25 +225,15 @@ function drop{d,N<:Integer}(i::Index{d}, L::N, indexset::IndexSet{d})
   return returnvalue
 end
 
-function check_drop{d,N<:Integer}(p::N, i::Index{d}, L::N, indexset::SL{d})
-  return i[1] > L
-end
+check_drop{d,N<:Integer}(p::N, i::Index{d}, L::N, indexset::SL{d}) = i[1] > L
 
-function check_drop{d,N<:Integer}(p::N, i::Index{d}, L::N, indexset::ML{d})
-  return i[1] > L
-end
+check_drop{d,N<:Integer}(p::N, i::Index{d}, L::N, indexset::ML{d}) = i[1] > L
 
-function check_drop{d,N<:Integer}(p::N, i::Index{d}, L::N, indexset::FT{d})
-  return (i.*indexset.weights)[p] > L
-end
+check_drop{d,N<:Integer}(p::N, i::Index{d}, L::N, indexset::FT{d}) = (i*indexset.weights)[p] > L
 
-function check_drop{d,N<:Integer}(p::N, i::Index{d}, L::N, indexset::TD{d})
-  return sum(i.*indexset.weights) > L
-end
+check_drop{d,N<:Integer}(p::N, i::Index{d}, L::N, indexset::TD{d}) = sum(i*indexset.weights) > L
 
-function check_drop{d,N<:Integer}(p::N, i::Index{d}, L::N, indexset::HC{d})
-  return prod(max(1,i.*indexset.weights)) > L
-end
+check_drop{d,N<:Integer}(p::N, i::Index{d}, L::N, indexset::HC{d}) = prod(max(1,i*indexset.weights)) > L
 
 # return index set of given kind for certain parameter L
 function getIndexSet{d,N<:Integer}(indexset::IndexSet{d}, L::N)
@@ -302,8 +254,8 @@ end
 function getBoundary{d,V}(indices::Set{Index{d,V}}) # must have explicit d in signature
   boundary = Set{Index{d,V}}()
   for index in indices # could be made more efficient for TD and FT types, but uses same rules now for all types
-    index_ = copy(index)
-    maxs = find(index_.==maximum(index_)) # maximum direction(s)
+	index_ = copy(index)
+    maxs = indmax(index_) # maximum direction(s)
     isboundary = true
     for m in 1:length(maxs)
       index_[maxs[m]] += 1

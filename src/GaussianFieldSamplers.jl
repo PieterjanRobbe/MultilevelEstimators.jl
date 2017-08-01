@@ -1,16 +1,15 @@
 # abstract Gaussian field sampler
-abstract GaussianFieldSampler
+abstract type GaussianFieldSampler end
 
-# Empty sampler type
-type EmptySampler <: GaussianFieldSampler
-
+# singleton field sampler type
+struct EmptySampler <: GaussianFieldSampler
 end
 
 # KL expansion
-immutable KLExpansion{d,N<:Integer,A<:AbstractVector,B<:AbstractVector,C<:AbstractVector} <: GaussianFieldSampler
+struct KLExpansion{d,N<:Integer,A<:AbstractVector,B<:AbstractVector,C<:AbstractVector} <: GaussianFieldSampler
   mkl::N # number of terms in KL expansion
   m0::N # coarsest grid number of points
-	eigenval::A # d-dimensional KL eigenvalues (Array of tupples with index and value)
+  eigenval::A # d-dimensional KL eigenvalues (Array of tupples with index and value)
   eigenfunc::B # 1d KL eigenfunctions
   ad::Bool # true if adaptive in number of terms
   s::C
@@ -41,25 +40,23 @@ function show(io::IO, G::KLExpansion)
 end
 
 # covariance kernel
-abstract Kernel
+abstract type Kernel end
 
-type MaternKernel{T<:AbstractFloat} <: Kernel
+struct MaternKernel{T<:AbstractFloat} <: Kernel
   λ::T # correlation length
   σ::T # variance
   ν::T # smoothness parameter
   p::T # p-norm
-
-  function MaternKernel(λ, σ, ν, p)
-    λ > 0 || error("correlation length of random field cannot be negative or zero!")
-    σ > 0 || error("variance of random field cannot be negative or zero!")
-    ν > 0 || error("smoothness of random field cannot be negative or zero!")
-    p >= 1 || error("p-norm needs p>1!")
-
-    return new(λ, σ, ν, p)
-  end
 end
 
-MaternKernel{T<:AbstractFloat}(λ::T,σ::T,ν::T,p::T) = MaternKernel{T}(λ,σ,ν,p)
+function MaternKernel{T}(λ::T,σ::T,ν::T,p::T)
+	λ > 0 || throw(ArgumentError("correlation length of random field cannot be negative or zero!"))
+	σ > 0 || throw(ArgumentError("variance of random field cannot be negative or zero!"))
+	ν > 0 || throw(ArgumentError("smoothness of random field cannot be negative or zero!"))
+	p >= 1 || throw(ArgumentError("p-norm needs p>1!"))
+	
+	MaternKernel{T}(λ,σ,ν,p)
+end
 
 # methods
 isValid(M::MaternKernel) = ( λ > 0 && σ > 0 && ν > 0 && p >= 1 )
@@ -80,9 +77,7 @@ function show(io::IO, M::MaternKernel)
   print(io, "Matern kernel with correlation length λ = $(M.λ), variance σ^2 = $((M.σ)^2), smoothness ν = $(M.ν) and $(M.p)-norm.")
 end
 
-#
-# Main methods for creating and composing the KL expansion
-#
+## Main methods for creating and composing the KL expansion ##
 
 # constructor for separable kernels (non-separable is not implemented yet...)
 function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 10, ad::Bool = false, x::Vector{Vector{T}} = Vector{Vector{Float64}}(), s::Vector{N} = Vector{N}())
@@ -139,7 +134,7 @@ function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 10,
   eigenfunc = Array{T,2}[]
   if typeof(kernel) <: MaternKernel && kernel.ν == 0.5 && kernel.p == 1.
     ω = ω[1:max_mkl] # cut off ω
-    n = sqrt(2)/2*sqrt(1./ω.*(kernel.λ^2*ω.^2.*cos(ω).*sin(ω)+kernel.λ^2*ω.^3-2*kernel.λ*ω.*cos(ω).^2-cos(ω).*sin(ω)+ω)+2*kernel.λ)
+    n = sqrt(2)/2*sqrt.(1./ω.*(kernel.λ^2*ω.^2.*cos.(ω).*sin.(ω)+kernel.λ^2*ω.^3-2*kernel.λ*ω.*cos.(ω).^2-cos.(ω).*sin.(ω)+ω)+2*kernel.λ)
     for L in 0:maxL
       if isempty(x)
         m = m0*2^L
@@ -147,7 +142,7 @@ function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 10,
       else
         pts = collect(x[L+1]) # other values if specified
       end
-      push!(eigenfunc,diagm(1./n)*( sin(ω*pts') + kernel.λ*diagm(ω)*cos(ω*pts') ))
+      push!(eigenfunc,diagm(1./n)*( sin.(ω*pts') + kernel.λ*diagm(ω)*cos.(ω*pts') ))
     end
   else
     for L in 0:maxL

@@ -3,7 +3,7 @@ function parametrizedPDEPointEvaluation{T<:AbstractFloat,d,S<:Sampler}(xi::Vecto
   kl = compose(sampler.gaussianFieldSampler,xi,index) # apply KL expansion
   m = 4.*2.^index.indices # grid sizes
   mx, my = length(index.indices) < 2 ? tuple(repeat(m,inner=[2])...) : tuple(m...)
-  k = exp(reshape(kl,(mx,my)))
+  k = exp.(reshape(kl,(mx,my)))
   p = epde2(k) # solve the deterministic PDE (flow cell geometry)
   vx = 1/2/mx:1/mx:1-1/2/mx # FV computes solution in cell centers
   vy = 1/2/my:1/my:1-1/2/my
@@ -18,7 +18,7 @@ function parametrizedPDEEffectiveConductivity{T<:AbstractFloat,d,S<:Sampler}(xi:
   kl = compose(sampler.gaussianFieldSampler,xi,index) # apply KL expansion
   m = 4.*2.^index.indices # grid sizes
   mx, my = length(index.indices) < 2 ? tuple(repeat(m,inner=[2])...) : tuple(m...)
-  k = exp(reshape(kl,(mx,my)))
+  k = exp.(reshape(kl,(mx,my)))
   p = epde2d(k) # solve the deterministic PDE (flow cell geometry)
 
   return trapz(2.0*mx*k[mx,:].*p[mx,:],my)::T

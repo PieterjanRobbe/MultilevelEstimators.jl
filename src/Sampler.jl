@@ -1,5 +1,5 @@
 # sampler type
-immutable Sampler{d,I<:IndexSet,G<:NumberGenerator,F,D1<:Dict,D2<:Dict,D3<:Dict,D4<:Dict,UType,S}
+mutable struct Sampler{d,I<:IndexSet,G<:NumberGenerator,F,D1<:Dict,D2<:Dict,D3<:Dict,D4<:Dict,UType,S}
 
   # settings that must be provided by the user
   indexSet::I                   # type of index set
@@ -13,7 +13,7 @@ immutable Sampler{d,I<:IndexSet,G<:NumberGenerator,F,D1<:Dict,D2<:Dict,D3<:Dict,
   Nstar::Int64                  # number of warm-up samples
   gaussianFieldSampler::F       # type of Gaussian field sampler
   useTime::Bool                 # use true simulation time as cost measure
-  safety::Bool                  # guarantee that variance of estimator is less than θ^2*TOL^2
+  safety::Bool                  # guarantee that variance of estimator is less than θ*TOL^2
   continuate::Bool              # use Bayesian inversion for parameter estimation
   nTOL::Int64                   # number of iterations in the continuation algorithm
   k::Tuple{Float64,Float64}     # trust parameters for normal-gamma prior in continuation algorithm
@@ -21,29 +21,29 @@ immutable Sampler{d,I<:IndexSet,G<:NumberGenerator,F,D1<:Dict,D2<:Dict,D3<:Dict,
   ioStream::IO                  # where to write output to (file or std out)
   storeSamples0::Bool           # store non-difference samples for problem analysis
   procMap::D1                   # maps index to number of processors to be used
-  userType::UType
-  max_indexset::S
+  userType::UType				# custom user type
+  max_indexset::S				# maximum shape of the indexset
 
   # unchangeable
   generatorStates::D1           # save states of number generator
   samples::D2                   # all the difference samples
   samples0::D2                  # all the non-difference samples
-  T::D3                     		# cumulative time / index
-	E::D4													# mean value at each index 
-	Vf::D4												# mean of variances at each index
-	V::D4													# variance of means at each index (for QMC)
-	Vest::D4											# contribution of the variance at each index
-	Wst::D3												# standard cost at each index
-	W::D3													# true cost at each index used in algorithm, either by runtime or standard cost
-	P::D3													# profits at each index
-#  active::Set{Index{d,Vector{Int64}}}
- # old::Set{Index{d,Vector{Int64}}}
+  T::D3                     	# cumulative time / index
+  E::D4							# mean value at each index 
+  Vf::D4						# mean of variances at each index
+  V::D4							# variance of means at each index (for QMC)
+  Vest::D4						# contribution of the variance at each index
+  Wst::D3						# standard cost at each index
+  W::D3							# true cost at each index, either by runtime or standard cost
+	P::D3						# profits at each index
 end
 
 # utilities
 ndims{d}(sampler::Sampler{d}) = d
 
 # constructor
+# input a Dict with the sampler settings
+# setup will parse all inputs from the Dict and set the appropriate sampler settings
 function setup{S<:AbstractString}(dict::Dict{S,Any})
 
   settings = copy(dict)
@@ -79,20 +79,6 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
     end
   end
 
-  # if haskey(settings,"coarseGrids")
-  #   if length(coarseGrids) > d
-  #     warn("length of vector coarseGrids with coarsest mesh sizes is larger than d, but I will try to proceed by adapting length(coarseGrids).")
-  #     coarseGrids = coarseGrids[1:d]
-  #   elseif length(coarseGrids) < d
-  #     warn("length of vector coarseGrids with coarsest mesh sizes is smaller than d, but I will try to proceed by adapting length(coarseGrids).")
-  #     while length(coarseGrids) < d
-  #       push!(coarseGrids,coarseGrids[1])
-  #     end
-  #   end
-  # else
-  #   coarseGrids = 4*ones(Int64,d)
-  # end
-
   if haskey(settings,"maxL")
     maxL = settings["maxL"]
     delete!(settings,"maxL")
@@ -106,7 +92,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
     end
   else
     maxL = 6
-    mmaxL = ones(Int64,d)
+    mmaxL = maxL*ones(Int64,d)
   end
   if ( typeof(indexSet) == SL && maxL != 0 )
     warn("for SL simulation, maxL must equal zero. I will try to proceed with maxL=0")
@@ -122,18 +108,6 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
   else
     costModel = (index) -> prod(2.^(index.indices))
   end
-
-  # if haskey(settings,"splitting")
-  #   splitting = settings["splitting"]
-  #   delete!(settings,"splitting")
-  #   if !(typeof(splitting) == Float64)
-  #     error("incorrect splitting specified!")
-  #   elseif (splitting < 0 || splitting > 1)
-  #     error("splitting parameter must be between 0 and 1")
-  #   end
-  # else
-  #   splitting = 0.5
-  # end
 
   if haskey(settings,"Z")
     Z = settings["Z"]
@@ -174,9 +148,6 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
         end
       end
     end
-    # if coarseGrids[1] != size(gaussianFieldSampler.eigenfunc[1],2)
-    #   warn("coarsest mesh size in coarseGrids is not equal to the mesh size of the eigenfunctions in gaussianFieldSampler, but I will try to proceed anyway.")
-    # end
   else
     gaussianFieldSampler = EmptySampler()
   end
@@ -261,7 +232,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
   else
     showInfo = true
   end
-	@debug showInfo = true
+  @debug showInfo = true
 
   if haskey(settings,"ioStream")
     ioStream = settings["ioStream"]
@@ -341,12 +312,12 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
   samples0 = Dict{Index{d,Vector{Int64}},Array{Float64,3}}()
 
   T = Dict{Index{d,Vector{Int64}},Float64}()
-	E = Dict{Index{d,Vector{Int64}},Vector{Float64}}()
-	V = Dict{Index{d,Vector{Int64}},Vector{Float64}}()
-	Vf = Dict{Index{d,Vector{Int64}},Vector{Float64}}()
+  E = Dict{Index{d,Vector{Int64}},Vector{Float64}}()
+  V = Dict{Index{d,Vector{Int64}},Vector{Float64}}()
+  Vf = Dict{Index{d,Vector{Int64}},Vector{Float64}}()
   Wst = Dict{Index{d,Vector{Int64}},Float64}()
   W = Dict{Index{d,Vector{Int64}},Float64}()
-	Vest = Dict{Index{d,Vector{Int64}},Vector{Float64}}()
+  Vest = Dict{Index{d,Vector{Int64}},Vector{Float64}}()
   P = Dict{Index{d,Vector{Int64}},Float64}()
   
   return Sampler{d,typeof(indexSet),typeof(numberGenerator),typeof(gaussianFieldSampler),typeof(generatorStates),typeof(samples),typeof(T),typeof(E),typeof(userType),typeof(max_indexset)}(
@@ -364,10 +335,8 @@ function show(io::IO, sampler::Sampler)
   str *= "indexSet        | $(sampler.indexSet) \n"
   str *= "numberGenerator | $(sampler.numberGenerator) \n"
   str *= "sampleFunction  | $(sampler.sampleFunction) \n"
-# str *= "coarseGrids     | $(sampler.coarseGrids) # coarsest mesh sizes (vector of length d) \n"
   str *= "maxL            | $(sampler.maxL) # maximum level parameter for index sets \n"
   str *= "costModel       | $(sampler.costModel) \n"
-# str *= "splitting       | $(sampler.splitting) # desired splitting between bias and variance (0.5) \n"
   str *= "Z               | $(sampler.Z) # number of qoi's \n"
   str *= "Nstar           | $(sampler.Nstar) # number of warm-up samples \n"
   str *= "gaussianFiel... | $(sampler.gaussianFieldSampler) \n"
@@ -409,124 +378,6 @@ function show(io::IO, sampler::Sampler)
   print(io, str)
 end
 
-# save current state of the sampler for later reinitialisation
-function save(sampler::Sampler)
-  # make directory structure
-  current_dir = pwd()
-  dir_name = "data_"*Dates.format(now(),"dd_mm_yy_HH_MM")
-  mkdir(dir_name)
-  cd(dir_name)
-
-  # print sampler info to info.txt
-  file_handle = open("info.txt","a")
-  show(file_handle, sampler)
-  close(file_handle)
-
-  # save all samples
-  dir_name = "samples"
-  mkdir(dir_name)
-  cd(dir_name)
-  for idx in keys(sampler.samples)
-    dir_name = @sprintf("%s",idx.indices)
-    mkdir(dir_name)
-    cd(dir_name)
-    writedlm("gen_state.txt",sampler.generatorStates[idx])
-    writedlm("time.txt",sampler.times[idx])
-    for z in 1:sampler.Z
-      writedlm("Z$(z).txt",sampler.samples[idx][:,:,z])
-    end
-    cd("..")
-  end
-  cd("..")
-
-  # save all samples0 (non-difference samples)
-  if sampler.storeSamples0
-    dir_name = "samples0"
-    mkdir(dir_name)
-    cd(dir_name)
-    for idx in keys(sampler.samples)
-      dir_name = @sprintf("%s",idx.indices)
-      mkdir(dir_name)
-      cd(dir_name)
-      for z in 1:sampler.Z
-        writedlm("Z$(z).txt",sampler.samples0[idx][:,:,z])
-      end
-      cd("..")
-    end
-    cd("..")
-  end
-
-  # print mimc output table to current_state.txt
-  d = ndims(sampler)
-  E     = Dict{Index{d,Vector{Int64}},Vector{Float64}}()
-  V     = Dict{Index{d,Vector{Int64}},Vector{Float64}}()
-  W     = Dict{Index{d,Vector{Int64}},Float64}() # dict for costs
-  for index in keys(sampler.samples)
-    E[index] = squeeze(mean(sampler.samples[index],(1,2)),(1,2))
-    V[index] = squeeze(var(mean(sampler.samples[index],1),2),(1,2))
-    W[index] =  sampler.useTime ? sampler.times[index] : sampler.costModel(index)
-  end
-  str  = "-------------------------------------------------------------------------------- \n"
-  itype = ndims(sampler.indexSet) == 1 ? "level" : "index"
-  str *= "  "*itype*"       E              V               N               W               \n"
-  str *= "-------------------------------------------------------------------------------- \n"
-  for index in sort(Set(collect(keys(E))))
-    str *= ("  $(index.indices)            "[1:13])
-    str *= @sprintf("%12.5e",maximum(E[index]))
-    str *= @sprintf("    %0.6e",maximum(V[index]))
-    str *= @sprintf("    %d               ",prod(size(sampler.samples[index])[1:2]))[1:16]
-    str *= @sprintf("    %0.6e \n",W[index])
-  end
-  file_handle = open("current_state.txt","a")
-  @printf(file_handle, "%s", str)
-  close(file_handle)
-
-  cd("..")
-end
-
-# reinitialize sampler
-function load(sampler::Sampler,dir::AbstractString)
-  isdir(dir) || error("$(dir) is not a directory")
-  cd(dir*"/samples")
-  for idx_dir in filter!(r",", readdir())
-    cd(idx_dir)
-    if !(idx_dir[1] == ".") # ignore hidden files/folders
-      idx = Index(idx_dir)
-      setindex!(sampler.generatorStates, readdlm("gen_state.txt")[1], idx)
-      setindex!(sampler.times, readdlm("time.txt")[1], idx)
-      # read Z1 to infer size of samples
-      (n,m) = size(readdlm("Z1.txt"))
-      l = length(filter!(r"^Z", readdir()))
-      samples = zeros(Float64,n,m,l)
-      for z in 1:l
-        samples[:,:,z] = readdlm("Z$(z).txt")
-      end
-      setindex!(sampler.samples, samples, idx)
-    end
-    cd("..")
-  end
-  cd("../..")
-  if sampler.storeSamples0
-    cd(dir*"/samples0")
-    for idx_dir in filter!(r",", readdir())
-      cd(idx_dir)
-      if !(idx_dir[1] == ".") # ignore hidden files/folders
-        idx = Index(idx_dir)
-        # read Z1 to infer size of samples0
-        (n,m) = size(readdlm("Z1.txt"))
-        l = length(filter!(r"^Z", readdir()))
-        samples0 = zeros(Float64,n,m,l)
-        for z in 1:l
-          samples0[:,:,z] = readdlm("Z$(z).txt")
-        end
-        setindex!(sampler.samples0, samples0, idx)
-      end
-      cd("..")
-    end
-  end
-  cd("../..")
-end
-
 # reset sampler
 function reset(sampler::Sampler)
   d = ndims(sampler)
@@ -535,8 +386,17 @@ function reset(sampler::Sampler)
   sampler.samples = Dict{Index{d,Vector{Int64}},Array{Float64,3}}()
   sampler.samples0 = Dict{Index{d,Vector{Int64}},Array{Float64,3}}()
   sampler.times = Dict{Index{d,Vector{Int64}},Float64}()
+  sampler.T = Dict{Index{d,Vector{Int64}},Float64}()
+  sampler. E = Dict{Index{d,Vector{Int64}},Vector{Float64}}()
+  sampler.V = Dict{Index{d,Vector{Int64}},Vector{Float64}}()
+  sampler. Vf = Dict{Index{d,Vector{Int64}},Vector{Float64}}()
+  sampler. Wst = Dict{Index{d,Vector{Int64}},Float64}()
+  sampler. W = Dict{Index{d,Vector{Int64}},Float64}()
+  sampler. Vest = Dict{Index{d,Vector{Int64}},Vector{Float64}}()
+  sampler. P = Dict{Index{d,Vector{Int64}},Float64}()
 end
 
+# print some usefull info about the sampler
 function inspect(sampler)
  	@printf(sampler.ioStream,"%s","-----------------------------------------------------------------------------------------------\n")
  	itype = ndims(sampler.indexSet) == 1 ? "level" : "index"
@@ -558,9 +418,7 @@ function inspect(sampler)
 	end
 end
 
-#
-# Main methods for sampling from the sampler
-#
+## Main methods for sampling from the sampler ##
 
 # compute bias of estimator using the indices in the boundary set
 # TODO if we store the current index set in the sampler, we do not need to pass the boundary
@@ -569,7 +427,7 @@ function compute_bias{d,N}(sampler, boundary::Set{Index{d,Vector{N}}})
 	for index::Index{d,Vector{N}} in boundary
 		B += sampler.E[index]
   end
-  return abs(B)
+  return abs.(B)
 end
 
 # compute std of estimator using the indices in the index set
@@ -579,7 +437,7 @@ function compute_stochastic_error{d,N}(sampler, failProb, indexset::Set{Index{d,
 	for index::Index{d,Vector{N}} in indexset
 		V += sampler.Vest[index]
   end
-  return sqrt(2)*erfcinv(failProb)*sqrt(sum(V))
+  return sqrt(2)*erfcinv(failProb)*sqrt.(V)
 end
 
 # compute mean of the estimator
@@ -587,7 +445,7 @@ end
 function mean{d,N}(sampler, indexset::Set{Index{d,Vector{N}}})
   mu = zeros(Float64,sampler.Z)
 	for index::Index{d,Vector{N}} in indexset
-		mu += abs(sampler.E[index]) # TODO here we need a better estimate... abs or not? abs is consistent with regression model
+		mu += abs.(sampler.E[index]) # TODO here we need a better estimate... abs or not? abs is consistent with regression model
   end
 	return maximum(mu)
 end
@@ -610,28 +468,16 @@ function do_regression{d,N}(sampler, indices::Set{Index{d,Vector{N}}})
 	Ds = [sampler.E, sampler.Vf, sampler.W]
 	for ds in 1:length(Ds)
 		corr = ds == 3 ? 1 : -1
-#		@debug println("----------------------------------------")				
-#		@debug which = ds == 1 ? "E" : ds == 2 ? "Vf" : "W"
-#		@debug println("performing regression on $(which)")
-#		@debug println("----------------------------------------")
 		D = Ds[ds]
 		# multi-linear regression of E / Vf / W for all given indices	
 		Dcopy = copy(D) # make a copy of the dict...
 		delete!(Dcopy, Index(zeros(N,d))) # ...and remove element 0
-#		@debug print("using ")
-#		@debug prettyprint(Set(keys(Dcopy)))
 		(X,xi) = leastSquaresFit(Dcopy, 0) # multi-linear regression
-#		@debug println("results of multi-linear regression:")
-#		@debug println("  xi = $(xi)")
-#		@debug println("  X = $(X)")
 		for index in indices # now use the regression model to get the value at the unknown indices
-#			@debug print_with_color(:cyan,"*** regression on index $(index.indices) ***\n")
 			# or do repeated lineair regression if possible
 			m = Float64[]
 			for i in 1:d
-#				@debug print("checking if dimension $(i) is suitable for 1d regression... ")
 				if index[i] > 2 # this index is suitable for repeated 1d regression
-#					@debug println("yes")
 					# make a dict that contains the indices
 					dict = typeof(D)()
 					for j in 1:index[i]-1
@@ -640,105 +486,21 @@ function do_regression{d,N}(sampler, indices::Set{Index{d,Vector{N}}})
 						@assert haskey(D,idx)
 						dict[idx] = D[idx]
 					end
-#					@debug print("using ")
-#					@debug prettyprint(Set(keys(dict)))
 					# regress and store the result in m
 					(Xacc,xiacc) = leastSquaresFit(dict,i)
-#					@debug println("results of 1d-linear regression:")
-#					@debug println("  xi = $(xiacc)")
-#					@debug println("  X = $(Xacc)")
-					push!(m,Xacc*prod(2.^(corr*xiacc.*index)))
-#					@debug println("I guess the value from dimension $(i) is $(m[end])")
+					push!(m,Xacc*prod(2.^(corr*xiacc*index)))
 				else
-#					@debug println("no")
 				end # if
 			end # for
-			val = isempty(m) ? X*prod(2.^(corr*xi.*index)) : mean(m)
-#			@debug println("regressed the value $(val) on index $(index.indices)")
-			D[index] = eltype(values(D)) <: AbstractVector ? [val] : val
+			val = isempty(m) ? X*prod(2.^(corr*xi*index)) : mean(m)
+			D[index] = eltype(values(D)) <: AbstractVector ? val*ones(sampler.Z) : val
 		end # for
 	end # for
   # finally, update the profit on these indices
 	for index in indices
-    sampler.P[index] = maximum(abs(sampler.E[index])./sqrt(sampler.Vf[index].*sampler.W[index]))
+    sampler.P[index] = maximum(abs.(sampler.E[index])./sqrt.(sampler.Vf[index].*sampler.W[index]))
   end
 end # function
-
-function t()
-
-  # correction when doing continuation
-  if continuate
-    (A,α,B,β,Bacc,βacc,C,γ) = estimateProblemParameters(sampler)  # ! fits only max E_\ell, V_\ell
-    Vftilde = bayesianUpdateVariance(sampler,A,α,B,β,E,Vf)
-    Vtilde = bayesianUpdateVariance(sampler,A,α,Bacc,βacc,E,V)
-    for index::Index{d,Vector{N}} in sort(indices) # use model fit on all indices
-#						println("<<< WARNING >>> I ONLY USE A FIT ON THE BOUNDARY INDICES <<< END WARNING >>>")
-			if !haskey(sampler.samples,index)
-			E[index] = [A*prod(2.^(-α.*index))]
-      Vf[index] = haskey(Vftilde,index) ? [Vftilde[index]] : [B*prod(2.^(-β.*index))]
-      V[index] = haskey(Vtilde,index) ? [Vtilde[index]] : [Bacc*prod(2.^(-βacc.*index))]
-      W[index] = C*prod(2.^(γ.*index))
-      Vest[index] = haskey(sampler.samples,index) ? V[index]/size(sampler.samples[index],dir) : [zero(T)]
-      if typeof(sampler.indexSet) == AD && haskey(profit,index)
-	      profit[index] = maximum(abs(E[index])./sqrt(Vf[index].*W[index]))
-      end
-			end
-    end
-  end
-	println("variance at index 0 is $(Vf[Index(zeros(N,d))])")
-	# correct level 0
-	#ndex = Index(zeros(N,d))
-	#E[ndex] = squeeze(mean(sampler.samples[ndex],(1,2)),(1,2))
-  #nsamples = size(sampler.samples[ndex],dir)
-  #W[ndex] =  sampler.useTime ? sampler.times[ndex]/nsamples : prod(2.^(sampler.γ.*ndex))
-  #Vest[ndex] = V[ndex]/nsamples
-  #if typeof(sampler.indexSet) <: AD && haskey(profit,ndex) # compute gains when adaptive
-	#  profit[ndex] = maximum(abs(E[ndex])./sqrt(Vf[ndex].*W[ndex]))
-  #end
-end
-
-# estimate problem parameters A, α, B, β, Bacc, βacc, C, γ and Vtilde in the continuation problem
-function estimateProblemParameters{d}(sampler::Sampler{d})
-
-  # for now, let A, α, B, β, Bacc, βacc, C and γ follow from a fit through the available E_\ell, V_\ell and W_\ell
-  E = Dict{Index{d,Vector{Int64}},Float64}()
-  Vf = Dict{Index{d,Vector{Int64}},Float64}()
-  V = Dict{Index{d,Vector{Int64}},Float64}()
-  W = Dict{Index{d,Vector{Int64}},Float64}()
-  for index in keys(sampler.samples)
-    E[index] = maximum(squeeze(mean(sampler.samples[index],(1,2)),(1,2)))
-    Vf[index] = maximum(squeeze(mean(var(sampler.samples[index],2),1),(1,2)))
-    V[index] = maximum(squeeze(var(mean(sampler.samples[index],1),2),(1,2)))
-    W[index] = sampler.useTime ? sampler.times[index] : sampler.costModel(index)
-  end
-
-  # least-squares fit
-  (A,α) = leastSquaresFit(E)
-  (B,β) = leastSquaresFit(Vf)
-  (Bacc,βacc) = leastSquaresFit(V)
-  (C,γ) = leastSquaresFit(W)
-
-  return (A::Float64, α::Vector{Float64}, B::Float64, β::Vector{Float64}, Bacc::Float64, βacc::Vector{Float64}, C::Float64, γ::Vector{Float64})
-end
-
-# Bayesian update of variances
-function bayesianUpdateVariance{d,N1<:Integer,T<:AbstractFloat}(sampler::Sampler,A::T,α::Vector{T},B::T,β::Vector{T}, E::Dict{Index{d,Vector{N1}},Vector{T}}, V::Dict{Index{d,Vector{N1}},Vector{T}})
-  dir = isa(sampler.numberGenerator,MCgenerator) ? 2 : 1
-  Vtilde = Dict{Index{d,Vector{N1}},T}()
-
-	for index in intersect(keys(E),keys(sampler.samples))
-    N = size(sampler.samples[index],dir)
-    μ = A*prod(2.^(-α.*index))
-    λ = 1/B*prod(2.^(β.*index))
-    Γ3 = sampler.k[2]*λ + N/2
-    Γ4 = sampler.k[2] + 0.5*(N-1)*maximum(V[index]) + sampler.k[1]*N*(maximum(E[index])-μ)^2/(2*(sampler.k[1]+N))
-    Vtilde[index] = Γ4/Γ3
-  end
-  zero_idx = Index(zeros(N1,d))
-  Vtilde[zero_idx] = maximum(V[zero_idx]) # ! correction for level / index 0
-
-  return Vtilde::Dict{Index{d,Vector{N1}},T}
-end
 
 # do a least-squares fit of the indices and data provided in the dict
 # the optional argument d specifies the number of dimensions used in the interpolation
@@ -758,12 +520,11 @@ function leastSquaresFit{d,N<:Integer,T}(dict::Dict{Index{d,Vector{N}},T}, dim::
   end
 	coeffs = data\rhs # least-squares system
   X = 2^coeffs[effdim+1]
-  ξ = abs(coeffs[1:effdim])
+  ξ = abs.(coeffs[1:effdim])
 	
 	# X is constant, xi are d-dimensional rates			
   return (X,ξ)
 end
-
 
 # sample nbOfSamples from the Sampler at the given index
 function sample{N<:Integer,I<:Index}(sampler::Sampler, nbOfSamples::N, index::I)
@@ -785,16 +546,15 @@ function sample{N<:Integer,I<:Index}(sampler::Sampler, nbOfSamples::N, index::I)
     state[index] = 0
   end
   
-	# total number of workers to be used
+  # total number of workers to be used
   p = max(1,get(sampler.procMap,index,Void) - 1) # nworkers() = nprocs() - 1
 	wp = WorkerPool(collect(1:p)+1)	# workerpool
 
-	# parallel execution
+  # parallel execution
   progress = Progress(nbOfSamples, dt=1, desc=desc, color=:black, barlen=25)
-	#t = @elapsed r = pmap(wp, (i)->take_a_sample(index,state[index]+i,sampler), 1:nbOfSamples)
-	t = @elapsed r = pmap((i)->take_a_sample(index,state[index]+i,sampler), progress, 1:nbOfSamples)
+  t = @elapsed r = pmap((i)->take_a_sample(index,state[index]+i,sampler), progress, 1:nbOfSamples)
 
-	# fetch results
+  # fetch results
   comb_samples = reduce(vcat,r)::Array{Float64,4}
   @assert size(comb_samples,1) == nbOfSamples
   samples = comb_samples[:,:,:,1]
@@ -818,31 +578,19 @@ function sample{N<:Integer,I<:Index}(sampler::Sampler, nbOfSamples::N, index::I)
     sampler.samples0[index] = isa(sampler.numberGenerator, MCgenerator) ?
       hcat(sampler.samples0[index],samples0) : vcat(sampler.samples0[index],samples0)
   end
-	println("done")
 
-	# update dicts
-	print("updating dicts... ")
+  # update dicts
   dir = isa(sampler.numberGenerator,MCgenerator) ? 2 : 1
-	sampler.E[index] = squeeze(mean(sampler.samples[index],(1,2)),(1,2))
+  sampler.E[index] = squeeze(mean(sampler.samples[index],(1,2)),(1,2))
   sampler.Vf[index] = squeeze(mean(var(sampler.samples[index],2),1),(1,2))
   sampler.V[index] = squeeze(var(mean(sampler.samples[index],1),2),(1,2))
-	n = size(sampler.samples[index],dir) # number of samples taken
+  n = size(sampler.samples[index],dir) # number of samples taken
   sampler.Vest[index] = sampler.V[index]/n
   sampler.Wst[index] =  sampler.costModel(index)
-	sampler.T[index] = t + get(sampler.T,index,0.0) # cumulative time 
+  sampler.T[index] = t + get(sampler.T,index,0.0) # cumulative time 
   sampler.W[index] =  sampler.useTime ? sampler.T[index]/n : sampler.Wst[index]
-	sampler.P[index] = maximum(abs(sampler.E[index])./sqrt(sampler.Vf[index].*sampler.W[index]))
+  sampler.P[index] = maximum(abs.(sampler.E[index])./sqrt.(sampler.Vf[index].*sampler.W[index]))
 
-#  if isinf(sampler.P[index]) || sampler.P[index] > 1e10
-#    @debug println("is inf sampler.P ? $(isinf(sampler.P[index]))")
-#    @debug println("Inf detected at index $(index.indices)")
-#    @debug println("probably because the variance was 0: $(sampler.Vf[index])")
-#    @debug println("these where the samples:")
-#    @debug @show samples
-#    error("forced stop")
-#  end
-
-	println("done")
   return Void
 end
 
@@ -878,6 +626,7 @@ function take_a_sample{N<:Integer,I<:Index}(index::I, i::N, sampler::Sampler)
 	
 end
 
+# cost model utility based on single sample cost "fun"
 function mi_cost(fun, idx)
   cost = 0.
   j = copy(idx)

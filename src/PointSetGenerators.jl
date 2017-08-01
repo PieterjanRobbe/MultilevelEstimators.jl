@@ -1,16 +1,16 @@
 # Number generator type
-abstract NumberGenerator{s}
+abstract type NumberGenerator{s} end
 
-abstract MCgenerator{s} <: NumberGenerator{s}
+abstract type MCgenerator{s} <: NumberGenerator{s} end
 
-abstract QMCgenerator{s} <: NumberGenerator{s}
+abstract type QMCgenerator{s} <: NumberGenerator{s} end
 
 #
 # Uniform random number generators
 #
 
 # uniform Monte Carlo sampler
-type UniformMCgenerator{s,T<:AbstractFloat,V<:AbstractVector} <: MCgenerator{s}
+struct UniformMCgenerator{s,T<:AbstractFloat,V<:AbstractVector} <: MCgenerator{s}
   λ::T # decay rate, 0.5 for Monte Carlo
   lb::V # lower bounds for random variables
   ub::V # upper bounds for random variables
@@ -46,7 +46,7 @@ function getPoint{s,N<:Integer}(generator::UniformMCgenerator{s},k::N)
 end
 
 # randomized QMC generator
-type UniformQMCgenerator{s,q,R<:RandWrapper,T<:AbstractFloat,V<:AbstractVector} <: QMCgenerator{s}
+struct UniformQMCgenerator{s,q,R<:RandWrapper,T<:AbstractFloat,V<:AbstractVector} <: QMCgenerator{s}
   generator::R
   λ::T # decay rate, 1 for rank-1 lattice rules
   lb::V # lower bounds for random variables
@@ -105,7 +105,7 @@ end
 #
 
 # random number generator
-type GaussianMCgenerator{s,T<:AbstractFloat} <: MCgenerator{s}
+struct GaussianMCgenerator{s,T<:AbstractFloat} <: MCgenerator{s}
   λ::T
 end
 
@@ -130,7 +130,7 @@ end
 getPoint{s,N<:Integer}(generator::GaussianMCgenerator{s},k::N) = randn(s)
 
 # randomised lattice rule generator
-type GaussianQMCgenerator{s,q,R<:RandWrapper,T<:AbstractFloat} <: QMCgenerator{s}
+struct GaussianQMCgenerator{s,q,R<:RandWrapper,T<:AbstractFloat} <: QMCgenerator{s}
   generator::R
   λ::T
 end
@@ -160,7 +160,7 @@ function show{s,q}(io::IO,G::GaussianQMCgenerator{s,q})
 end
 
 function getPoint{s,q,N}(generator::GaussianQMCgenerator{s,q},k::N)
-    return sqrt(2)*erfinv(2*getPoint(generator.generator,k)-1)
+    return sqrt(2)*erfinv.(2*getPoint(generator.generator,k)-1)
 end
 
 # reset(generator::GaussianQMCgenerator) = reset(generator.generator)
