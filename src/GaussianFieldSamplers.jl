@@ -84,7 +84,8 @@ function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 10,
   d > 0 || error("dimension cannot be negative or zero!")
   mkl > 0 || error("number of KL-terms must be a positive integer!")
   maxL >= 0 || error("maximum indexset indicator must be postitive")
-  isempty(x) || ( length(x) == maxL+1 || error("supply as many points at each level as maxL+1") )
+  isempty(x) && error("points cannot be empty") 
+  maxL = length(x)-1
   if isempty(s)
     if isempty(x)
       s = mkl*ones(N,maxL+1)
@@ -363,7 +364,7 @@ function nystrom{N<:Integer,T<:AbstractFloat}(kernel::Kernel,x::Vector{T},nterms
 
   # obtain eigenvalues and eigenfunctions
   D = diagm(weights)
-  Dsqrt = sqrt(D)
+  Dsqrt = sqrt.(D)
   Z = Symmetric(triu(Dsqrt*K*Dsqrt))
   eigenval, eigenfunc = eig(Z)
   eigenval = eigenval*kernel.σ^2
@@ -372,7 +373,7 @@ function nystrom{N<:Integer,T<:AbstractFloat}(kernel::Kernel,x::Vector{T},nterms
   sort!(eigenval,rev=true)
   eigenfunc = eigenfunc[:,idx]
 
-  f = weights.*(diagm(sqrt(1./weights))*eigenfunc)
+  f = weights.*(diagm(sqrt.(1./weights))*eigenfunc)
   lambda = 1./eigenval
 
   # nystrom method
