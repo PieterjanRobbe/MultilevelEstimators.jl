@@ -64,8 +64,8 @@ function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}; failProb
 		for index in keys(sampler.samples)
 			stcost[i] = length(sampler.samples[index])*sampler.Wst[index]
 		end # for
+		print_with_color(:cyan,"ELAPSED IS $(delta_t)\n")
 		@debug begin
-			print_with_color(:cyan,"ELAPSED IS $(delta_t)\n")
 			print("writing wall clock times into $(folder)/data/"*printdir*"/wctime.txt... ")
 			writedlm(folder*"/data/"*printdir*"/wctime.txt",cumsum(wctime))
 			println("done")
@@ -76,7 +76,7 @@ function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}; failProb
 			writedlm(folder*"/data/"*printdir*"/tolerances.txt",tol)
 			println("done")
       # save all samples
-      dir_name = folder*"/data/samples"
+      dir_name = folder*"/data/"*printdir*"/samples"
       isdir(dir_name) ? nothing : mkdir(dir_name)
       for idx in keys(sampler.samples)
         dir_name2 = @sprintf("%s",idx.indices)
@@ -265,7 +265,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 			@debug println("now taking warm-up samples... ")
       for index::Index{d,Vector{N}} in indicesToAdd
         if !haskey(sampler.T,index) # when running repeatedly, might already have samples available
-          sample(sampler, sampler.Nstar, index)
+          sampler.ml_sample_fun(sampler, sampler.Nstar, index)
   			end
       end
 			@debug println("done taking warm-up samples!")
@@ -314,7 +314,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 		for index::Index{d,Vector{N}} in newindexset
 			samplesToTake = max( 0, S[index]-size(get(sampler.samples,index,zeros(0,0)),dir) )
       if samplesToTake > 0
-        sample(sampler, samplesToTake, index )
+        sampler.ml_sample_fun(sampler, samplesToTake, index )
       end
     end
 		@debug inspect(sampler)
@@ -345,7 +345,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 				@debug println("the index with maximum ratio Vest/W is $(maxindex.indices)")
         n = size(sampler.samples[maxindex],dir)
 				@debug println("currently $(n) samples have been taken at index $(maxindex.indices), taking an additional $(nextpow2(n+1)-n)")
-        sample(sampler, nextpow2(n+1)-n, maxindex ) # round to nearest power of two
+        sampler.ml_sample_fun(sampler, nextpow2(n+1)-n, maxindex ) # round to nearest power of two
 				@debug inspect(sampler)
     
 				# reevaluate optimal number of samples
@@ -376,7 +376,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 				for index::Index{d,Vector{N}} in newindexset
 					samplesToTake = max( 0, S[index]-size(get(sampler.samples,index,zeros(0,0)),dir) )
       		if samplesToTake > 0
-        		sample(sampler, samplesToTake, index )
+        		sampler.ml_sample_fun(sampler, samplesToTake, index )
       		end
     		end
 				@debug inspect(sampler)

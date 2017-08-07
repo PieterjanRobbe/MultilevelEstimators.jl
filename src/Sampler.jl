@@ -36,6 +36,8 @@ mutable struct Sampler{d,I<:IndexSet,G<:NumberGenerator,F,D1<:Dict,D2<:Dict,D3<:
   Wst::D3						# standard cost at each index
   W::D3							# true cost at each index, either by runtime or standard cost
 	P::D3						# profits at each index
+	ml_sample_fun::Function		# switch sample function when toggeling multigrid mode
+	reuse::Bool					# switch for multigrid multilevel: reuse samples or not
 end
 
 # utilities
@@ -78,6 +80,30 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
       error("incorrect sampleFunction specified!")
     end
   end
+
+ 	if haskey(settings,"isMultigrid")
+ 		isMultigrid = settings["isMultigrid"]
+		if !(typeof(isMultigrid) <: Bool)
+			throw(ArgumentError("isMultigrid must be of type Bool"))
+		end
+		delete!(settings,"isMultigrid")
+	else
+		isMultigrid = false
+	end
+	ml_sample_fun = isMultigrid ? sample_mg : sample
+
+	if haskey(settings,"reuseSamples")
+		reuseSamples = settings["reuseSamples"]
+		if !(typeof(reuseSamples) <: Bool)
+			throw(ArgumentError("reuseSamples must be of type Bool"))
+		end
+		delete!(settings,"reuseSamples")
+	else
+		reuseSamples = false
+	end
+	if reuseSamples && !isMultigrid
+		throw(ArgumentError("for sample re-use, toggle multigrid on"))
+	end
 
   if haskey(settings,"maxL")
     maxL = settings["maxL"]
@@ -323,7 +349,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
   return Sampler{d,typeof(indexSet),typeof(numberGenerator),typeof(gaussianFieldSampler),typeof(generatorStates),typeof(samples),typeof(T),typeof(E),typeof(userType),typeof(max_indexset)}(
     indexSet, numberGenerator, sampleFunction, mmaxL, costModel, Z, Nstar, gaussianFieldSampler, useTime,
       safety, continuate, nTOL, k, showInfo, ioStream, storeSamples0, procMap, userType, max_indexset, 
-			generatorStates, samples, samples0, T,E,V,Vf,Wst,W,Vest,P)
+			generatorStates, samples, samples0, T,E,V,Vf,Wst,W,Vest,P, ml_sample_fun,reuseSamples)
 end
 
 
@@ -524,6 +550,19 @@ function leastSquaresFit{d,N<:Integer,T}(dict::Dict{Index{d,Vector{N}},T}, dim::
 	
 	# X is constant, xi are d-dimensional rates			
   return (X,ξ)
+end
+
+# update the dicts for mean, variance etc. based on the new available samples at the given index
+function update_dicts(sampler::Sampler, index)
+  dir = isa(sampler.numberGenerator,MCgenerator) ? 2 : 1
+  sampler.E[index] = squeeze(mean(sampler.samples[index],(1,2)),(1,2))
+  sampler.Vf[index] = squeeze(mean(var(sampler.samples[index],2),1),(1,2))
+  sampler.V[index] = squeeze(var(mean(sampler.samples[index],1),2),(1,2))
+  n = size(sampler.samples[index],dir) # number of samples taken
+  sampler.Vest[index] = sampler.V[index]/n
+  sampler.Wst[index] =  sampler.costModel(index)
+  sampler.W[index] =  sampler.useTime ? sampler.T[index]/n : sampler.Wst[index]
+  sampler.P[index] = maximum(abs.(sampler.E[index])./sqrt.(sampler.Vf[index].*sampler.W[index]))
 end
 
 # sample nbOfSamples from the Sampler at the given index

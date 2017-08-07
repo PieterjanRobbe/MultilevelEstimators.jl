@@ -40,7 +40,7 @@ export Sampler, setup, save, load, reset, sample, ndims, mi_cost  # from Sampler
 
 export KLExpansion, MaternKernel, compose, preload_eigenfunctions # from GaussianFieldSamplers.jl
 
-export GaussianMCgenerator, UniformMCgenerator, GaussianQMCgenerator, UniformQMCgenerator, reset # from PointSetGenerators.jl
+export GaussianMCgenerator, UniformMCgenerator, GaussianQMCgenerator, UniformQMCgenerator, PseudoRNG, reset # from PointSetGenerators.jl
 
 export simulate # from MultilevelAlgorithm.jl
 
@@ -61,8 +61,10 @@ include("Indexsets.jl")
 include("GaussianFieldSamplers.jl")
 
 include("PointSetGenerators.jl")
+include("multigrid_rng.jl")
 
 include("Sampler.jl")
+include("multigrid_sampler.jl")
 
 include("MultilevelAlgorithm.jl")
 
