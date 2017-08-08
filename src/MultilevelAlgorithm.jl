@@ -122,11 +122,11 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
   # aliases
 	# TODO might be incorporated into the sampler object
   N = Int64
-  λ = sampler.numberGenerator.λ
-  q = nshifts(sampler.numberGenerator)
-  dir = isa(sampler.numberGenerator,MCgenerator) ? 2 : 1
+  λ = 1/2 #TODO QMC doesn't use this anymore, so only MC, hence 1/2; sampler.numberGenerator.λ
+  q = nshifts(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))])#nshifts(sampler.numberGenerator)
+  dir = isa(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))],MCgenerator) ? 2 : 1
   is_adaptive = (typeof(sampler.indexSet) <: AD)
-  is_qmc = isa(sampler.numberGenerator,QMCgenerator) 
+  is_qmc = isa(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))],QMCgenerator)
 
   # variable definition
   oldindexset = Set{Index{d,Vector{N}}}()

@@ -2,8 +2,9 @@
 
 # main sample function for multigrid multilevel monte carlo
 function sample_mg(sampler, nb_of_samples, index)
-	is_qmc = isa(sampler.numberGenerator,QMCgenerator) 
+	is_qmc = isa(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))],QMCgenerator) 
 	@assert is_qmc # MUST be true for our multigrid sampler
+	nb_of_shifts = nshifts(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))])
 
 	# ask state of generator (for actual qmc sampling)
 	state = sampler.generatorStates
@@ -12,7 +13,7 @@ function sample_mg(sampler, nb_of_samples, index)
 	end
 
 	# parallel execution
-	desc="Taking $(nshifts(sampler.numberGenerator)) x $(nb_of_samples) samples at level $(index[1]) "
+	desc="Taking $(nb_of_shifts) x $(nb_of_samples) samples at level $(index[1]) "
 	progress = Progress(nb_of_samples, dt=1, desc=desc, color=:black, barlen=25) # fancy progress bar
 	t = @elapsed r = pmap((i)->single_sample_mg(index,i,sampler), progress, (state[index]+1):(state[index]+nb_of_samples))
 	the_samples = reduce((x,y)->cat(3,x,y),r)
@@ -49,11 +50,11 @@ end
 # function to be run in parallel
 function single_sample_mg(index, sample_no, sampler)
 	ell = index[1]
-	nb_of_shifts = nshifts(sampler.numberGenerator)
+	nb_of_shifts = nshifts(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))])
 
 	# get the sample_no'th point from the point set generator
 	# generates s x q random numbers
-	xi_mat = getPoint(sampler.numberGenerator, sample_no)
+	xi_mat = getPoint(sampler.numberGenerator[index], sample_no)
 
 	# preallocate room for the sample
 	shifted_sample = zeros(ell+1,nb_of_shifts)

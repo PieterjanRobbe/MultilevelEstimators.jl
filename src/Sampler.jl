@@ -1,5 +1,5 @@
 # sampler type
-mutable struct Sampler{d,I<:IndexSet,G<:NumberGenerator,F,D1<:Dict,D2<:Dict,D3<:Dict,D4<:Dict,UType,S}
+mutable struct Sampler{d,I<:IndexSet,G,F,D1<:Dict,D2<:Dict,D3<:Dict,D4<:Dict,UType,S}
 
   # settings that must be provided by the user
   indexSet::I                   # type of index set
@@ -62,13 +62,20 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
   d = ndims(indexSet)
 
   if !haskey(settings,"numberGenerator")
-    error("I need a numberGenerator before I can do anything!")
+	 error("I need a numberGenerator before I can do anything!")
   else
     numberGenerator = settings["numberGenerator"]
     delete!(settings,"numberGenerator")
-    if !(typeof(numberGenerator) <: NumberGenerator)
+	if !(typeof(numberGenerator) <: NumberGenerator || ( typeof(numberGenerator) <: Dict && Base.valtype(numberGenerator) <: NumberGenerator ) )
       error("incorrect numberGenerator specified!")
     end
+	# TODO assert that all number generators have the same number of shifts...
+	if !( typeof(numberGenerator) <: Dict )
+		numberGenerators = Dict{Index{d,Vector{Int64}},typeof(numberGenerator)}()
+		numberGenerators[Index(zeros(Int64,d))] = numberGenerator
+	else
+		numberGenerators = numberGenerator
+	end
   end
 
   if !haskey(settings,"sampleFunction")
@@ -156,7 +163,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
       error("number of warm-up samples Nstar must be positive!")
     end
   else
-    Nstar = convert(Int64,ceil(32/nshifts(numberGenerator)))
+	  Nstar = convert(Int64,ceil(32/nshifts(numberGenerators[Index(zeros(Int64,d))])))
   end
 
   if haskey(settings,"gaussianFieldSampler")
@@ -204,7 +211,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
   else
     safety = true
   end
-  if typeof(numberGenerator) <: QMCgenerator && safety == false
+  if Base.valtype(numberGenerators) <: QMCgenerator && safety == false
     warn("when using a QMC generator, safety must be turned on!")
     safety = true
   end
@@ -346,8 +353,8 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
   Vest = Dict{Index{d,Vector{Int64}},Vector{Float64}}()
   P = Dict{Index{d,Vector{Int64}},Float64}()
   
-  return Sampler{d,typeof(indexSet),typeof(numberGenerator),typeof(gaussianFieldSampler),typeof(generatorStates),typeof(samples),typeof(T),typeof(E),typeof(userType),typeof(max_indexset)}(
-    indexSet, numberGenerator, sampleFunction, mmaxL, costModel, Z, Nstar, gaussianFieldSampler, useTime,
+  return Sampler{d,typeof(indexSet),typeof(numberGenerators),typeof(gaussianFieldSampler),typeof(generatorStates),typeof(samples),typeof(T),typeof(E),typeof(userType),typeof(max_indexset)}(
+    indexSet, numberGenerators, sampleFunction, mmaxL, costModel, Z, Nstar, gaussianFieldSampler, useTime,
       safety, continuate, nTOL, k, showInfo, ioStream, storeSamples0, procMap, userType, max_indexset, 
 			generatorStates, samples, samples0, T,E,V,Vf,Wst,W,Vest,P, ml_sample_fun,reuseSamples)
 end
@@ -390,7 +397,7 @@ function show(io::IO, sampler::Sampler)
     str *= "  $(index.indices)                         "[1:18]
     str *= "  $(sampler.generatorStates[index])\n"
   end
-  dir = isa(sampler.numberGenerator,MCgenerator) ? 2 : 1
+  dir = isa(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))],MCgenerator) ? 2 : 1
   str *= "--> samples: \n"
   str *= "------------------------------------------------------ \n"
   str *= "  $itype           sample size           time/sample   \n"
@@ -433,7 +440,7 @@ function inspect(sampler)
     str = ("  $(index.indices)            "[1:13])
     str *= @sprintf("%12.5e",maximum(sampler.E[index]))
     str *= @sprintf("    %0.6e",maximum(sampler.Vf[index]))
-		if isa(sampler.numberGenerator, MCgenerator)
+	if isa(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))], MCgenerator)
       str *= @sprintf("    %d               ",prod(size(get(sampler.samples,index,zeros(0,0)))[1:2]))[1:16]
     else
       str *= @sprintf("    %d x %d          ",size(get(sampler.samples,index,zeros(0,0)))[2],size(get(sampler.samples,index,zeros(0,0)))[1])[1:16]
@@ -554,7 +561,7 @@ end
 
 # update the dicts for mean, variance etc. based on the new available samples at the given index
 function update_dicts(sampler::Sampler, index)
-  dir = isa(sampler.numberGenerator,MCgenerator) ? 2 : 1
+	dir = isa(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))],MCgenerator) ? 2 : 1
   sampler.E[index] = squeeze(mean(sampler.samples[index],(1,2)),(1,2))
   sampler.Vf[index] = squeeze(mean(var(sampler.samples[index],2),1),(1,2))
   sampler.V[index] = squeeze(var(mean(sampler.samples[index],1),2),(1,2))
@@ -571,12 +578,12 @@ function sample{N<:Integer,I<:Index}(sampler::Sampler, nbOfSamples::N, index::I)
   # print some info to screen
   itype = ndims(sampler.indexSet) == 1 ? "level" : "index"
   idcs = ndims(sampler) == 1 ? 1 : 1:ndims(sampler)
-  if isa(sampler.numberGenerator, MCgenerator)
+  if isa(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))], MCgenerator)
     # !sampler.showInfo || print("taking $(nbOfSamples) samples at "*itype*" $(index.indices[idcs])... ")
     desc="Taking $(nbOfSamples) samples at "*itype*" $(index.indices[idcs]) "
   else
     # !sampler.showInfo || print("taking $(nshifts(sampler.numberGenerator))x$(nbOfSamples) samples at "*itype*" $(index.indices[idcs])... ")
-    desc="Taking $(nshifts(sampler.numberGenerator)) x $(nbOfSamples) samples at "*itype*" $(index.indices[idcs]) "
+	desc="Taking $(nshifts(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))])) x $(nbOfSamples) samples at "*itype*" $(index.indices[idcs]) "
   end
 
   # ask state of generator
@@ -603,7 +610,7 @@ function sample{N<:Integer,I<:Index}(sampler::Sampler, nbOfSamples::N, index::I)
   state[index] += nbOfSamples
 
   # add samples to the sampler
-  if isa(sampler.numberGenerator, MCgenerator)
+  if isa(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))], MCgenerator)
     samples = permutedims(samples,[2,1,3]) # permute dims if MC
     samples0 = permutedims(samples0,[2,1,3])
   end
@@ -612,14 +619,14 @@ function sample{N<:Integer,I<:Index}(sampler::Sampler, nbOfSamples::N, index::I)
     setindex!(sampler.samples,samples,index)
     setindex!(sampler.samples0,samples0,index)
   else
-    sampler.samples[index] = isa(sampler.numberGenerator, MCgenerator) ?
+	  sampler.samples[index] = isa(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))], MCgenerator) ?
       hcat(sampler.samples[index],samples) : vcat(sampler.samples[index],samples)
-    sampler.samples0[index] = isa(sampler.numberGenerator, MCgenerator) ?
+	  sampler.samples0[index] = isa(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))], MCgenerator) ?
       hcat(sampler.samples0[index],samples0) : vcat(sampler.samples0[index],samples0)
   end
 
   # update dicts
-  dir = isa(sampler.numberGenerator,MCgenerator) ? 2 : 1
+  dir = isa(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))],MCgenerator) ? 2 : 1
   sampler.E[index] = squeeze(mean(sampler.samples[index],(1,2)),(1,2))
   sampler.Vf[index] = squeeze(mean(var(sampler.samples[index],2),1),(1,2))
   sampler.V[index] = squeeze(var(mean(sampler.samples[index],1),2),(1,2))
@@ -637,11 +644,11 @@ end
 function take_a_sample{N<:Integer,I<:Index}(index::I, i::N, sampler::Sampler)
 
   # generate "random" numbers
-  XI = getPoint(sampler.numberGenerator,i)
+  XI = getPoint(sampler.numberGenerator[index],i)
 
   # compute difference
-	mySample = zeros(Float64,1,nshifts(sampler.numberGenerator),sampler.Z,2)::Array{Float64,4}
-	for q = 1:nshifts(sampler.numberGenerator)
+  mySample = zeros(Float64,1,nshifts(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))]),sampler.Z,2)::Array{Float64,4}
+  for q = 1:nshifts(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))])
     xi = XI[:,q]::Vector{Float64}
     Qtot = 0. # local sum
     Q0 = 0.
