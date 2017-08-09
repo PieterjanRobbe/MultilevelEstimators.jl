@@ -3,6 +3,8 @@ mutable struct SeedGenerator
 	seed
 end
 
+ndims(::SeedGenerator) = 1
+
 function getPoint{N<:Integer}(rng::SeedGenerator, k::N)
 	twister = MersenneTwister(rng.seed)
 	return rand(twister,UInt32,k)[end]
