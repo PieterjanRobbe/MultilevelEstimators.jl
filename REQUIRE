@@ -4,4 +4,3 @@ Interpolations
 FastGaussQuadrature
 SpecialFunctions
 ProgressMeter
-PmapProgressMeter

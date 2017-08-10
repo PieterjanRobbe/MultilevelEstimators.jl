@@ -41,12 +41,13 @@ function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}; failProb
 	# preallocate vector that will contain wall clock and standard cost
 	wctime = zeros(tol)
 	stcost = zeros(tol)
+	means = zeros(tol)
 
   # run mimc 
 	for i in 1:length(tol)
 		# make dir
-    @debug begin  
       printdir = @sprintf("%0.4e",tol[i])
+    #@debug begin  
 			if !isdir(folder*"/data")
 				mkdir(folder*"/data")
 			end
@@ -56,7 +57,7 @@ function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}; failProb
 			if !isdir(folder*"/data/"*printdir*"/indexsets")
 				mkdir(folder*"/data/"*printdir*"/indexsets")
 			end
-    end
+    #end
     # simulate
 		delta_t = @elapsed mimc(sampler,tol[i],is_relative,failProb,folder) 
 		# compute wall clock time and standard cost
@@ -75,24 +76,37 @@ function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}; failProb
 			print("writing tolerances into $(folder)/data/"*printdir*"/tolerances.txt... ")
 			writedlm(folder*"/data/"*printdir*"/tolerances.txt",tol)
 			println("done")
-      # save all samples
-      dir_name = folder*"/data/"*printdir*"/samples"
-      isdir(dir_name) ? nothing : mkdir(dir_name)
-      for idx in keys(sampler.samples)
-        dir_name2 = @sprintf("%s",idx.indices)
-        isdir(dir_name*"/"*dir_name2) ? nothing : mkdir(dir_name*"/"*dir_name2)
-        for z in 1:sampler.Z
-          writedlm(dir_name*"/"*dir_name2*"/Z$(z).txt",sampler.samples[idx][:,:,z])
-        end
-      end
+      		# save all samples
+      		dir_name = folder*"/data/"*printdir*"/samples"
+      		isdir(dir_name) ? nothing : mkdir(dir_name)
+      		for idx in keys(sampler.samples)
+        		dir_name2 = @sprintf("%s",idx.indices)
+        		isdir(dir_name*"/"*dir_name2) ? nothing : mkdir(dir_name*"/"*dir_name2)
+        		for z in 1:sampler.Z
+        			writedlm(dir_name*"/"*dir_name2*"/Z$(z).txt",sampler.samples[idx][:,:,z])
+        		end
+      		end
+			# save number of orignal samples
+			nb_of_orig_samples = [sampler.nb_of_orig_samples[ell] for ell in sort(Set(keys(sampler.nb_of_orig_samples)))]
+			print("writing nb_of_orig_samples into $(folder)/data/"*printdir*"/nb_of_orig_samples.txt... ")
+			writedlm(folder*"/data/"*printdir*"/nb_of_orig_samples.txt",nb_of_orig_samples)
+			println("done")
 		end # begin
+		# save means
+		for index in keys(sampler.samples)
+			means[i] += maximum(sampler.E[index])
+		end
+		print("writing means into $(folder)/data/"*printdir*"/means.txt... ")
+		writedlm(folder*"/data/"*printdir*"/means.txt",means)
+		println("done")
+		# end save means
 		if cumsum(wctime)[end] > max_time
 			print_with_color(:red,"wall clock time exceeded maximum time of $(max_time) secondes, aborting...\n")
 			break
 		end # if
 	end # for
 
-	return cumsum(wctime),cumsum(stcost)
+	return cumsum(wctime),cumsum(stcost),means
 end # function
 
 # actual mimc simulation

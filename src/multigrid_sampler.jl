@@ -23,8 +23,10 @@ function sample_mg(sampler, nb_of_samples, index)
 	# check if entry at level ell already exists
 	if haskey(sampler.samples, index) # append samples
 		sampler.samples[index] = vcat(sampler.samples[index], samples_ell)
+		sampler.nb_of_orig_samples[index] += nb_of_samples
 	else # make new entry
 		sampler.samples[index] = samples_ell
+		sampler.nb_of_orig_samples[index] = nb_of_samples
 	end
 	
 	# when reusing samples, append them to the previous samples on all levels

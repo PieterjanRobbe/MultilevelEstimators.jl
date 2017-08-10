@@ -43,6 +43,7 @@ export KLExpansion, MaternKernel, compose, preload_eigenfunctions # from Gaussia
 export GaussianMCgenerator, UniformMCgenerator, GaussianQMCgenerator, UniformQMCgenerator, PseudoRNG, reset # from PointSetGenerators.jl
 
 export simulate # from MultilevelAlgorithm.jl
+export prashant_simulate # from prashant_algorithm.jl
 
 export FEsolve, sample, sort # FEsolve only for test.jl
 
@@ -65,6 +66,7 @@ include("multigrid_rng.jl")
 
 include("Sampler.jl")
 include("multigrid_sampler.jl")
+include("prashant_algorithm.jl")
 
 include("MultilevelAlgorithm.jl")
 

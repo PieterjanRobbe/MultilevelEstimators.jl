@@ -38,6 +38,7 @@ mutable struct Sampler{d,I<:IndexSet,G,F,D1<:Dict,D2<:Dict,D3<:Dict,D4<:Dict,UTy
 	P::D3						# profits at each index
 	ml_sample_fun::Function		# switch sample function when toggeling multigrid mode
 	reuse::Bool					# switch for multigrid multilevel: reuse samples or not
+	nb_of_orig_samples
 end
 
 # utilities
@@ -94,10 +95,20 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
 			throw(ArgumentError("isMultigrid must be of type Bool"))
 		end
 		delete!(settings,"isMultigrid")
+		if haskey(settings,"isPrashant")
+			isPrashant = settings["isPrashant"]
+			if !(typeof(isPrashant) <: Bool)
+				throw(ArgumentError("isMultigrid must be of type Bool"))
+			end
+			delete!(settings,"isPrashant")
+		else
+			isPrashant = false
+		end
 	else
 		isMultigrid = false
+		isPrashant = false
 	end
-	ml_sample_fun = isMultigrid ? sample_mg : sample
+	ml_sample_fun = isMultigrid ? ( isPrashant ? prashant_sample_mg : sample_mg ) : sample
 
 	if haskey(settings,"reuseSamples")
 		reuseSamples = settings["reuseSamples"]
@@ -356,7 +367,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
   return Sampler{d,typeof(indexSet),typeof(numberGenerators),typeof(gaussianFieldSampler),typeof(generatorStates),typeof(samples),typeof(T),typeof(E),typeof(userType),typeof(max_indexset)}(
     indexSet, numberGenerators, sampleFunction, mmaxL, costModel, Z, Nstar, gaussianFieldSampler, useTime,
       safety, continuate, nTOL, k, showInfo, ioStream, storeSamples0, procMap, userType, max_indexset, 
-			generatorStates, samples, samples0, T,E,V,Vf,Wst,W,Vest,P, ml_sample_fun,reuseSamples)
+	  generatorStates, samples, samples0, T,E,V,Vf,Wst,W,Vest,P, ml_sample_fun,reuseSamples, Dict{Index{d,Vector{Int64}},Int64}())
 end
 
 
