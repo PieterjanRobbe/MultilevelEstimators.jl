@@ -482,7 +482,7 @@ function compute_stochastic_error{d,N}(sampler, failProb, indexset::Set{Index{d,
 		sampler_means = zeros(mnshifts)
 		for shift = 1:mnshifts
 			for ell = 0:length(indexset)-1
-				println("at level $ell, I have a sample size = $(size(sampler.samples[Index(ell)]))")
+				#println("at level $ell, I have a sample size = $(size(sampler.samples[Index(ell)]))")
 				sampler_means[shift] += mean(sampler.samples[Index(ell)][:,shift,1])
 			end
 		end
