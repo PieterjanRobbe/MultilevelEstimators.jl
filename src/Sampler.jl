@@ -477,11 +477,23 @@ end
 # compute std of estimator using the indices in the index set
 # TODO if we store the current index set in the sampler, we do not need to pass the index set
 function compute_stochastic_error{d,N}(sampler, failProb, indexset::Set{Index{d,Vector{N}}})
-  V = zeros(Float64,sampler.Z)
-	for index::Index{d,Vector{N}} in indexset
-		V += sampler.Vest[index]
-  end
-  return sqrt(2)*erfcinv(failProb)*sqrt.(V)
+	if sampler.ml_sample_fun == sample_mg
+		mnshifts = nshifts(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))]) 
+		sampler_means = zeros(mnshifts)
+		for shift = 1:mnshifts
+			for ell = 0:length(indexset)-1
+				println("at level $ell, I have a sample size = $(size(sampler.samples[Index(ell)]))")
+				sampler_means[shift] += mean(sampler.samples[Index(ell)][:,shift,1])
+			end
+		end
+		return sqrt(var(sampler_means))
+	else
+		V = zeros(Float64,sampler.Z)
+		for index::Index{d,Vector{N}} in indexset
+			V += sampler.Vest[index]
+  		end
+  		return sqrt(2)*erfcinv(failProb)*sqrt.(V)
+	end
 end
 
 # compute mean of the estimator
