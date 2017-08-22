@@ -460,6 +460,31 @@ function inspect(sampler)
     str *= @sprintf("    %0.6e\n",get(sampler.P,index,0.))
     @printf(sampler.ioStream,"%s",str)
 	end
+
+	# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+	#  and show the covariance matrix
+	# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+	if sampler.ml_sample_fun == sample_mg
+	println("COVARIANCE MATRIX")
+	println("^^^^^^^^^^^^^^^^^")
+	show(IOContext(STDOUT, limit=true), "text/plain", get_covariance_matrix(sampler))
+	print("\n")
+	end
+end
+
+function get_covariance_matrix(sampler)
+	ns = nshifts(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))])
+	M = zeros(length(sampler.E),ns)
+	for i in sort(Set(keys(sampler.E)))
+		for s = 1:ns
+			if haskey(sampler.samples,i)
+				M[i[1]+1,s] = mean(sampler.samples[i][:,s,1])
+			end
+		end
+	end
+	C = cov(M,2)
+
+	return C
 end
 
 ## Main methods for sampling from the sampler ##
@@ -478,6 +503,7 @@ end
 # TODO if we store the current index set in the sampler, we do not need to pass the index set
 function compute_stochastic_error{d,N}(sampler, failProb, indexset::Set{Index{d,Vector{N}}})
 	if sampler.ml_sample_fun == sample_mg
+		#=
 		mnshifts = nshifts(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))]) 
 		sampler_means = zeros(mnshifts)
 		for shift = 1:mnshifts
@@ -487,7 +513,9 @@ function compute_stochastic_error{d,N}(sampler, failProb, indexset::Set{Index{d,
 			end
 		end
 		return sqrt(var(sampler_means))
-	else
+		=#
+		return sqrt(sum(get_covariance_matrix(sampler)))
+	else # also in prashant case
 		V = zeros(Float64,sampler.Z)
 		for index::Index{d,Vector{N}} in indexset
 			V += sampler.Vest[index]

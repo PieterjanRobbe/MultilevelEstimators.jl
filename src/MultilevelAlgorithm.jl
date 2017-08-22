@@ -140,7 +140,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
   q = nshifts(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))])#nshifts(sampler.numberGenerator)
   dir = isa(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))],MCgenerator) ? 2 : 1
   is_adaptive = (typeof(sampler.indexSet) <: AD)
-  is_qmc = isa(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))],QMCgenerator)
+@show  is_qmc = isa(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))],QMCgenerator)
 
   # variable definition
   oldindexset = Set{Index{d,Vector{N}}}()
@@ -345,7 +345,13 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 			@debug print_with_color(:red, "yes\n")
       while A > splitting*realTOL
 				@debug println(@sprintf("stochastic error (%0.6e) > splitting*realTOL (%0.6e), entering while loop...", A, splitting*realTOL))
-        # double number of samples on index with max ratio Vest/W
+if sampler.ml_sample_fun == sample_mg
+	C = get_covariance_matrix(sampler)
+	(i,j) = ind2sub(size(C),indmax(C))
+	maxindex = Index(max(i,j)-1)
+	maxratio = C[i,j]
+else
+	# double number of samples on index with max ratio Vest/W
         maxratio = zero(T)
         maxindex = Index(zeros(N,d))::Index{d,Vector{N}}
         for index::Index{d,Vector{N}} in newindexset
@@ -356,6 +362,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
             maxindex = index::Index{d,Vector{N}}
           end
         end
+end
 				@debug println("the index with maximum ratio Vest/W is $(maxindex.indices)")
         n = size(sampler.samples[maxindex],dir)
 				@debug println("currently $(n) samples have been taken at index $(maxindex.indices), taking an additional $(nextpow2(n+1)-n)")
