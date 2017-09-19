@@ -302,13 +302,15 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
     !sampler.showInfo || print_with_color(:green, sampler.ioStream, @sprintf("*** splitting = %0.6e \n", splitting ) )
 
     # calculate optimal number of samples
-    mySum = zeros(T,sampler.Z)
+    mySum = 0.
     for index::Index{d,Vector{N}} in newindexset
-			mySum += ( ( sampler.Vf[index].*(sampler.W[index]*ones(sampler.Z)).^(2*λ) ).^(1/(2*λ+1) ) )
+			#mySum += ( ( sampler.Vf[index].*(sampler.W[index]*ones(sampler.Z)).^(2*λ) ).^(1/(2*λ+1) ) )
+			mySum += maximum( sqrt( sampler.Vf[index]*sampler.W[index] ) )
     end
     for index::Index{d,Vector{N}} in newindexset
-			Nopt = ( ( sqrt(2)*erfcinv(failProb)/(splitting*realTOL) )^2 * 1/q * (sampler.Vf[index]./sampler.W[index]).^(2*λ/(2*λ+1)) .* mySum ).^(1/(2*λ))
-      S[index] = is_qmc ? sampler.Nstar : ceil(N,max(3.,maximum(Nopt)))
+			#Nopt = ( ( sqrt(2)*erfcinv(failProb)/(splitting*realTOL) )^2 * 1/q * (sampler.Vf[index]./sampler.W[index]).^(2*λ/(2*λ+1)) .* mySum ).^(1/(2*λ))
+			Nopt = 2/(realTOL)^2 * maximum( sqrt(sampler.Vf[index]./sampler.W[index]) ) * mySum 
+			S[index] = is_qmc ? sampler.Nstar : ceil(N,max(3.,maximum(Nopt)))
     end
 		@debug println("constant C is $(sqrt(2)*erfcinv(failProb))")
 		@debug begin
@@ -345,12 +347,13 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 			@debug print_with_color(:red, "yes\n")
       while A > splitting*realTOL
 				@debug println(@sprintf("stochastic error (%0.6e) > splitting*realTOL (%0.6e), entering while loop...", A, splitting*realTOL))
-if sampler.ml_sample_fun == sample_mg
+#=if sampler.ml_sample_fun == sample_mg
 	C = get_covariance_matrix(sampler)
 	(i,j) = ind2sub(size(C),indmax(C))
 	maxindex = Index(max(i,j)-1)
 	maxratio = C[i,j]
 else
+	=#
 	# double number of samples on index with max ratio Vest/W
         maxratio = zero(T)
         maxindex = Index(zeros(N,d))::Index{d,Vector{N}}
@@ -362,7 +365,7 @@ else
             maxindex = index::Index{d,Vector{N}}
           end
         end
-end
+#end
 				@debug println("the index with maximum ratio Vest/W is $(maxindex.indices)")
         n = size(sampler.samples[maxindex],dir)
 				@debug println("currently $(n) samples have been taken at index $(maxindex.indices), taking an additional $(nextpow2(n+1)-n)")
@@ -419,7 +422,9 @@ end
     if ( !is_adaptive && L > 1 ) || ( is_adaptive && L > 2 )
 			@debug print("checking for convergence... ")
 			error = sqrt(A^2+B^2)::T  
-			converged = ( error < realTOL )
+			#converged = ( error < realTOL )
+			print(">> WARNING << using only bias to compute convergence")
+			converged = B^2 < realTOL^2/2
 			@debug converged ? println("yes") : println("no")
 			@debug println("the requested error is $(realTOL)")
 			@debug println("we have error $(error)")

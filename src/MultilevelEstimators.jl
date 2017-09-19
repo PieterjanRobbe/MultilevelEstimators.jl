@@ -5,7 +5,7 @@ using Reexport
 
 @reexport using QMC
 
-using Interpolations, FastGaussQuadrature, SpecialFunctions
+using Interpolations, FastGaussQuadrature, SpecialFunctions, Retry, NLsolve
 
 using ProgressMeter
 using PmapProgressMeter

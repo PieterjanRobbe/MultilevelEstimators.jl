@@ -39,6 +39,8 @@ mutable struct Sampler{d,I<:IndexSet,G,F,D1<:Dict,D2<:Dict,D3<:Dict,D4<:Dict,UTy
 	ml_sample_fun::Function		# switch sample function when toggeling multigrid mode
 	reuse::Bool					# switch for multigrid multilevel: reuse samples or not
 	nb_of_orig_samples
+	is_cauchy_schwarz
+	use_batches
 end
 
 # utilities
@@ -104,9 +106,29 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
 		else
 			isPrashant = false
 		end
+		if haskey(settings,"isCauchySchwarz")
+			is_cauchy_schwarz = settings["isCauchySchwarz"]
+			if !(typeof(isPrashant) <: Bool)
+				throw(ArgumentError("isCauchySchwarz must be of type Bool"))
+			end
+			delete!(settings,"isCauchySchwarz")
+		else
+			is_cauchy_schwarz = false
+		end
+		if haskey(settings,"useBatches")
+			use_batches = settings["useBatches"]
+			if !(typeof(isPrashant) <: Bool)
+				throw(ArgumentError("useBatches must be of type Bool"))
+			end
+			delete!(settings,"useBatches")
+		else
+			use_batches = false
+		end
 	else
 		isMultigrid = false
 		isPrashant = false
+		is_cauchy_schwarz = false
+		use_batches = false
 	end
 	ml_sample_fun = isMultigrid ? ( isPrashant ? prashant_sample_mg : sample_mg ) : sample
 
@@ -367,7 +389,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
   return Sampler{d,typeof(indexSet),typeof(numberGenerators),typeof(gaussianFieldSampler),typeof(generatorStates),typeof(samples),typeof(T),typeof(E),typeof(userType),typeof(max_indexset)}(
     indexSet, numberGenerators, sampleFunction, mmaxL, costModel, Z, Nstar, gaussianFieldSampler, useTime,
       safety, continuate, nTOL, k, showInfo, ioStream, storeSamples0, procMap, userType, max_indexset, 
-	  generatorStates, samples, samples0, T,E,V,Vf,Wst,W,Vest,P, ml_sample_fun,reuseSamples, Dict{Index{d,Vector{Int64}},Int64}())
+	  generatorStates, samples, samples0, T,E,V,Vf,Wst,W,Vest,P, ml_sample_fun,reuseSamples, Dict{Index{d,Vector{Int64}},Int64}(),is_cauchy_schwarz, use_batches)
 end
 
 
@@ -482,6 +504,7 @@ function get_covariance_matrix(sampler)
 			end
 		end
 	end
+	#@show M
 	C = cov(M,2)
 
 	return C
@@ -496,13 +519,35 @@ function compute_bias{d,N}(sampler, boundary::Set{Index{d,Vector{N}}})
 	for index::Index{d,Vector{N}} in boundary
 		B += sampler.E[index]
   end
+  if typeof(sampler.indexSet) <: ML
+	  (A,α) = leastSquaresFit(sampler.E,1)
+	  @debug println("fitted order of convergence is $(abs(α))")
+	  B = B/(2^abs(α[1])-1) 
+  end
   return abs.(B)
 end
 
 # compute std of estimator using the indices in the index set
 # TODO if we store the current index set in the sampler, we do not need to pass the index set
 function compute_stochastic_error{d,N}(sampler, failProb, indexset::Set{Index{d,Vector{N}}})
-	if sampler.ml_sample_fun == sample_mg
+	if (sampler.ml_sample_fun == sample_mg) || isa(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))], QMCgenerator)
+	ns = nshifts(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))])
+	M = zeros(length(indexset),ns)
+	for i in 0:length(indexset)-1#sort(Set(keys(sampler.E)))
+		#@show i
+		for s = 1:ns
+			#@show s
+			if haskey(sampler.samples,Index(i))
+				#println("at level $i, I have a sample size = $(size(sampler.samples[Index(i)]))")
+				M[i+1,s] = mean(sampler.samples[Index(i)][:,s,1])
+			end
+		end
+	end
+	println("SAMPLER MEANS")
+	println("^^^^^^^^^^^^^")
+	show(IOContext(STDOUT, limit=true), "text/plain", sum(M,1))
+	print("\n")
+
 		#=
 		mnshifts = nshifts(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))]) 
 		sampler_means = zeros(mnshifts)
@@ -514,7 +559,8 @@ function compute_stochastic_error{d,N}(sampler, failProb, indexset::Set{Index{d,
 		end
 		return sqrt(var(sampler_means))
 		=#
-		return sqrt(sum(get_covariance_matrix(sampler)))
+		#return sqrt(sum(get_covariance_matrix(sampler)))
+		return sqrt(var(sum(M,1)))
 	else # also in prashant case
 		V = zeros(Float64,sampler.Z)
 		for index::Index{d,Vector{N}} in indexset
@@ -695,7 +741,11 @@ end
 function take_a_sample{N<:Integer,I<:Index}(index::I, i::N, sampler::Sampler)
 
   # generate "random" numbers
-  XI = getPoint(sampler.numberGenerator[index],i)
+	if haskey(sampler.numberGenerator, index)
+  		XI = getPoint(sampler.numberGenerator[index],i)
+	else
+		XI = getPoint(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))],i)
+	end
 
   # compute difference
   mySample = zeros(Float64,1,nshifts(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))]),sampler.Z,2)::Array{Float64,4}
