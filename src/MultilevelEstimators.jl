@@ -48,6 +48,7 @@ export prashant_simulate # from prashant_algorithm.jl
 export FEsolve, sample, sort # FEsolve only for test.jl
 
 export @debug
+export analyse
 
 
 # TRM
@@ -70,5 +71,6 @@ include("giles_multigrid_sampler.jl")
 include("prashant_algorithm.jl")
 
 include("MultilevelAlgorithm.jl")
+include("analyse.jl")
 
 end # module

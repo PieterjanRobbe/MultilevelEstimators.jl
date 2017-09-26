@@ -108,7 +108,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
 		end
 		if haskey(settings,"isCauchySchwarz")
 			is_cauchy_schwarz = settings["isCauchySchwarz"]
-			if !(typeof(isPrashant) <: Bool)
+			if !(typeof(is_cauchy_schwarz) <: Bool)
 				throw(ArgumentError("isCauchySchwarz must be of type Bool"))
 			end
 			delete!(settings,"isCauchySchwarz")
@@ -117,20 +117,30 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
 		end
 		if haskey(settings,"useBatches")
 			use_batches = settings["useBatches"]
-			if !(typeof(isPrashant) <: Bool)
+			if !(typeof(use_batches) <: Bool)
 				throw(ArgumentError("useBatches must be of type Bool"))
 			end
 			delete!(settings,"useBatches")
 		else
 			use_batches = false
 		end
+		if haskey(settings,"giles_multigrid")
+			giles_multigrid = settings["giles_multigrid"]
+			if !(typeof(giles_multigrid) <: Bool)
+				throw(ArgumentError("giles_multigrid must be of type Bool"))
+			end
+			delete!(settings,"giles_multigrid")
+		else
+			giles_multigrid = false
+		end
 	else
 		isMultigrid = false
 		isPrashant = false
 		is_cauchy_schwarz = false
 		use_batches = false
+                giles_multigrid = false
 	end
-	ml_sample_fun = isMultigrid ? ( isPrashant ? prashant_sample_mg : sample_mg ) : sample
+        ml_sample_fun = isMultigrid ? ( isPrashant ? prashant_sample_mg : ( giles_multigrid ? sample_gmg : sample_mg ) ) : sample
 
 	if haskey(settings,"reuseSamples")
 		reuseSamples = settings["reuseSamples"]
