@@ -26,6 +26,8 @@ function sample_gmg(sampler, nb_of_samples, index)
 	update_dicts(sampler, index) # on level ell
 end
 
+
+
 # compute a single multigrid multilevel sample
 # function to be run in parallel
 # idea is that we run the sample once on every physical grid
