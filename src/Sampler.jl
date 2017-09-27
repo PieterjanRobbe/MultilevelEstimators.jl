@@ -118,7 +118,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
 		end
 		if haskey(settings,"useBatches")
 			use_batches = settings["useBatches"]
-			if !(typeof(useBatches) <: Bool)
+			if !(typeof(use_batches) <: Bool)
 				throw(ArgumentError("useBatches must be of type Bool"))
 			end
 			delete!(settings,"useBatches")
@@ -141,7 +141,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
 		use_batches = false
 		giles_multigrid = false
 	end
-	ml_sample_fun = isMultigrid ? ( isPrashant ? prashant_sample_mg : sample_mg ) : sample
+        ml_sample_fun = isMultigrid ? ( isPrashant ? prashant_sample_mg : ( giles_multigrid ? sample_gmg : sample_mg ) ) : sample
 
 	if haskey(settings,"reuseSamples")
 		reuseSamples = settings["reuseSamples"]
