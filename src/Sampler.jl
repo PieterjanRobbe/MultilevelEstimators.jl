@@ -38,9 +38,10 @@ mutable struct Sampler{d,I<:IndexSet,G,F,D1<:Dict,D2<:Dict,D3<:Dict,D4<:Dict,UTy
 	P::D3						# profits at each index
 	ml_sample_fun::Function		# switch sample function when toggeling multigrid mode
 	reuse::Bool					# switch for multigrid multilevel: reuse samples or not
-	nb_of_orig_samples
-	is_cauchy_schwarz
-	use_batches
+	nb_of_orig_samples::Bool
+	is_cauchy_schwarz::Bool
+	use_batches::Bool
+	giles_multigrid::Bool
 end
 
 # utilities
@@ -108,7 +109,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
 		end
 		if haskey(settings,"isCauchySchwarz")
 			is_cauchy_schwarz = settings["isCauchySchwarz"]
-			if !(typeof(isPrashant) <: Bool)
+			if !(typeof(is_cauchy_schwarz) <: Bool)
 				throw(ArgumentError("isCauchySchwarz must be of type Bool"))
 			end
 			delete!(settings,"isCauchySchwarz")
@@ -117,18 +118,28 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
 		end
 		if haskey(settings,"useBatches")
 			use_batches = settings["useBatches"]
-			if !(typeof(isPrashant) <: Bool)
+			if !(typeof(useBatches) <: Bool)
 				throw(ArgumentError("useBatches must be of type Bool"))
 			end
 			delete!(settings,"useBatches")
 		else
 			use_batches = false
 		end
+		if haskey(settings,"giles_multigrid")
+			giles_multigrid = settings["giles_multigrid"]
+			if !(typeof(giles_multigrid) <: Bool)
+				throw(ArgumentError("giles_multigrid must be of type Bool"))
+			end
+			delete!(settings,"giles_multigrid")
+		else
+			giles_multigrid = false
+		end
 	else
 		isMultigrid = false
 		isPrashant = false
 		is_cauchy_schwarz = false
 		use_batches = false
+		giles_multigrid = false
 	end
 	ml_sample_fun = isMultigrid ? ( isPrashant ? prashant_sample_mg : sample_mg ) : sample
 
@@ -389,7 +400,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
   return Sampler{d,typeof(indexSet),typeof(numberGenerators),typeof(gaussianFieldSampler),typeof(generatorStates),typeof(samples),typeof(T),typeof(E),typeof(userType),typeof(max_indexset)}(
     indexSet, numberGenerators, sampleFunction, mmaxL, costModel, Z, Nstar, gaussianFieldSampler, useTime,
       safety, continuate, nTOL, k, showInfo, ioStream, storeSamples0, procMap, userType, max_indexset, 
-	  generatorStates, samples, samples0, T,E,V,Vf,Wst,W,Vest,P, ml_sample_fun,reuseSamples, Dict{Index{d,Vector{Int64}},Int64}(),is_cauchy_schwarz, use_batches)
+	  generatorStates, samples, samples0, T,E,V,Vf,Wst,W,Vest,P, ml_sample_fun,reuseSamples, Dict{Index{d,Vector{Int64}},Int64}(),is_cauchy_schwarz, use_batches, giles_multigrid)
 end
 
 
