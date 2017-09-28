@@ -43,7 +43,7 @@ function analyse(sampler;max_level=4,min_samples=20,max_samples=10000,folder="."
 		println("yes")
 		# take samples
 		nb_of_samples = max_samples
-		W[1,1] = @elapsed MultilevelEstimators.sample(sampler, nb_of_samples, index)
+		W[1,1] = @elapsed sampler.ml_sample_fun(sampler, nb_of_samples, index)
 		W[1,1] /= nb_of_samples # normalize for number of samples taken 
 		# update results
 		E[1,1] = squeeze(mean(sampler.samples0[index],(1,2)),(1,2))[1]
@@ -71,7 +71,7 @@ function analyse(sampler;max_level=4,min_samples=20,max_samples=10000,folder="."
 				println("yes")
 				# take samples
 				nb_of_samples = max(min_samples, convert(Int64,round(max_samples/2^sum(index)))) 
-				W[i,j] = @elapsed MultilevelEstimators.sample(sampler, nb_of_samples, Index(index))
+				W[i,j] = @elapsed sampler.ml_sample_fun(sampler, nb_of_samples, Index(index))
 				W[i,j] /= nb_of_samples # normalize for number of samples taken 
 				# update results
 				E[i,j] = squeeze(mean(sampler.samples0[index],(1,2)),(1,2))[1]

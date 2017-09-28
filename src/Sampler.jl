@@ -38,7 +38,7 @@ mutable struct Sampler{d,I<:IndexSet,G,F,D1<:Dict,D2<:Dict,D3<:Dict,D4<:Dict,UTy
 	P::D3						# profits at each index
 	ml_sample_fun::Function		# switch sample function when toggeling multigrid mode
 	reuse::Bool					# switch for multigrid multilevel: reuse samples or not
-	nb_of_orig_samples::Bool
+	nb_of_orig_samples
 	is_cauchy_schwarz::Bool
 	use_batches::Bool
 	giles_multigrid::Bool

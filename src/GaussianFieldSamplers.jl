@@ -238,6 +238,8 @@ function compose{K<:KLExpansion,T<:AbstractFloat,t,V}(kl::K, xi::Vector{T}, inde
   end
   
   # first term for type-stability of k
+  size(kl.eigenfunc)
+  size(kl.eigenfunc[index_[1]+1])
   v = kl.eigenfunc[index_[1]+1][kl.eigenval[1][1][1],:]::Array{T,1}
   for p = 2:d
     @inbounds v = kron(kl.eigenfunc[index_[p]+1][kl.eigenval[1][1][p],:],v)::Array{T,1}
