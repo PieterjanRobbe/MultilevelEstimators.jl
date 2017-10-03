@@ -181,7 +181,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
     if !(typeof(icostModel) <: Function)
       error("incorrect cost model costModel specified!")
     end
-    costModel = (index) -> mi_cost(icostModel,index)
+    costModel = icostModel #(index) -> mi_cost(icostModel,index)
   else
     costModel = (index) -> prod(2.^(index.indices))
   end

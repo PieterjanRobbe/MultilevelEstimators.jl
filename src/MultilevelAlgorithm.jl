@@ -63,7 +63,7 @@ function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}; failProb
 		# compute wall clock time and standard cost
 		wctime[i] =  delta_t
 		for index in keys(sampler.samples)
-			stcost[i] = length(sampler.samples[index])*sampler.Wst[index]
+			stcost[i] += length(sampler.samples[index])*sampler.costModel(index)
 		end # for
 		print_with_color(:cyan,"ELAPSED IS $(delta_t)\n")
 		@debug begin
@@ -77,33 +77,33 @@ function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}; failProb
 			writedlm(folder*"/data/"*printdir*"/tolerances.txt",tol)
 			println("done")
       		# save all samples
-      		dir_name = folder*"/data/"*printdir*"/samples"
-      		isdir(dir_name) ? nothing : mkdir(dir_name)
-      		for idx in keys(sampler.samples)
-        		dir_name2 = @sprintf("%s",idx.indices)
-        		isdir(dir_name*"/"*dir_name2) ? nothing : mkdir(dir_name*"/"*dir_name2)
-        		for z in 1:sampler.Z
-        			writedlm(dir_name*"/"*dir_name2*"/Z$(z).txt",sampler.samples[idx][:,:,z])
-        		end
-      		end
+#      		dir_name = folder*"/data/"*printdir*"/samples"
+#      		isdir(dir_name) ? nothing : mkdir(dir_name)
+#      		for idx in keys(sampler.samples)
+#        		dir_name2 = @sprintf("%s",idx.indices)
+#        		isdir(dir_name*"/"*dir_name2) ? nothing : mkdir(dir_name*"/"*dir_name2)
+#        		for z in 1:sampler.Z
+#        			writedlm(dir_name*"/"*dir_name2*"/Z$(z).txt",sampler.samples[idx][:,:,z])
+#        		end
+#      		end
 			# save number of orignal samples
-			nb_of_orig_samples = [sampler.nb_of_orig_samples[ell] for ell in sort(Set(keys(sampler.nb_of_orig_samples)))]
-			print("writing nb_of_orig_samples into $(folder)/data/"*printdir*"/nb_of_orig_samples.txt... ")
-			writedlm(folder*"/data/"*printdir*"/nb_of_orig_samples.txt",nb_of_orig_samples)
+#			nb_of_orig_samples = [sampler.nb_of_orig_samples[ell] for ell in sort(Set(keys(sampler.nb_of_orig_samples)))]
+#			print("writing nb_of_orig_samples into $(folder)/data/"*printdir*"/nb_of_orig_samples.txt... ")
+#			writedlm(folder*"/data/"*printdir*"/nb_of_orig_samples.txt",nb_of_orig_samples)
 			println("done")
 		end # begin
 		# save means
-		for index in keys(sampler.samples)
-			means[i] += maximum(sampler.E[index])
-		end
-		print("writing means into $(folder)/data/"*printdir*"/means.txt... ")
-		writedlm(folder*"/data/"*printdir*"/means.txt",means)
-		println("done")
+#		for index in keys(sampler.samples)
+#			means[i] += maximum(sampler.E[index])
+#		end
+#		print("writing means into $(folder)/data/"*printdir*"/means.txt... ")
+#		writedlm(folder*"/data/"*printdir*"/means.txt",means)
+#		println("done")
 		# end save means
-		if cumsum(wctime)[end] > max_time
-			print_with_color(:red,"wall clock time exceeded maximum time of $(max_time) secondes, aborting...\n")
-			break
-		end # if
+#		if cumsum(wctime)[end] > max_time
+#			print_with_color(:red,"wall clock time exceeded maximum time of $(max_time) secondes, aborting...\n")
+#			break
+#		end # if
 	end # for
 
 	return cumsum(wctime),cumsum(stcost),means
