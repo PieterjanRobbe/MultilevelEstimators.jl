@@ -1,3 +1,5 @@
+## test_index_sets.jl : tests for index_sets.jl
+
 ## Index ##
 verbose && print("testing index creation...")
 
@@ -60,13 +62,13 @@ verbose && println("done")
 
 verbose && print("testing index set methods...")
 
-@test length(getIndexSet(td,2)) == 10
-@test length(getBoundary(getIndexSet(td,2))) == 6
-indexset = getIndexSet(td,3)
-@test isAdmissable(indexset,Index(4,0,0))
-@test_throws MethodError isAdmissable(indexset,Index(0,0))
-@test !isAdmissable(indexset,Index(0,0,0))
-@test !isAdmissable(indexset,Index(0,0,6))
+@test length(get_index_set(td,2)) == 10
+@test length(get_boundary(get_index_set(td,2))) == 6
+indexset = get_index_set(td,3)
+@test is_admissable(indexset,Index(4,0,0))
+@test_throws MethodError is_admissable(indexset,Index(0,0))
+@test !is_admissable(indexset,Index(0,0,0))
+@test !is_admissable(indexset,Index(0,0,6))
 indexset_sorted = sort(indexset)
 @test indexset_sorted[1] == Index(0,0,0)
 @test indexset_sorted[end] == Index(3,0,0)
@@ -75,7 +77,7 @@ verbose && println("done")
 
 verbose && println("testing print method...")
 
-prettyprint(getIndexSet(TD(2),2))
+str = pretty_print(get_index_set(TD(2),2))
+verbose && print(str)
 
 verbose && println("done")
-

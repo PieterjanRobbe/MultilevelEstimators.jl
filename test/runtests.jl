@@ -1,3 +1,5 @@
+## runtests.jl : run all test files
+
 using MultilevelEstimators
 using Base.Test
 
@@ -5,5 +7,6 @@ using Base.Test
 verbose = true
 
 # test indexsets
-include("test_indexsets.jl")
-include("test_multilevelalgorithm.jl")
+#include("test_index_sets.jl")
+include("test_number_generators.jl")
+#include("test_multilevelalgorithm.jl")
