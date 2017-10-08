@@ -181,7 +181,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
     if !(typeof(icostModel) <: Function)
       error("incorrect cost model costModel specified!")
     end
-    costModel = (index) -> mi_cost(icostModel,index)
+    costModel = icostModel #(index) -> mi_cost(icostModel,index)
   else
     costModel = (index) -> prod(2.^(index.indices))
   end
@@ -530,11 +530,11 @@ function compute_bias{d,N}(sampler, boundary::Set{Index{d,Vector{N}}})
 	for index::Index{d,Vector{N}} in boundary
 		B += sampler.E[index]
   end
-  if typeof(sampler.indexSet) <: ML
-	  (A,α) = leastSquaresFit(sampler.E,1)
-	  @debug println("fitted order of convergence is $(abs(α))")
-	  B = B/(2^abs(α[1])-1) 
-  end
+  #if typeof(sampler.indexSet) <: ML
+  #	  (A,α) = leastSquaresFit(sampler.E,1)
+  #	  @debug println("fitted order of convergence is $(abs(α))")
+  #	  B = B/(2^abs(α[1])-1) 
+  #end
   return abs.(B)
 end
 
@@ -669,6 +669,7 @@ end
 
 # update the dicts for mean, variance etc. based on the new available samples at the given index
 function update_dicts(sampler::Sampler, index)
+	#@show sampler.samples[index]
 	dir = isa(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))],MCgenerator) ? 2 : 1
   sampler.E[index] = squeeze(mean(sampler.samples[index],(1,2)),(1,2))
   sampler.Vf[index] = squeeze(mean(var(sampler.samples[index],2),1),(1,2))
@@ -734,6 +735,7 @@ function sample{N<:Integer,I<:Index}(sampler::Sampler, nbOfSamples::N, index::I)
   end
 
   # update dicts
+  #@show sampler.samples[index]
   dir = isa(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))],MCgenerator) ? 2 : 1
   sampler.E[index] = squeeze(mean(sampler.samples[index],(1,2)),(1,2))
   sampler.Vf[index] = squeeze(mean(var(sampler.samples[index],2),1),(1,2))
