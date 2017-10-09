@@ -13,6 +13,7 @@ i = Index(1,2,3)
 @test_throws ArgumentError Index("1,b,3")
 @test_throws ArgumentError Index("")
 @test_throws MethodError Index(0.)
+# note: not testing for "negative" indices, since they are needed in the drop algorithm
 
 verbose && println("done")
 
@@ -50,9 +51,13 @@ sl = SL()
 @test ndims(td) == 3
 @test ndims(sl) == 1
 @test_throws MethodError SL(2)
+@test_throws MethodError ML(2)
 @test_throws BoundsError TD(0)
 @test_throws BoundsError FT(0)
 @test_throws BoundsError AD(0)
+@test_throws BoundsError TD(-1)
+@test_throws BoundsError FT(-1)
+@test_throws BoundsError AD(-1)
 @test_throws ArgumentError TD(Float64[])
 @test_throws ArgumentError TD([1.,1.,0.])
 @test_throws MethodError TD([1,1,0])

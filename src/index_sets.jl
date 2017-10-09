@@ -28,7 +28,7 @@ isvalid(index::Index) = all(index.indices.>=0)
 
 # constructor for indices
 Index(index::Vector{N}) where {N<:Integer} = Index{length(index),Vector{N}}(index)
-Index(i::N...) where {N<:Integer} = Index{length(i),Vector{N}}([i...]) # slurping and splatting
+Index(i::N...) where {N<:Integer} = Index([i...]) # slurping and splatting
 
 # create index form String
 function Index(index_string::S) where {S<:AbstractString}
@@ -133,14 +133,14 @@ end
 """
 IndexSet{d}
 
-Supertype for an index set in `d` dimensions
+Supertype for an index set in `d` dimensions.
 """
 abstract type IndexSet{d} end
 
 """
 SL{d}
 
-Representation of a single-level index set
+Representation of a single-level index set.
 """
 struct SL{d} <: IndexSet{d}
 end
@@ -148,7 +148,7 @@ end
 """
 ML{d}
 
-Representatrion of a multilevel index set
+Representatrion of a multilevel index set.
 """
 struct ML{d} <: IndexSet{d}
 end
@@ -156,7 +156,7 @@ end
 """
 FT{d, W<:AbstractVector}
 
-Representation of a full tensor index set in `d` dimenions with weights `W`
+Representation of a full tensor index set in `d` dimenions with weights `W`.
 """
 struct FT{d, W<:AbstractVector} <: IndexSet{d}
     weights::W
@@ -165,7 +165,7 @@ end
 """
 TD{d, W<:AbstractVector}
 
-Representation of a total degree index set in `d` dimenions with weights `W`
+Representation of a total degree index set in `d` dimenions with weights `W`.
 """
 struct TD{d, W<:AbstractVector} <: IndexSet{d}
     weights::W
@@ -174,7 +174,7 @@ end
 """
 HC{d, W<:AbstractVector}
 
-Representation of a hyperbolic cross index set in `d` dimenions with weights `W`
+Representation of a hyperbolic cross index set in `d` dimenions with weights `W`.
 """
 struct HC{d, W<:AbstractVector} <: IndexSet{d}
     weights::W
@@ -183,7 +183,7 @@ end
 """
 AD{d}
 
-Representation of an adaptove index set in `d` dimenions
+Representation of an adaptove index set in `d` dimenions.
 """
 struct AD{d} <: IndexSet{d}
 end

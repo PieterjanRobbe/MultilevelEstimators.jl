@@ -7,6 +7,6 @@ using Base.Test
 verbose = true
 
 # test indexsets
-#include("test_index_sets.jl")
+include("test_index_sets.jl")
 include("test_number_generators.jl")
 #include("test_multilevelalgorithm.jl")
