@@ -6,31 +6,65 @@ KarhunenLoeveExpansion
 
 Representation of a Karhunen-Loeve expansion.
 """
-struct KarhunenLoeveExpansion{d,V<:AbstractVector,F<:AbstractVector} <: GaussianRandomFieldSampler
+struct KarhunenLoeveExpansion{d,N,V<:AbstractVector,F<:AbstractVector} <: GaussianRandomFieldSampler
+    nterms::N # number of terms
     eigenval::V # KL eigenvalues
     eigenfunc::F # KL eigenfunctions
 end
 
 # utilities
 ndims{d}(K::KarhunenLoeveExpansion{d}) = d
-nterms(K::KarhunenLoeveExpansion) = length(K.eigenval)
+nterms(K::KarhunenLoeveExpansion) = K.nterms
 
 # methods
-
-
-function isValid(G::KLExpansion)
-    d = ndims(G)
-    N = inttype(G)
-    T = floattype(G)
-    return G.mkl > 0 && typeof(G.eigenval) == Vector{Tuple{Index{d,Vector{N}},T}} && typeof(G.eigenfunc) == Vector{Array{T,2}}
-end
-
-function show(io::IO, G::KLExpansion)
-    str = G.ad ? "level-adaptive " : ""
-    print(io, str*"KL-expansion with $(G.mkl) terms")
+function show(io::IO, K::KarhunenLoeveExpansion)
+    print(io, "Karhunen-Lo\'eve expansion with $(K.nterms) terms")
 end
 
 ## Main methods for creating and composing the KL expansion ##
+
+"""
+KarhunenLoeveExpansion(cov<:MaternCovarianceFunction, x, nterms)
+
+Compute the Karhunen-Lo\'eve expansion for the covariance
+
+"""
+function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 10, ad::Bool = false, x::Vector{Vector{T}} = Vector{Vector{Float64}}(), s::Vector{N} = Vector{N}())
+end
+
+# function to compose KL expansion
+function compose{K<:KarhunenLoeveExpansion,T<:AbstractFloat,t,V}(kl::K, xi::Vector{T}, index::Index{t,V})
+    N = inttype(kl)
+    d = ndims(kl)
+    nterms = length(kl.eigenval)
+    if kl.ad
+        nterms = kl.s[index.indices[end]+1]
+        index_ = Index(index.indices[1:end-1])::Index{t-1,V}
+    elseif ndims(index) < d # FIX for multilevel case
+        index_ = Index(index[1]*ones(typeof(index[1]),d))::Index{d,V}
+    else
+        index_ = index
+    end
+
+    # first term for type-stability of k
+    size(kl.eigenfunc)
+    size(kl.eigenfunc[index_[1]+1])
+    v = kl.eigenfunc[index_[1]+1][kl.eigenval[1][1][1],:]::Array{T,1}
+    for p = 2:d
+        @inbounds v = kron(kl.eigenfunc[index_[p]+1][kl.eigenval[1][1][p],:],v)::Array{T,1}
+    end
+    k = xi[1]*sqrt(kl.eigenval[1][2])*v
+    # rest of the terms
+    for i in 2:nterms
+        @inbounds v = kl.eigenfunc[index_[1]+1][kl.eigenval[i][1][1],:]::Array{T,1}
+        for p = 2:d
+            @inbounds v = kron(kl.eigenfunc[index_[p]+1][kl.eigenval[i][1][p],:],v)::Array{T,1}
+        end
+        @inbounds k += xi[i]*sqrt(kl.eigenval[i][2])*v
+    end
+    return k
+end
+
 
 # constructor for separable kernels (non-separable is not implemented yet...)
 function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 10, ad::Bool = false, x::Vector{Vector{T}} = Vector{Vector{Float64}}(), s::Vector{N} = Vector{N}())
@@ -176,37 +210,45 @@ function preload_eigenfunctions{d,N,A,B,C,T}(kl::KLExpansion{d,N,A,B,C},ptsx::Ve
     return KLExpansion{1,N,A,B,C}(mkl,m0,kl.eigenval,eigenfunc,kl.ad,kl.s) 
 end
 
-# function to compose KL expansion
-function compose{K<:KLExpansion,T<:AbstractFloat,t,V}(kl::K, xi::Vector{T}, index::Index{t,V})
-    N = inttype(kl)
-    d = ndims(kl)
-    nterms = length(kl.eigenval)
-    if kl.ad
-        nterms = kl.s[index.indices[end]+1]
-        index_ = Index(index.indices[1:end-1])::Index{t-1,V}
-    elseif ndims(index) < d # FIX for multilevel case
-        index_ = Index(index[1]*ones(typeof(index[1]),d))::Index{d,V}
-    else
-        index_ = index
+# helper function to compute nodes and weights of Gauss quadrature on [0,1]
+function gauss_legendre_0_1(m)
+    nodes, weights = gausslegendre(m)
+    nodes = 0.5 + nodes/2 # scale roots
+    weights = 0.5*weights # scale weights
+
+    return nodes, weights
+end
+
+# nystrom method
+function nystrom{N<:Integer,T<:AbstractFloat}(kernel::Kernel,x::Vector{T},nterms::N)
+    # compute covariance matrix
+    nodes, weights = gauss_legendre_0_1(nterms)
+    K = applyKernel(kernel,nodes,nodes')
+
+    # obtain eigenvalues and eigenfunctions
+    D = diagm(weights)
+    Dsqrt = sqrt.(D)
+    Z = Symmetric(triu(Dsqrt*K*Dsqrt))
+    eigenval, eigenfunc = eig(Z)
+    eigenval = eigenval*kernel.σ^2
+    #eigenval = real(eigenval)
+    idx = sortperm(eigenval,rev=true)
+    sort!(eigenval,rev=true)
+    eigenfunc = eigenfunc[:,idx]
+
+    f = weights.*(diagm(sqrt.(1./weights))*eigenfunc)
+    lambda = 1./eigenval
+
+    # nystrom method
+    m = length(x)
+    eigenfunc = zeros(nterms,m)
+    #x = 1/2/m:1/m:1-1/2/m
+    K = applyKernel(kernel,x,nodes')*kernel.σ^2
+    for j in 1:nterms
+        @inbounds eigenfunc[j,:] = lambda[j]*K*f[:,j]
     end
 
-    # first term for type-stability of k
-    size(kl.eigenfunc)
-    size(kl.eigenfunc[index_[1]+1])
-    v = kl.eigenfunc[index_[1]+1][kl.eigenval[1][1][1],:]::Array{T,1}
-    for p = 2:d
-        @inbounds v = kron(kl.eigenfunc[index_[p]+1][kl.eigenval[1][1][p],:],v)::Array{T,1}
-    end
-    k = xi[1]*sqrt(kl.eigenval[1][2])*v
-    # rest of the terms
-    for i in 2:nterms
-        @inbounds v = kl.eigenfunc[index_[1]+1][kl.eigenval[i][1][1],:]::Array{T,1}
-        for p = 2:d
-            @inbounds v = kron(kl.eigenfunc[index_[p]+1][kl.eigenval[i][1][p],:],v)::Array{T,1}
-        end
-        @inbounds k += xi[i]*sqrt(kl.eigenval[i][2])*v
-    end
-    return k
+    return eigenval, eigenfunc
 end
 
 # find all positive (>0) zeros of the transcendental function tan(ω) = 2*λ*ω/(λ^2*ω^2-1)
@@ -301,46 +343,3 @@ function middle(x1::Float64, x2::Float64)
 
     return negate ? -unsigned : unsigned
 end
-
-# helper function to compute nodes and weights of Gauss quadrature on [0,1]
-function gauss_legendre_0_1(m)
-    nodes, weights = gausslegendre(m)
-    nodes = 0.5 + nodes/2 # scale roots
-    weights = 0.5*weights # scale weights
-
-    return nodes, weights
-end
-
-# nystrom method
-function nystrom{N<:Integer,T<:AbstractFloat}(kernel::Kernel,x::Vector{T},nterms::N)
-    # compute covariance matrix
-    nodes, weights = gauss_legendre_0_1(nterms)
-    K = applyKernel(kernel,nodes,nodes')
-
-    # obtain eigenvalues and eigenfunctions
-    D = diagm(weights)
-    Dsqrt = sqrt.(D)
-    Z = Symmetric(triu(Dsqrt*K*Dsqrt))
-    eigenval, eigenfunc = eig(Z)
-    eigenval = eigenval*kernel.σ^2
-    #eigenval = real(eigenval)
-    idx = sortperm(eigenval,rev=true)
-    sort!(eigenval,rev=true)
-    eigenfunc = eigenfunc[:,idx]
-
-    f = weights.*(diagm(sqrt.(1./weights))*eigenfunc)
-    lambda = 1./eigenval
-
-    # nystrom method
-    m = length(x)
-    eigenfunc = zeros(nterms,m)
-    #x = 1/2/m:1/m:1-1/2/m
-    K = applyKernel(kernel,x,nodes')*kernel.σ^2
-    for j in 1:nterms
-        @inbounds eigenfunc[j,:] = lambda[j]*K*f[:,j]
-    end
-
-    return eigenval, eigenfunc
-end
-
-

@@ -45,7 +45,7 @@ export IndexSet, SL, ML, FT, TD, HC, AD, get_index_set, get_boundary, pretty_pri
 
 export GaussianMCgenerator, UniformMCgenerator, GaussianQMCgenerator, UniformQMCgenerator, reset # from number_generators.jl
 
-export CovarianceFunction, MaternCovarianceFunction # from random_fields.jl
+export CovarianceFunction, MaternCovarianceFunction, ExponentialCovarianceFunction # from random_fields.jl
 
 export EmptyGaussianRandomFieldSampler # from random_field_samplers.jl
 

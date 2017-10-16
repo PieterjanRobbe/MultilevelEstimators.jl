@@ -12,27 +12,29 @@ abstract type CovarianceFunction end
 """
 MaternCovarianceFunction
 
-Representation of a Matern-type covariance function.
+Representation of a Matern covariance function.
 """
-struct MaternCovarianceFunction{T} <: CovarianceFunction where T<:Real
+struct MaternCovarianceFunction{d,T} <: CovarianceFunction where {d,T<:Real}
     λ::T
     σ::T
     ν::T
     p::T
+    is_separable::Bool
 end
 
 """
-MaternCovarianceFunction(λ, σ, ν, p)
+MaternCovarianceFunction(d, λ, σ, ν, p, is_separable = true)
 
-Create a Matern covariance function with correlation length `λ`, marginal standard deviation `σ`, smoothness `ν` and p-norm `p`.
+Create a Matern covariance function in d dimensions with correlation length `λ`, marginal standard deviation `σ`, smoothness `ν` and p-norm `p`.
 """
-function MaternCovarianceFunction(λ::T where T<:Real,σ::T where T<:Real,ν::T where T<:Real,p::T where T<: Real)  
+function MaternCovarianceFunction(d::N where N<:Integer,λ::T where T<:Real,σ::T where T<:Real,ν::T where T<:Real,p::T where T<: Real; is_separable::Bool = true)  
+    d > 0 || throw(ArgumentError("dimension must be positive, got $(d)"))
     λ > 0 || throw(ArgumentError("correlation length λ of the Gaussian random field cannot be negative or zero!"))
     σ > 0 || throw(ArgumentError("marginal standard deviation σ of the Gaussian random field cannot be negative or zero!"))
     ν > 0 || throw(ArgumentError("smoothness ν of Gaussian random field cannot be negative or zero!"))
     p >= 1 || throw(ArgumentError("in p-norm, p must be greater than one!"))
 
-    MaternCovarianceFunction{promote_type(typeof(λ),typeof(σ),typeof(ν),typeof(p))}(promote(λ,σ,ν,p)...)
+    MaternCovarianceFunction{d,promote_type(typeof(λ),typeof(σ),typeof(ν),typeof(p))}(promote(λ,σ,ν,p)...,is_separable)
 end
 
 """
@@ -56,3 +58,19 @@ end
 function show(io::IO, M::MaternCovarianceFunction)
     print(io, "Matern kernel with correlation length λ = $(M.λ), marginal standard deviation σ = $(M.σ), smoothness ν = $(M.ν) and $(M.p)-norm")
 end
+
+## ExponentialCovarianceFunction ##
+"""
+ExponentialCovarianceFunction(d, λ, σ, p, is_separable = true)
+
+Create an exponential covariance function in d dimensions with correlation length `λ`, marginal standard deviation `σ` and p-norm `p`.
+"""
+function ExponentialCovarianceFunction(d::N where N<:Integer,λ::T where T<:Real,σ::T where T<:Real,p::T where T<: Real; is_separable::Bool = true)  
+    d > 0 || throw(ArgumentError("dimension must be positive, got $(d)"))
+    λ > 0 || throw(ArgumentError("correlation length λ of the Gaussian random field cannot be negative or zero!"))
+    σ > 0 || throw(ArgumentError("marginal standard deviation σ of the Gaussian random field cannot be negative or zero!"))
+    p >= 1 || throw(ArgumentError("in p-norm, p must be greater than one!"))
+
+    MaternCovarianceFunction{d,promote_type(typeof(λ),typeof(σ),Float64,typeof(p))}(promote(λ,σ,0.5,p)...,is_separable)
+end
+
