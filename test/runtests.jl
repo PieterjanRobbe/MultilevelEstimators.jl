@@ -9,4 +9,6 @@ verbose = true
 # test indexsets
 include("test_index_sets.jl")
 include("test_number_generators.jl")
+include("test_random_fields.jl")
+include("test_random_field_samplers.jl")
 #include("test_multilevelalgorithm.jl")
