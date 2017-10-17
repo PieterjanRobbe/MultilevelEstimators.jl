@@ -343,7 +343,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
   else
     procMap = Dict{Index{d,Vector{Int64}},Int64}()
     dummyIndexSet = typeof(indexSet) <: AD ? FT(d) : indexSet
-    id_x = getIndexSet(dummyIndexSet,max(20,maxL)) # hack
+    id_x = get_index_set(dummyIndexSet,max(20,maxL)) # hack
     [setindex!(procMap,nprocs(),i) for i in id_x]
   end
 
