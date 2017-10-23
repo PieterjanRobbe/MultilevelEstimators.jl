@@ -6,7 +6,8 @@ KarhunenLoeveExpansion
 
 Representation of a Karhunen-Loeve expansion.
 """
-struct KarhunenLoeveExpansion{d,N,V<:AbstractVector,F<:AbstractVector} <: GaussianRandomFieldSampler
+struct KarhunenLoeveExpansion{d,C<:CovarianceFunction,N,V<:AbstractVector,F<:AbstractVector} <: GaussianRandomFieldSampler
+    cov::C # covariance function
     nterms::N # number of terms
     eigenval::V # KL eigenvalues
     eigenfunc::F # KL eigenfunctions
@@ -18,33 +19,68 @@ nterms(K::KarhunenLoeveExpansion) = K.nterms
 
 # methods
 function show(io::IO, K::KarhunenLoeveExpansion)
-    print(io, "Karhunen-Lo\'eve expansion with $(K.nterms) terms")
+    print(io, "Karhunen-Lo\'eve expansion with $(K.nterms) terms for a $(K.cov)")
 end
 
 ## Main methods for creating and composing the KL expansion ##
 
 """
-KarhunenLoeveExpansion(cov<:MaternCovarianceFunction, x, nterms)
+KarhunenLoeveExpansion(cov, x, nterms)
 
-Compute the Karhunen-Lo\'eve expansion for the covariance
-
+Compute the Karhunen-Lo\'eve expansion for the covariance function `cov` in all points `x`, where `nterms` terms are used on each level.
 """
-function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 10, ad::Bool = false, x::Vector{Vector{T}} = Vector{Vector{Float64}}(), s::Vector{N} = Vector{N}())
+function KarhunenLoeveExpansion(cov::C where C<:CovarianceFunction, x::Vector{Vector{T}} where T, nterms::Vector{N} where N)
+#    throw(ArgumentError("unkown covariance function $(cov)!"))
 end
 
-# function to compose KL expansion
-function compose{K<:KarhunenLoeveExpansion,T<:AbstractFloat,t,V}(kl::K, xi::Vector{T}, index::Index{t,V})
-    N = inttype(kl)
-    d = ndims(kl)
-    nterms = length(kl.eigenval)
-    if kl.ad
-        nterms = kl.s[index.indices[end]+1]
-        index_ = Index(index.indices[1:end-1])::Index{t-1,V}
-    elseif ndims(index) < d # FIX for multilevel case
-        index_ = Index(index[1]*ones(typeof(index[1]),d))::Index{d,V}
-    else
-        index_ = index
+"""
+KarhunenLoeveExpansion(cov::SeparableExponentialCovarianceFunction{d,1.}, x, nterms) where d
+
+Compute the Karhunen-Lo\'eve expansion for the separable exponential covariance function `cov` in all points `x`, where `nterms` terms are used on each level. In this case, analytic solutions are known for both eigenvalues and eiigenfucntions.
+"""
+function KarhunenLoeveExpansion(cov::SeparableExponentialCovarianceFunction{d,1.} where d, x::Vector{Vector{T}} where T, nterms::Vector{N} where N)
+    ω = findroots(kernel.λ, mkl+1)
+    θ = 2*kernel.σ^2*kernel.λ./(kernel.λ^2*ω.^2+1)
+    eigenval = find_d_dim_eigenvalues(d,θ,nterms)
+end
+
+# alias for integer nterms
+KarhunenLoeveExpansion(cov::M where M<:CovarianceFunction, x::Vector{Vector{T}} where T, nterms::N where N<:Number) = KarhunenLoeveExpansion(cov,x,nterms*ones(length(x)))
+    
+# find the d-dimensional eigenvalues by adaptive search
+function find_d_dim_eigenvalues(d::N, θ::Vector{T}, nterms::N) where {T<:AbstractFloat,N<:Integer}
+    
+    old = zeros(nterms,d+1)
+    active = Dict{Index{d,Vector{N}},T}()
+    active[one(Index{d,Vector{N}})] = θ[1]^d
+    ptr = 0
+    while ptr < nterms
+        ptr += 1
+        index = collect(keys(active))[indmax(values(active))] # find maximum eigenvalue in active set
+        old[ptr,1:d] = index
+        old[ptr,d+1] = active[index]
+        for p = 1:d # check for new admissable indices
+            index[p] = index[p] + 1
+            if ~haskey(active,index) # add to admissable set, if not already added
+                active[copy(index)] = prod(θ[index])
+            end
+            index[p] = index[p] - 1
+        end
+        delete!(active,index)
     end
+    return old
+end
+
+""" 
+compose(kl, xi, index)
+
+Compose the Karhunen-Lo\'eve expansion `kl` at index `index` based on the sample `xi`.
+
+"""
+# TODO add examples
+# TODO switch between separable/non-separable
+function compose(kl::KarhunenLoeveExpansion{d} where d, xi::Vector{T}, index::Index)
+    nterms = length(xi)
 
     # first term for type-stability of k
     size(kl.eigenfunc)
@@ -64,7 +100,6 @@ function compose{K<:KarhunenLoeveExpansion,T<:AbstractFloat,t,V}(kl::K, xi::Vect
     end
     return k
 end
-
 
 # constructor for separable kernels (non-separable is not implemented yet...)
 function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 10, ad::Bool = false, x::Vector{Vector{T}} = Vector{Vector{Float64}}(), s::Vector{N} = Vector{N}())
@@ -165,51 +200,6 @@ function trapezium_rule(pts, f)
     return 1/2*diff(pts)'*(f[2:end]+f[1:end-1])
 end
 
-# TODO automate this!
-# function to precompute eigenfunctions for heat exchanger
-# interpolate from finest mesh, assumed to be finite volume scheme
-function preload_eigenfunctions{d,N,A,B,C,T}(kl::KLExpansion{d,N,A,B,C},ptsx::Vector{T},ptsy::Vector{T},cs::Vector{Array{T,2}},dim)
-    eigenfunc = Array{T,2}[]
-    m0 = kl.m0
-    mkl = kl.mkl
-    maxL = length(cs)
-    m = length(ptsx)
-    #pts = 1/2/m:1/m:1-1/2/m # finest grid points
-    ef = kl.eigenfunc[end] # all eigenfunctions
-    # loop over all "levels"
-    for L in 0:maxL-1
-        nc = size(cs[L+1],1)
-        ar = zeros(T,mkl,nc)
-        # TODO update mkl here to immulate TD set
-        #mkl = kl.s[min(max(end-L,0)+1,end)]
-        #mkl = kl.s[min(max(end-L,0)+2,end)]
-        mkl = kl.s[end]
-        @debug println("L = $(L)   mkl = $(mkl)")
-        # loop over all eigenfunctions
-        Threads.@threads for r = 1:mkl
-            # r-th eigenvalue
-            lambda = kl.eigenval[r][1]
-            # compose d-dim eigenfunc
-            v = ef[lambda[1],:]
-            for p = 2:dim
-                @inbounds v = kron(ef[lambda[2],:],v)
-            end
-            # reshape
-            myef = reshape(v,(m,m))
-            # set up interpolator
-            ip = interpolate((ptsx,ptsy), myef, Gridded(Linear()))
-            # now interpolate
-            for i = 1:nc
-                @inbounds ar[r,i] = ip[cs[L+1][i,1],cs[L+1][i,2]]
-            end
-            #@show ar[r,:]
-        end
-        push!(eigenfunc, ar)
-    end
-
-    return KLExpansion{1,N,A,B,C}(mkl,m0,kl.eigenval,eigenfunc,kl.ad,kl.s) 
-end
-
 # helper function to compute nodes and weights of Gauss quadrature on [0,1]
 function gauss_legendre_0_1(m)
     nodes, weights = gausslegendre(m)
@@ -220,6 +210,7 @@ function gauss_legendre_0_1(m)
 end
 
 # nystrom method
+# TODO what about the d-dimesional case???
 function nystrom{N<:Integer,T<:AbstractFloat}(kernel::Kernel,x::Vector{T},nterms::N)
     # compute covariance matrix
     nodes, weights = gauss_legendre_0_1(nterms)
