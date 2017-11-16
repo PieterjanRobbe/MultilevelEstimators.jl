@@ -482,7 +482,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 			###########################3
 
 		#converged = true	
-		@show converged = L == 5
+		@show converged = L == sampler.maxL
 			
 			###########################3
 			###########################3
