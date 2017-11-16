@@ -343,7 +343,7 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
   else
     procMap = Dict{Index{d,Vector{Int64}},Int64}()
     dummyIndexSet = typeof(indexSet) <: AD ? FT(d) : indexSet
-    id_x = get_index_set(dummyIndexSet,max(20,maxL)) # hack
+    id_x = getIndexSet(dummyIndexSet,max(20,maxL)) # hack
     [setindex!(procMap,nprocs(),i) for i in id_x]
   end
 
@@ -707,7 +707,9 @@ function sample{N<:Integer,I<:Index}(sampler::Sampler, nbOfSamples::N, index::I)
 
   # parallel execution
   progress = Progress(nbOfSamples, dt=1, desc=desc, color=:black, barlen=25)
-  t = @elapsed r = pmap((i)->take_a_sample(index,state[index]+i,sampler), progress, 1:nbOfSamples)
+  #t = @elapsed r = pmap((i)->take_a_sample(index,state[index]+i,sampler), progress, 1:nbOfSamples)
+  println(desc)
+  t = @elapsed r = pmap((i)->take_a_sample(index,state[index]+i,sampler), 1:nbOfSamples)
 
   # fetch results
   comb_samples = reduce(vcat,r)::Array{Float64,4}

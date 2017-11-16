@@ -5,7 +5,7 @@ using Reexport
 
 @reexport using QMC
 
-using Interpolations, FastGaussQuadrature, SpecialFunctions, Retry, NLsolve, ArgParse
+using Interpolations, FastGaussQuadrature, SpecialFunctions, Retry, NLsolve
 
 using ProgressMeter
 using PmapProgressMeter
@@ -34,13 +34,13 @@ import Base: ndims
 import QMC: getPoint, nshifts
 
 # export statements
-export Index, SL, ML, FT, TD, HC, AD, get_index_set, get_boundary, pretty_print, is_admissable # from index_set.jl
+export Index, SL, ML, FT, TD, HC, AD, getIndexSet, getBoundary, prettyprint, isAdmissable # from Indexsets.jl
 
 export Sampler, setup, save, load, reset, sample, ndims, mi_cost  # from Sampler.jl
 
 export KLExpansion, MaternKernel, compose, preload_eigenfunctions # from GaussianFieldSamplers.jl
 
-export GaussianMCgenerator, UniformMCgenerator, GaussianQMCgenerator, UniformQMCgenerator, PseudoRNG, reset # from number_generators.jl
+export GaussianMCgenerator, UniformMCgenerator, GaussianQMCgenerator, UniformQMCgenerator, PseudoRNG, reset # from PointSetGenerators.jl
 
 export simulate # from MultilevelAlgorithm.jl
 export prashant_simulate # from prashant_algorithm.jl
@@ -56,13 +56,13 @@ export leastSquaresFit
 #
 
 # include statements
-include("parse_options.jl")
+include("ParseArgs.jl")
 
-include("index_sets.jl")
+include("Indexsets.jl")
 
 include("GaussianFieldSamplers.jl")
 
-include("number_generators.jl")
+include("PointSetGenerators.jl")
 include("multigrid_rng.jl")
 
 include("Sampler.jl")

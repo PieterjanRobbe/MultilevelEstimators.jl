@@ -3,11 +3,16 @@
 # main sample function for Giles multigrid multilevel monte carlo
 function sample_gmg(sampler, nb_of_samples, index)
 
+	# update: nb_of_samples > 1
+	nb_of_samples = max(nworkers(),nb_of_samples)
+
 	# parallel execution
 	desc="Taking $(nb_of_samples) samples at index $(index.indices) "
 	progress = Progress(nb_of_samples, dt=1, desc=desc, color=:black, barlen=25) # fancy progress bar
-	t = @elapsed r = pmap((i)->single_sample_gmg(index,i,sampler), progress, 1:nb_of_samples)
-	#t = @elapsed r = map((i)->single_sample_gmg(index,i,sampler), 1:nb_of_samples)
+	#t = @elapsed r = pmap((i)->single_sample_gmg(index,i,sampler), progress, 1:nb_of_samples)
+	# update: no plotting
+	println(desc)
+	t = @elapsed r = pmap((i)->single_sample_gmg(index,i,sampler), 1:nb_of_samples)
 	the_samples_diff = reduce((x,y)->cat(2,x,y),r)
 
 	# samples at the finest level ell
