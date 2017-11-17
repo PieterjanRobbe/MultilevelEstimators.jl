@@ -51,6 +51,8 @@ export @debug
 
 export analyse
 
+export inspect
+
 # TRM
 export leastSquaresFit
 #

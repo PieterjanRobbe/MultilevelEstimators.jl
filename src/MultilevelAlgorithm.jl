@@ -44,6 +44,28 @@ function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}; failProb
 	means = zeros(tol)
 	errorz = zeros(length(tol),4)
 
+
+	#####
+	#####
+	#####
+	# warm-up
+	tic()
+	if sampler.ml_sample_fun == sample_mg
+		if sampler.reuse
+			sampler.ml_sample_fun(sampler,1,Index(3))
+		else
+			sampler.ml_sample_fun(sampler,1,Index(0))
+			sampler.ml_sample_fun(sampler,1,Index(1))
+			sampler.ml_sample_fun(sampler,1,Index(2))
+			sampler.ml_sample_fun(sampler,1,Index(3))
+		end
+	end
+	inspect(sampler)
+	wctime[1] = toq()
+	#####
+	#####
+	#####
+	
 	# run mimc 
 	for i in 1:length(tol)
 		# make dir
@@ -62,7 +84,7 @@ function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}; failProb
 		# simulate
 		delta_t = @elapsed (A,B) = mimc(sampler,tol[i],is_relative,failProb,folder) 
 		# compute wall clock time and standard cost
-		wctime[i] =  delta_t
+		wctime[i] +=  delta_t
 		for index in keys(sampler.samples)
 			stcost[i] += (length(sampler.samples[index])-8)*sampler.W[index]
 		end # for
@@ -109,10 +131,10 @@ function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}; failProb
 		#		writedlm(folder*"/data/"*printdir*"/means.txt",means)
 		#		println("done")
 		# end save means
-		#		if cumsum(wctime)[end] > max_time
-		#			print_with_color(:red,"wall clock time exceeded maximum time of $(max_time) secondes, aborting...\n")
-		#			break
-		#		end # if
+				if cumsum(wctime)[end] > max_time
+					print_with_color(:red,"wall clock time exceeded maximum time of $(max_time) secondes, aborting...\n")
+					break
+				end # if
 	end # for
 
 	return cumsum(wctime),cumsum(stcost),means
@@ -308,10 +330,10 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 		@debug prettyprint(indicesToAdd)
 
 		# take initial number of samples at each new index when needed...
-		if L < 3
+		if L < 3000 ############# ALWAYS
 			@debug println("now taking warm-up samples... ")
 			for index::Index{d,Vector{N}} in indicesToAdd
-				if !haskey(sampler.T,index) # when running repeatedly, might already have samples available
+				if !haskey(sampler.samples,index) # when running repeatedly, might already have samples available
 					@show sampler.ml_sample_fun
 					sampler.ml_sample_fun(sampler, sampler.Nstar::N, index::Index{1,Vector{N}})
 				end

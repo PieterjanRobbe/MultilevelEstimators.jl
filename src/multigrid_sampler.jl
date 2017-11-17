@@ -19,29 +19,38 @@ function sample_mg(sampler::Sampler, nb_of_samples::N, index::Index{1,Vector{N}}
 	start = state[index]+1::N
 	stop = state[index]+nb_of_samples::N
 	#
-	myf(i) = single_sample_mg(index,i,sampler)
+	myf(i) = single_sample_mg(index,start:stop,i,sampler)
 	println(desc)
-	t = @elapsed r = pmap(myf, start:stop )
+	t = @elapsed r = pmap(myf, 1:nb_of_shifts)
 	#
 	#pmap((i)->svd(randn(i)),1:10)
 	#t = @elapsed r = pmap(single_sample_mg, fill(index,stop-start+1), start:stop, fill(sampler,stop-start+1) )
-	the_samples = reduce((x,y)->cat(3,x,y),r)::Array{Float64,3}
+	the_samples = reduce((x,y)->cat(3,x,y),r)#::Array{Float64,3}
+	the_samples = permutedims(the_samples,[1,3,2])
 
 	# samples at the finest level ell
 	samples_ell = reshape(the_samples[end,:,:]',(size(the_samples,3,2)...,1))
 	# check if entry at level ell already exists
 	if haskey(sampler.samples, index) # append samples
 		sampler.samples[index] = vcat(sampler.samples[index], samples_ell)
-		sampler.nb_of_orig_samples[index] += nb_of_samples
 	else # make new entry
 		sampler.samples[index] = samples_ell
+	end
+
+	if haskey(sampler.nb_of_orig_samples, index) # append samples
+		sampler.nb_of_orig_samples[index] += nb_of_samples
+	else
 		sampler.nb_of_orig_samples[index] = nb_of_samples
 	end
 	
 	# when reusing samples, append them to the previous samples on all levels
 	sampler.reuse && for ell = 0:(index[1]-1)
 		samples_ell = reshape(the_samples[ell+1,:,:]',(size(the_samples,3,2)...,1))
-		sampler.samples[Index(ell)] = vcat(sampler.samples[Index(ell)], samples_ell)
+		if haskey(sampler.samples,Index(ell))
+			sampler.samples[Index(ell)] = vcat(sampler.samples[Index(ell)], samples_ell)
+		else
+			sampler.samples[Index(ell)] = samples_ell
+		end
 	end
 
 	# update generator state
@@ -61,7 +70,7 @@ end
 
 # compute a single multigrid multilevel sample
 # function to be run in parallel
-function single_sample_mg(index::Index{1,Vector{N}}, sample_no::N, sampler::Sampler) where {N}
+function single_sample_mg(index::Index{1,Vector{N}}, sample_nos, shift_no::N, sampler::Sampler) where {N}
 	
 	ell = index[1]
 	nb_of_shifts = nshifts(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))])
@@ -69,17 +78,17 @@ function single_sample_mg(index::Index{1,Vector{N}}, sample_no::N, sampler::Samp
 	# get the sample_no'th point from the point set generator
 	# generates s x q random numbers
 	#xi_mat = getPoint(sampler.numberGenerator[index], sample_no)
-	xi_mat = randn(ndims(sampler.numberGenerator[Index(0)]),nb_of_shifts)
+	#xi_mat = randn(ndims(sampler.numberGenerator[Index(0)]),nb_of_samples)
 
 	# preallocate room for the sample
-	shifted_sample = zeros(ell+1,nb_of_shifts)
+	shifted_sample = zeros(ell+1,length(sample_nos))#nb_of_shifts)
 
 	# loop over all shifts
 	
-	@debug println("  loop over shifts::::::")
 
-	for q in 1:nb_of_shifts
-		xi = xi_mat[:,q]::Vector{Float64}
+	for q in 1:length(sample_nos)#1:nb_of_shifts
+		xi = getPoint(sampler.numberGenerator[index], sample_nos[q])[:,shift_no]
+		#xi = xi_mat[:,q]::Vector{Float64}
 		# compute sample at finest grid using multigrid
 		samples = sampler.sampleFunction(xi, index, sampler)
 		# compute differences and store into shifted sample
