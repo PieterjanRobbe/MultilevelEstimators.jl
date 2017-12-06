@@ -6,7 +6,7 @@ KarhunenLoeveExpansion
 
 Representation of a Karhunen-Loeve expansion.
 """
-struct KarhunenLoeveExpansion{d,C<:CovarianceFunction,N,V<:AbstractVector,F<:AbstractVector} <: GaussianRandomFieldSampler
+struct KarhunenLoeveExpansion{C<:CovarianceFunction,N,V<:AbstractVector,F<:AbstractVector} <: GaussianRandomFieldSampler
     cov::C # covariance function
     nterms::N # number of terms
     eigenval::V # KL eigenvalues
@@ -14,7 +14,7 @@ struct KarhunenLoeveExpansion{d,C<:CovarianceFunction,N,V<:AbstractVector,F<:Abs
 end
 
 # utilities
-ndims{d}(K::KarhunenLoeveExpansion{d}) = d
+ndims(K::KarhunenLoeveExpansion{C{d}}) = d
 nterms(K::KarhunenLoeveExpansion) = K.nterms
 
 # methods
@@ -24,52 +24,39 @@ end
 
 ## Main methods for creating and composing the KL expansion ##
 
+# For separable kernels, we assume that the 1d points are given.
+# When composing the random field, we take a tensor product of the 1d eigenfunctions.
+# By specifying which eigenfunctions must be tensorized, we can do MIMC.
+# In the special case of the SeparableExponentialCovarianceFunction with p=1,
+# we have analytic expressions for eigenvalues and eigenfunctions.
+# TODO how to do non-separable covariance in MIMC case? => interpolate
+# TODO or have x represented by a matrix instead of a vector...
+# also TODO is all of this necessary? We can just generate the random field at the finest grid
+# and do restriction... => not if #terms is mem intensive...
+
 """
 KarhunenLoeveExpansion(cov, x, nterms)
 
-Compute the Karhunen-Lo\'eve expansion for the covariance function `cov` in all points `x`, where `nterms` terms are used on each level.
-"""
-function KarhunenLoeveExpansion(cov::C where C<:CovarianceFunction, x::Vector{Vector{T}} where T, nterms::Vector{N} where N)
-#    throw(ArgumentError("unkown covariance function $(cov)!"))
-end
+Compute the Karhunen-Lo\'eve expansion for the covariance function `cov` in all points `x`, where `nterms` terms are used on each level. The points `x` must be explicitly given at each level. For separable covariance functions, this must be the 1d points. For non-separable covariance functions, this must be an `n`-by-`d` matrix. The number of terms can be an integer, or a Vector with integers that specifies how many terms should be used on each level. The number of terms can be an integer, or a Vector with integers that specifies how many terms should be used on each level.  
 
 """
-KarhunenLoeveExpansion(cov::SeparableExponentialCovarianceFunction{d,1.}, x, nterms) where d
+# TODO add example
+function KarhunenLoeveExpansion(cov::C where C<:CovarianceFunction, x::Vector{AbstractArray{T}} where T, nterms::Vector{N} where N)
+    in(:apply,fieldnames(cov)) || throw(ArgumentError("no function apply in covariance function $(cov)"))
+    # TODO more error handling here...
 
-Compute the Karhunen-Lo\'eve expansion for the separable exponential covariance function `cov` in all points `x`, where `nterms` terms are used on each level. In this case, analytic solutions are known for both eigenvalues and eiigenfucntions.
-"""
-function KarhunenLoeveExpansion(cov::SeparableExponentialCovarianceFunction{d,1.} where d, x::Vector{Vector{T}} where T, nterms::Vector{N} where N)
-    ω = findroots(kernel.λ, mkl+1)
-    θ = 2*kernel.σ^2*kernel.λ./(kernel.λ^2*ω.^2+1)
-    eigenval = find_d_dim_eigenvalues(d,θ,nterms)
+    if cov.p == 1 && ( typeof(cov) == SeparableMaternCovarianceFunction || ( typeof(cov) == MaternCovarianceFunction && ndims(cov) == 1 ) )
+        return compute_kl_analytical(cov,x,nterms)
+    elseif typeof(C) <: SeparableCovarianceFunction
+        return compute_separable_kl(cov,x,nterms)
+    else
+        return compute_kl(cov,x,nterms)
+    end
 end
 
 # alias for integer nterms
 KarhunenLoeveExpansion(cov::M where M<:CovarianceFunction, x::Vector{Vector{T}} where T, nterms::N where N<:Number) = KarhunenLoeveExpansion(cov,x,nterms*ones(length(x)))
-    
-# find the d-dimensional eigenvalues by adaptive search
-function find_d_dim_eigenvalues(d::N, θ::Vector{T}, nterms::N) where {T<:AbstractFloat,N<:Integer}
-    
-    old = zeros(nterms,d+1)
-    active = Dict{Index{d,Vector{N}},T}()
-    active[one(Index{d,Vector{N}})] = θ[1]^d
-    ptr = 0
-    while ptr < nterms
-        ptr += 1
-        index = collect(keys(active))[indmax(values(active))] # find maximum eigenvalue in active set
-        old[ptr,1:d] = index
-        old[ptr,d+1] = active[index]
-        for p = 1:d # check for new admissable indices
-            index[p] = index[p] + 1
-            if ~haskey(active,index) # add to admissable set, if not already added
-                active[copy(index)] = prod(θ[index])
-            end
-            index[p] = index[p] - 1
-        end
-        delete!(active,index)
-    end
-    return old
-end
+
 
 """ 
 compose(kl, xi, index)
@@ -101,95 +88,72 @@ function compose(kl::KarhunenLoeveExpansion{d} where d, xi::Vector{T}, index::In
     return k
 end
 
-# constructor for separable kernels (non-separable is not implemented yet...)
-function KLExpansion{T,N}(kernel::Kernel, d::N, mkl::N; m0::N = 4, maxL::N = 10, ad::Bool = false, x::Vector{Vector{T}} = Vector{Vector{Float64}}(), s::Vector{N} = Vector{N}())
-    d > 0 || error("dimension cannot be negative or zero!")
-    mkl > 0 || error("number of KL-terms must be a positive integer!")
-    maxL >= 0 || error("maximum indexset indicator must be postitive")
-    isempty(x) && error("points cannot be empty") 
-    maxL = length(x)-1
-    if isempty(s)
-        if isempty(x)
-            s = mkl*ones(N,maxL+1)
-        else
-            s = map(length,x)
-        end
-    end
-
-    # calculate eigenvalues
-    if typeof(kernel) <: MaternKernel && kernel.ν == 0.5 && kernel.p == 1.
-        ω = findroots(kernel.λ, mkl+1)
-        θ = 2*kernel.σ^2*kernel.λ./(kernel.λ^2*ω.^2+1)
-    else
-        #θ,dummy = nystrom(kernel,0,mkl+1)
-        if isempty(x)
-            m = m0*2^maxL
-            pts = collect(1/2/m:1/m:1-1/2/m) # finite volume method, cell centered values
-        else
-            pts = collect(x[maxL+1]) # other values if specified
-        end
-        θ, temp = nystrom(kernel, collect(pts), mkl+1) # solve EVP only once!	
-    end
-
-    # compose the d-dimensional eigenvalues by adaptive search
-    O = Vector{Tuple{Index{d,Vector{N}},T}}() # could be oredered dict as well
-    A = Dict{Index{d,Vector{N}},T}()
-    A[one(Index{d,Vector{N}})] = θ[1]^d
-    converged = false
-    max_mkl = 1 # store maximum number of 1d eigenvalues
-    while length(O) < mkl
-        idx = collect(keys(A))[indmax(values(A))] # find minimum of values
-        max_mkl = maximum([max_mkl maximum(idx)])
-        push!(O,(idx,A[idx]))
-        for p = 1:d # check each new admissable index
-            idx = copy(idx)
-            idx[p] = idx[p] + 1
-            if ~haskey(A,idx) # add to admissable set, if not already added
-                A[copy(idx)] = prod(θ[idx.indices])
-            end
-            idx = copy(idx)
-            idx[p] = idx[p] - 1
-        end
-        delete!(A,idx)
-    end
+## internals ##
+function compute_kl_analytical(cov::C where C<:CovarianceFunction, x::Vector{AbstractArray{T}} where T,nterms::Vector{N} where N)
+    ω = findroots(cov.λ, maximum(nterms)+1)
+    θ = 2*cov.σ^2*cov.λ./(cov.λ^2*ω.^2+1)
+    eigenval = find_d_dim_eigenvalues(d,θ,nterms)
 
     # calculate 1d eigenfunctions
     eigenfunc = Array{T,2}[]
-    if typeof(kernel) <: MaternKernel && kernel.ν == 0.5 && kernel.p == 1.
-        ω = ω[1:max_mkl] # cut off ω
-        n = sqrt(2)/2*sqrt.(1./ω.*(kernel.λ^2*ω.^2.*cos.(ω).*sin.(ω)+kernel.λ^2*ω.^3-2*kernel.λ*ω.*cos.(ω).^2-cos.(ω).*sin.(ω)+ω)+2*kernel.λ)
-        for L in 0:maxL
-            if isempty(x)
-                m = m0*2^L
-                pts = collect(1/2/m:1/m:1-1/2/m) # finite volume method, cell centered values
-            else
-                pts = collect(x[L+1]) # other values if specified
-            end
-            push!(eigenfunc,diagm(1./n)*( sin.(ω*pts') + kernel.λ*diagm(ω)*cos.(ω*pts') ))
-        end
-    else
-        for L in 0:maxL
-            if isempty(x)
-                m = m0*2^L
-                ipts = 1/2/m:1/m:1-1/2/m
-            else
-                m = length(x[L+1])
-                ipts = x[L+1]
-            end
-            # loop over all eigenfunctions and interpolate
-            ar = zeros(T,mkl,m)
-            for r = 1:mkl
-                # set up interpolator
-                ip = interpolate((pts,), normalize_ef(temp[r,:],pts), Gridded(Linear()))
-                # now interpolate temp in 
-                ar[r,:] = ip[ipts]
-            end
-            push!(eigenfunc, ar)
-        end
+    ω = ω[1:maximum(nterms)]
+    n = sqrt(2)/2*sqrt.(1./ω.*(cov.λ^2*ω.^2.*cos.(ω).*sin.(ω)+cov.λ^2*ω.^3-2*cov.λ*ω.*cos.(ω).^2-cos.(ω).*sin.(ω)+ω)+2*cov.λ)
+    for i in 1:length(x)
+        push!(eigenfunc,diagm(1./n)*( sin.(ω*collect(x[i])') + kernel.λ*diagm(ω)*cos.(ω*collect(x[i])') ))
     end
 
-    return KLExpansion{d,N,typeof(O),typeof(eigenfunc),typeof(s)}(mkl,m0,O,eigenfunc,ad,s)
+    return KarhunenLoeveExpansion{typeof(cov),Vector{N},typeof(eigenval),typeof(eigenfunc)}(cov,nterms,eigenval,eigenfunc)
 end
+
+function compute_separable_kl(cov::C where C<:SeparableCovarianceFunction, x::Vector{AbstractArray{T}} where T,nterms::Vector{N} where N)
+    d = ndims(cov)
+
+    pts = collect(x[end])
+    θ, f = nystrom(kernel, pts, maximum(nterms))	
+    eigenval = find_d_dim_eigenvalues(d,θ,nterms)
+
+    # calculate 1d eigenfunctions
+    eigenfunc = Array{T,2}[]
+    for i in 1:length(x)
+        ipts = x[i]
+        m = length(ipts)
+        ar = zeros(T,mkl,m)
+        for r = 1:nterms[i]
+            ip = interpolate((pts,), normalize_ef(f[r,:],pts), Gridded(Linear()))
+            ar[r,:] = ip[ipts]
+        end
+        push!(eigenfunc, ar)
+    end
+
+    return KLExpansion{typeof(cov),Vector{N},typeof(eigenval),typeof(eigenfunc)}(cov,nterms,eigenval,eigenfunc)
+end
+
+function compute_kl(cov::C where C<:SeparableCovarianceFunction, x::Vector{AbstractArray{T}} where T,nterms::Vector{N} where N)
+end
+
+# find the d-dimensional eigenvalues by adaptive search
+function find_d_dim_eigenvalues(d::N, θ::Vector{T}, nterms::N) where {T<:AbstractFloat,N<:Integer}
+    old = zeros(nterms,d+1)
+    active = Dict{Index{d,Vector{N}},T}()
+    active[one(Index{d,Vector{N}})] = θ[1]^d
+    ptr = 0
+    while ptr < nterms
+        ptr += 1
+        index = collect(keys(active))[indmax(values(active))] # find maximum eigenvalue in active set
+        old[ptr,1:d] = index
+        old[ptr,d+1] = active[index]
+        for p = 1:d # check for new admissable indices
+            index[p] = index[p] + 1
+            if ~haskey(active,index) # add to admissable set, if not already added
+                active[copy(index)] = prod(θ[index])
+            end
+            index[p] = index[p] - 1
+        end
+        delete!(active,index)
+    end
+    return old
+end
+
 
 function normalize_ef{T}(f::Vector{T},pts)
     A = sqrt(trapezium_rule(pts,f.^2))
@@ -209,12 +173,37 @@ function gauss_legendre_0_1(m)
     return nodes, weights
 end
 
+# nodes and weights on [0,1]^n
+function gauss_legendre_0_1_n(m)
+    nodes, weights = gauss_legendre_0_1(m)    
+
+    Nd = collect(Base.product([1:m for i = 1:n]...))[:]
+    N = zeros(length(Nd),n)
+    for i = 1:length(Nd)
+        N[i,:] = flipdim(nodes[Nd[i]...],1)
+    end
+    W = kron([weights for i = 1:n]...)
+
+    return N,W
+end
+
+# scale function for nodes
+function scale_to_0_1(nodes::Matrix{T} where T)
+    mx = maximum(nodes,1)
+    mn = minimum(nodes,1)
+
+    for n in 1:size(nodes,2)
+        nodes[:,n] = (nodes[:,n] - mn[n])/(mx[n]-mn[n])
+    end 
+
+    return nodes
+end
+
 # nystrom method
-# TODO what about the d-dimesional case???
-function nystrom{N<:Integer,T<:AbstractFloat}(kernel::Kernel,x::Vector{T},nterms::N)
+function nystrom(cov::CovarianceFunction,x::AbstractArray{T},nterms::N) where {T,N}
     # compute covariance matrix
-    nodes, weights = gauss_legendre_0_1(nterms)
-    K = applyKernel(kernel,nodes,nodes')
+    nodes, weights = gauss_legendre_0_1_n(nterms) # TODO how many terms ???
+    K = cov.apply(nodes,nodes) # TODO check implementation of apply function
 
     # obtain eigenvalues and eigenfunctions
     D = diagm(weights)

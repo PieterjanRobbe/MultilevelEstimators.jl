@@ -1,3 +1,4 @@
+# TODO precompile
 module MultilevelEstimators
 
 # load other modules
@@ -45,9 +46,9 @@ export IndexSet, SL, ML, FT, TD, HC, AD, get_index_set, get_boundary, pretty_pri
 
 export GaussianMCgenerator, UniformMCgenerator, GaussianQMCgenerator, UniformQMCgenerator, reset # from number_generators.jl
 
-export CovarianceFunction, MaternCovarianceFunction, ExponentialCovarianceFunction, SeparableMaternCovarianceFunction, SeparableExponentialCovarianceFunction # from random_fields.jl
+export CovarianceFunction, MaternCovarianceFunction, ExponentialCovarianceFunction, SquaredExponentialCovarianceFunction, SeparableMaternCovarianceFunction, SeparableExponentialCovarianceFunction, SeparableSquaredExponentialCovarianceFunction # from covariance_functions.jl
 
-export EmptyGaussianRandomFieldSampler # from random_field_samplers.jl
+#export EmptyGaussianRandomFieldSampler # from random_field_samplers.jl
 
 ### ### ###
 
@@ -76,11 +77,12 @@ include("index_sets.jl")
 
 include("number_generators.jl")
 
-include("random_fields.jl")
+include("covariance_functions.jl")
 
-include("random_field_samplers.jl")
+#include("random_field_samplers.jl")
 
-### ### ###
+### ### ### 
+#=
 
 #include("karhunen_loeve_expansion.jl")
 
@@ -95,6 +97,7 @@ include("multigrid_rng.jl")
 include("multigrid_sampler.jl")
 include("giles_multigrid_sampler.jl")
 include("prashant_algorithm.jl")
+=#
 
 #include("MultilevelAlgorithm.jl")
 
