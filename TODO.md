@@ -23,3 +23,4 @@ Should we use a `Dict` to store mean and var etc., or should we make a `LevelCon
 
 We would like to have a `sample` function that covers all algorithms. This function must contain the general structure of all multilevel algorithms: MLMC, MLQMC, MIMC, MIQMC, MGMLMC etc. The appropriate functions will be called based on the type of the sampler (hurray for multiple dispatch!).
 
+
