@@ -96,14 +96,19 @@ AD(d::Integer) = d <= 1 ? throw(BoundsError("to use AD, dimension must be greate
 # utilities
 ndims(::IndexSet{d}) where {d} = d
 
-function get_indexset(idxset::IndexSet{d},sz::N) where {d,N<:Integer}
-@show    tensor_grid = Base.product(range.(0,ntuple(i->sz+1,d))...)
+function get_index_set(idxset::IndexSet{d},sz::N) where {d,N<:Integer}
+	tensor_grid = Base.product(range.(0,ntuple(i->sz+1,d))...)
     filtered_grid = Base.Iterators.filter(filter(idxset,sz),tensor_grid)
-    collect(filtered_grid)
+	collect(filtered_grid)
 end
 
-function is_valid_index_set(idxset::Set{Index{d}}) where {d}
-    # TODO implement and test
+function is_valid_index_set(idxset::Vector{T} where {T<:Index{d}}) where {d}
+	for idx in idxset
+		for i in 1:d
+			check_index = Base.setindex(idx,idx[i]-1,i)
+			( in(check_index,idxset) || any(check_index.<0) ) || return false
+		end
+	end
     return true
 end
 

@@ -24,6 +24,10 @@ low_mem
 function Sampler(kwargs...)
     settings = Dict(kwargs)
 
+	# TODO : either provide sample_function or ml_sample_function!!!
+	# provide default ml_sample_function for MLMC, MIMC that returns an approx on coarse and fine scale
+	# and uses sample_fun
+
     # required
     for key in [:method, :number_generator, :sample_function]
         haskey(settings,key) || throw(ArgumentError("required key $(key) not provided!"))
