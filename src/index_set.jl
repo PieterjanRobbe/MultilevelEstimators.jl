@@ -31,7 +31,7 @@ ML() = ML{1}()
 filter(::ML,sz) = itr -> sum(itr) <= sz
 
 """
-FT(d, δ=ones(d))
+    FT(d, δ=ones(d))
 
 A full tensor index set in `d` dimenions with weights `δ`.
 """
@@ -41,15 +41,16 @@ end
 
 function FT(d::Integer; δ::Vector{T}=ones(d)) where {T<:Real}
     d > 1 || throw(BoundsError("to use FT, dimension must be greater than 1, got $(d)"))
-    length(δ) == d || throw(ArgumentError("to use FT, weights δ must be of length $(d), got $(length(δ))"))
-    all(δ.>0) || throw(ArgumentError("to use FT, weights δ must be positive"))
+    length(δ) == d || throw(ArgumentError("to use weighted FT, weights δ must be of length $(d), got $(length(δ))"))
+    all(δ.>0) || throw(ArgumentError("to use weighted FT, weights δ must be positive"))
+    all(isfinite.(δ)) || throw(ArgumentError("to use weighted FT, weight must be finite, got $(δ)"))
     return FT{d,Vector{T}}(δ)
 end
 
 filter(idxset::FT,sz) = itr -> all(idxset.δ.*itr.<=sz) 
 
 """
-TD(d, δ=ones(d))
+    TD(d, δ=ones(d))
 
 A total degree index set in `d` dimenions with weights `δ`.
 """
@@ -59,15 +60,16 @@ end
 
 function TD(d::Integer; δ::Vector{T}=ones(d)) where {T<:Real}
     d > 1 || throw(BoundsError("to use TD, dimension must be greater than 1, got $(d)"))
-    length(δ) == d || throw(ArgumentError("to use TD, weights δ must be of length $(d), got $(length(δ))"))
-    all(δ.>0) || throw(ArgumentError("to use TD, weights δ must be positive"))
+    length(δ) == d || throw(ArgumentError("to use weighted TD, weights δ must be of length $(d), got $(length(δ))"))
+    all(δ.>0) || throw(ArgumentError("to use weighted TD, weights δ must be positive"))
+    all(isfinite.(δ)) || throw(ArgumentError("to use weighted TD, weight must be finite, got $(δ)"))
     return TD{d,Vector{T}}(δ)
 end
 
 filter(idxset::TD,sz) = itr -> sum(idxset.δ.*itr) <= sz
 
 """
-HC(d, δ=ones(d))
+    HC(d, δ=ones(d))
 
 A hyperbolic cross index set in `d` dimenions with weights `δ`.
 """
@@ -77,15 +79,16 @@ end
 
 function HC(d::Integer; δ::Vector{T}=ones(d)) where {T<:Real}
     d > 1 || throw(BoundsError("to use HC, dimension must be greater than 1, got $(d)"))
-    length(δ) == d || throw(ArgumentError("to use HC, weights δ must be of length $(d), got $(length(δ))"))
-    all(δ.>0) || throw(ArgumentError("to use HC, weights δ must be positive"))
+    length(δ) == d || throw(ArgumentError("to use weighted HC, weights δ must be of length $(d), got $(length(δ))"))
+    all(δ.>0) || throw(ArgumentError("to use weighted HC, weights δ must be positive"))
+    all(isfinite.(δ)) || throw(ArgumentError("to use weighted HC, weight must be finite, got $(δ)"))
     return HC{d,Vector{T}}(δ)
 end
 
 filter(idxset::HC,sz) = itr -> prod(idxset.δ.*itr.+1) <= sz
 
 """
-AD(d)
+    AD(d)
 
 An adaptive index set in `d` dimenions.
 """
@@ -97,18 +100,19 @@ AD(d::Integer) = d <= 1 ? throw(BoundsError("to use AD, dimension must be greate
 ndims(::IndexSet{d}) where {d} = d
 
 function get_index_set(idxset::IndexSet{d},sz::N) where {d,N<:Integer}
-	tensor_grid = Base.product(range.(0,ntuple(i->sz+1,d))...)
+    sz >= 0 || throw(ArgumentError("index set size parameter cannot be negative"))
+    tensor_grid = Base.product(range.(0,ntuple(i->sz+1,d))...)
     filtered_grid = Base.Iterators.filter(filter(idxset,sz),tensor_grid)
-	collect(filtered_grid)
+    collect(filtered_grid)
 end
 
 function is_valid_index_set(idxset::Vector{T} where {T<:Index{d}}) where {d}
-	for idx in idxset
-		for i in 1:d
-			check_index = Base.setindex(idx,idx[i]-1,i)
-			( in(check_index,idxset) || any(check_index.<0) ) || return false
-		end
-	end
+    for idx in idxset
+        for i in 1:d
+            check_index = Base.setindex(idx,idx[i]-1,i)
+            ( in(check_index,idxset) || any(check_index.<0) ) || return false
+        end
+    end
     return true
 end
 
