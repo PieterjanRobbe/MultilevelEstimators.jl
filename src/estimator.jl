@@ -71,13 +71,17 @@ end
 
 ## Type aliases ##
 
-##### HERE #####
-## TODO
-const MonteCarloEstimator = Estimator{Sampler{SL,NumberGenerator{D,MC}}} where {D}
-const QuasiMonteCarloEstimator = Estimator{Sampler{SL,NumberGenerator{D,QMC}}} where {D}
-const MultiLevelMonteCarloEstimator = Estimator{Sampler{I,NumberGenerator{D,G}}} where {I<:ML,D,G<:MC}
-MultilevelEstimators.Estimator{S,H,T} where {S<:MultilevelEstimators.Sampler{I,MultilevelEstimators.NumberGenerator{D,G}} where {I<:ML,D,G<:MultilevelEstimators.MC},H,T}
-const MultiLevelQuasiMonteCarloEstimator = Estimator{Sampler{ML,NumberGenerator{D,QMC}}} where {D}
-const MultiIndexMonteCarloEstimator = Estimator{Sampler{I,NumberGenerator{D,MC}}} where {D,I<:Union{FT,TD,HC,AD}}
-const MultiIndexQuasiMonteCarloEstimator = Estimator{Sampler{I,NumberGenerator{D,QMC}}} where {D,I<:Union{FT,TD,HC,AD}}
+const MonteCarloEstimator = Estimator{S,H,T} where {S<:Sampler{I,NumberGenerator{D,G}} where {I<:SL,D,G<:MC},H,T}
+const QuasiMonteCarloEstimator = Estimator{S,H,T} where {S<:Sampler{I,NumberGenerator{D,G}} where {I<:SL,D,G<:QMC},H,T}
+const MultiLevelMonteCarloEstimator = Estimator{S,H,T} where {S<:Sampler{I,NumberGenerator{D,G}} where {I<:ML,D,G<:MC},H,T}
+const MultiLevelQuasiMonteCarloEstimator = Estimator{S,H,T} where {S<:Sampler{I,NumberGenerator{D,G}} where {I<:ML,D,G<:QMC},H,T}
+const MultiIndexMonteCarloEstimator = Estimator{S,H,T} where {S<:Sampler{I,NumberGenerator{D,G}} where {I<:Union{FT,TD,HC,AD},D,G<:MC},H,T}
+const MultiIndexQuasiMonteCarloEstimator = Estimator{S,H,T} where {S<:Sampler{I,NumberGenerator{D,G}} where {I<:Union{FT,TD,HC,AD},D,G<:QMC},H,T}
 
+## show methods ##
+show(io::IO,estimator::MonteCarloEstimator) = print(io,"Monte Carlo estimator")
+show(io::IO,estimator::QuasiMonteCarloEstimator) = print(io,"Quasi Monte Carlo estimator")
+show(io::IO,estimator::MultiLevelMonteCarloEstimator) = print(io,"Multilevel Monte Carlo estimator")
+show(io::IO,estimator::MultiLevelQuasiMonteCarloEstimator) = print(io,"MultilevelQuasi Monte Carlo estimator")
+show(io::IO,estimator::MultiIndexMonteCarloEstimator) = print(io,"Multi-Index Monte Carlo estimator")
+show(io::IO,estimator::MultiIndexQuasiMonteCarloEstimator) = print(io,"Multi-Index Quasi Monte Carlo estimator")

@@ -27,9 +27,9 @@ export SL, ML, FT, TD, HC, AD, get_index_set # from index_set.jl
 
 export UniformMCGenerator, NormalMCGenerator, TruncatedNormalMCGenerator, UniformQMCGenerator, NormalQMCGenerator, TruncatedNormalQMCGenerator, get_point # from number_generator.jl
 
-export create_estimator # from estimator.jl
+export Sampler # from Sampler
 
-export MonteCarloEstimator, QuasiMonteCarloEstimator, MultiLevelMonteCarloEstimator, MultiLevelQuasiMonteCarloEstimator, MultiIndexMonteCarloEstimator, MultiIndexQuasiMonteCarloEstimator
+export create_estimator, MonteCarloEstimator, QuasiMonteCarloEstimator, MultiLevelMonteCarloEstimator, MultiLevelQuasiMonteCarloEstimator, MultiIndexMonteCarloEstimator, MultiIndexQuasiMonteCarloEstimator # from estimator.jl
 
 export show
 

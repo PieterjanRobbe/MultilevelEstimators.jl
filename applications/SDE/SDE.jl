@@ -1,5 +1,9 @@
 module SDE
 
-	export geometric_brownian_motion	
+using MultilevelEstimators
+
+export geometric_brownian_motion	
+
+include("solver.jl")
 
 end # module SDE
