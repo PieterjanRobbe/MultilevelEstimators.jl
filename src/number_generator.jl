@@ -46,6 +46,10 @@ struct NumberGenerator{D<:Distribution,P<:PointSet}
     pointset::P
 end
 
+## MonteCarloNumberGenerator and QuasiMonteCarloNumberGenerator
+const MonteCarloNumberGenerator = NumberGenerator{D,P} where {D,P<:MC}
+const QuasiMonteCarloNumberGenerator = NumberGenerator{D,P} where {D,P<:QMC}
+
 ## Type aliases ##
 """
     UniformMCGenerator(s)
@@ -255,12 +259,12 @@ end
 get_point(::MC{s},k::N where {N<:Integer}) where {s} = rand(s)
 get_point(pointset::QMC,k::N where {N<:Integer}) = getPoint(pointset.generator,k)
 
-transform(u::Uniform,point) = u.a .+ diagm(u.b - u.a) * point
-transform(n::Normal,point) = n.μ .+ diagm(n.σ) * Φ⁻¹.(point)
+transform(u::Uniform,point) = u.a .+ spdiagm(u.b - u.a) * point
+transform(n::Normal,point) = n.μ .+ spdiagm(n.σ) * Φ⁻¹.(point)
 function transform(t::TruncatedNormal,point)
     α = (t.a-t.μ)./t.σ
     β = (t.b-t.μ)./t.σ
-    t.μ .+ diagm(t.σ) * Φ⁻¹.(Φ.(α) .+ diagm(Φ.(β)-Φ.(α)) * point )
+    t.μ .+ spdiagm(t.σ) * Φ⁻¹.(Φ.(α) .+ spdiagm(Φ.(β)-Φ.(α)) * point )
 end
 
 Φ⁻¹(x::T where {T<:Real}) = √2*erfinv(2*x-1)

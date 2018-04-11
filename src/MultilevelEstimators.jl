@@ -8,30 +8,46 @@
 # TODO make generator states obsolete by using a new number generator at each index
 # TODO make dicts as functions: E(sampler,index), V(sampler, index); E(sampler), V(sampler)
 
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+# 23/02: 
+# estimator input problem: immutable struct
+# then do applications: SDE, SPDE
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
+
 #__precompile()__
 module MultilevelEstimators
 
 # load other modules
 using QMC
 using SpecialFunctions
+using JLD
+using PyPlot
 
 # import statements
-import Base: show, setindex!
+import Base: show, setindex!, run, haskey, mean, var, push!, getindex, keys, diff, γ
 
 import QMC: ndims, nshifts, RandWrapper
 
 # export statements
-export Level, Index # from index.jl
+export Level, Index, diff # from index.jl
 
-export SL, ML, FT, TD, HC, AD, get_index_set # from index_set.jl
+export IndexSet, SL, ML, FT, TD, HC, AD, get_index_set # from index_set.jl
 
 export UniformMCGenerator, NormalMCGenerator, TruncatedNormalMCGenerator, UniformQMCGenerator, NormalQMCGenerator, TruncatedNormalQMCGenerator, get_point # from number_generator.jl
 
-export Sampler # from Sampler
+#export Sampler # from Sampler
 
-export create_estimator, MonteCarloEstimator, QuasiMonteCarloEstimator, MultiLevelMonteCarloEstimator, MultiLevelQuasiMonteCarloEstimator, MultiIndexMonteCarloEstimator, MultiIndexQuasiMonteCarloEstimator # from estimator.jl
+#export create_estimator, MonteCarloEstimator, QuasiMonteCarloEstimator, MultiLevelMonteCarloEstimator, MultiLevelQuasiMonteCarloEstimator, MultiIndexMonteCarloEstimator, MultiIndexQuasiMonteCarloEstimator # from estimator.jl
+
+export create_estimator#, MonteCarloEstimator, QuasiMonteCarloEstimator, MultiLevelMonteCarloEstimator, MultiLevelQuasiMonteCarloEstimator, MultiIndexMonteCarloEstimator, MultiIndexQuasiMonteCarloEstimator
 
 export show
+
+export run
 
 # include statements
 include("index.jl")
@@ -40,12 +56,20 @@ include("index_set.jl")
 
 include("number_generator.jl")
 
-include("sampler.jl")
+#include("sampler.jl")
 
 include("parse.jl")
 
+include("estimator.jl")
+
 include("history.jl")
 
-include("estimator.jl")
+include("sample.jl")
+
+include("run.jl")
+
+include("monte_carlo.jl")
+
+include("multilevel_monte_carlo.jl")
 
 end # module

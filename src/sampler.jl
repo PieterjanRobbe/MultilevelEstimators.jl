@@ -1,6 +1,6 @@
 ## sampler.jl : defintion of a Sampler
 
-mutable struct Sampler{I<:IndexSet,G<:NumberGenerator,U,V,D1,D2}
+struct Sampler{I<:IndexSet,G<:NumberGenerator,U,V,D1,D2}
 
     ## REQUIRED ##
     index_set::I

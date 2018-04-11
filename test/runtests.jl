@@ -1,15 +1,14 @@
 # runtests.jl : run all MultilevelEstimators tests
 
-push!(LOAD_PATH,"../applications/SDE")
-push!(LOAD_PATH,"../applications/SPDE")
+push!(LOAD_PATH,Pkg.dir("MultilevelEstimators/applications/SPDE"))
 
-using QMC
-using MultilevelEstimators
-using SDE
-using SPDE
-using Base.Test
+using QMC, MultilevelEstimators, SPDE, Suppressor, Base.Test
 
-include("test_index.jl")
-include("test_index_set.jl")
-include("test_number_generator.jl")
-include("test_estimator.jl")
+#$ Basic tests
+#include("test_index.jl")
+#include("test_index_set.jl")
+#include("test_number_generator.jl")
+#include("test_estimator.jl")
+
+## SPDE test
+include("test_SPDE.jl")

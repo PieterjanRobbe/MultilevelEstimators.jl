@@ -36,3 +36,7 @@ See also: [`Index`](@ref)
 const Level = Index{1}
 
 Level(i) = Index(i)
+
+## difference ##
+diff(lvl::Level) = lvl > (0,) ? Dict(lvl.-1 => -1) : Dict{Level,Float64}()
+
