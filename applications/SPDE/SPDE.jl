@@ -36,8 +36,6 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
 
     # covariance function
     cov_fun = CovarianceFunction(2,Matern(corr_len,smoothness))
-    #exp_cov = Matern(corr_len,smoothness)
-    #cov_fun = SeparableCovarianceFunction(exp_cov,exp_cov)
 
     # level 0
     m = coarse_dof*2^(max_level-nlevels+1)
@@ -75,11 +73,12 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
         verbose = true,
         continuate=true,
         nb_of_qoi = is_multiple_qoi ? (2*2^max_level+1)^2 : 1,
-        #cost_model = (index) -> ( (coarse_dof^sum(index))^2 )
+        #do_regression=false,
+        cost_model = (index) -> ( (coarse_dof^sum(index))^2 )
     )
 end
 
-## sample function ##
+## sample functions ##
 function SPDE_sample(Z::Matrix{T}) where {T<:Real}
 
     # solve system
@@ -91,6 +90,23 @@ function SPDE_sample(Z::Matrix{T}) where {T<:Real}
     m,n = round.(Int,(size(Z).+1)./2)
     i = sub2ind((m-1,n-1),ceil.(Int,(m,n)./2)...)
     return x[i]
+end
+
+
+function SPDE_sample_multiple(Z::Matrix{T},pts) where {T<:Real}
+
+    # solve system
+    A = elliptic2d(exp.(Z))
+    b = ones(size(A,1))
+    x = A\b
+    
+    # compute qoi's
+    m,n = round.(Int,(size(Z).+1)./2).-1
+    x_reshaped = reshape(x,(m,n))
+    x_padded = hcat(zeros(m,1),x_reshaped,zeros(m,1)) # pad solution with dirichlet conditions
+    x_padded = vcat(zeros(1,m+2),x_padded,zeros(1,m+2))
+    itp = interpolate(linspace.(0,1,(m+2,n+2)), x_padded, Gridded(Linear()))
+    return itp[pts...][:]
 end
 
 function interpolate_field(pts_fine,pts_coarse,Z::Matrix{T}) where {T<:Real}
@@ -123,25 +139,25 @@ function lognormal_diffusion_multiple(index::Index, ξ::Vector{T} where {T<:Real
     # extract grf
     grf = data[index]
 
-#    contourf(sample(grf,xi=ξ[1:randdim(grf)]))
-#    show()
+    # points where to compute the solution
+    max_idx = sort(collect(keys(data.fields)))[end] # find largest grid
+    pts_ = data.fields[max_idx].pts
+    m = round.(Int,(length.(pts_).+1)./2).+1
+    pts = linspace.(0,1,m)
 
     # solve
-    A = elliptic2d(exp.(sample(grf,xi=ξ[1:randdim(grf)])))
-    b = ones(size(A,1))
-    x = A\b
+    Zf = sample(grf,xi=ξ[1:randdim(grf)]) # compute GRF
+    Qf = SPDE_sample_multiple(Zf,pts)
 
-    # compute qoi
-    m,n = round.(Int,(length.(grf.pts).+1)./2).-1
-    x_reshaped = reshape(x,(m,n))
-    # pad solution with dirichlet conditions
-    x_padded = hcat(zeros(m,1),x_reshaped,zeros(m,1))
-    x_padded = vcat(zeros(1,m+2),x_padded,zeros(1,m+2))
-    itp = interpolate(linspace.(0,1,(m+2,n+2)), x_padded, Gridded(Linear()))
-    max_idx = sort(collect(keys(data.fields)))[end] # find largest grid
-    pts = data.fields[max_idx].pts
-    m = round.(Int,(length.(pts).+1)./2).+1
-    return itp[linspace.(0,1,m)...][:]
+    # compute difference
+    dQ = Qf
+    for (key,value) in diff(index)
+        Zc = interpolate_field(data[index].pts,data[key].pts,Zf) # interpolation of fine grid GRF
+        Qc = SPDE_sample_multiple(Zc,pts)
+        dQ += value*Qc
+    end
+
+    return (dQ,Qf)
 end
 
 ## solver ##

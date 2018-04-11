@@ -1,18 +1,15 @@
 # TODO define some standard cost models: \gamma and d, and provide multi_index_cost()
-# TODO define use_sample_run_time = true (default), unless a cost_model is provided
 # TODO default value is Nstar = convert(Int64,ceil(32/nshifts(numberGenerators[Index(zeros(Int64,d))])))
 # TODO avoid the "safety" keyword, only use doubling algorithm in QMC setting
 # TODO avoid the continuate keyword, see algorithm implementation AND use the nb_of_tol keyword
 # TODO how about "real" continuation ?? specify k0 and k1 (trust parameters)
 # TODO what about the old store_samples_0 key
 # TODO make generator states obsolete by using a new number generator at each index
-# TODO make dicts as functions: E(sampler,index), V(sampler, index); E(sampler), V(sampler)
 
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
 # 23/02: 
-# estimator input problem: immutable struct
 # then do applications: SDE, SPDE
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
@@ -56,8 +53,6 @@ include("index_set.jl")
 
 include("number_generator.jl")
 
-#include("sampler.jl")
-
 include("parse.jl")
 
 include("estimator.jl")
@@ -71,5 +66,7 @@ include("run.jl")
 include("monte_carlo.jl")
 
 include("multilevel_monte_carlo.jl")
+
+include("print.jl")
 
 end # module

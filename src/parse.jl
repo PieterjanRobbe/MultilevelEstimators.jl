@@ -76,6 +76,12 @@ end
 # do_regression
 check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:do_regression}}) where {V} = isa(val,Bool) || throw(ArgumentError("do_regression must be of type Bool, got $(V)"))
 
+# do_splitting
+check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:do_splitting}}) where {V} = isa(val,Bool) || throw(ArgumentError("do_splitting must be of type Bool, got $(V)"))
+
+# parallel_sample_function
+check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:parallel_sample_function}}) where {V} = isa(val,Function) || throw(ArgumentError("parallel_sample_function must be of type Function, got $(V)"))
+
 #=
 # parse symbol
 setindex!(sampler::Sampler,value,symbol::Symbol) = setindex!(sampler,value,Val{symbol})

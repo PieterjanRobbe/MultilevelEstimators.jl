@@ -25,6 +25,7 @@ struct Estimator{I<:IndexSet,G<:NumberGenerator,T<:AbstractFloat,N<:Integer,S,U,
 
     # internals
     samples::S # samples will be used to derive mean and variance
+    samples0::S # non-difference samples for consistency check
     nsamples::P # total number of samples taken in each index
     total_work::Q # total runtime or work per index
     current_index_set::C # indices currently in use
@@ -48,6 +49,12 @@ struct Estimator{I<:IndexSet,G<:NumberGenerator,T<:AbstractFloat,N<:Integer,S,U,
 
     # regression instead of warm-up samples
     do_regression::Bool
+
+    # do MSE splitting
+    do_splitting::Bool
+
+    # parallel_sample_function
+    parallel_sample_function::Function
 end
 
 const MonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:SL, G<:MonteCarloNumberGenerator,T,N}
@@ -100,6 +107,7 @@ function create_estimator(;kwargs...)
 
     # estimator internals
     settings[:samples] = S()
+    settings[:samples0] = S()
     settings[:nsamples] = P()
     settings[:total_work] = Q()
     settings[:has_user_data] = isa(settings[:user_data],Void) ? false : true
@@ -125,75 +133,10 @@ get_default_settings(method, number_generator) = Dict{Symbol,Any}(
     :store_samples => false,
     :conservative_bias_estimate => false,
     :max_level => 100,
-    :do_regression => true
+    :do_regression => true,
+    :do_splitting => true,
+    :parallel_sample_function => parallel_sample!
 )
-
-# print methods
-spaces(n) = repeat(" ",n)
-
-function print_status(estimator::Estimator)
-    n = 14
-    nb = 2
-    border = spaces(nb)
-    level_name = ndims(estimator.method) == 1 ? "level" : "index"
-    header = string(border,level_name,spaces(n-nb-length(level_name)))
-    for name in ["E" "V" "N" "W"]
-        header = string(header,name,spaces(n))
-    end
-    println(repeat("-",80))
-    println(header)
-    println(repeat("-",80))
-    for index in keys(estimator)
-        index_str = "$(index)"
-        str = string(border,index_str,spaces(n-nb-length(index_str)-1))
-        str = string(str,@sprintf("%12.5e",mean(estimator,index)),spaces(3))
-        str = string(str,@sprintf("%12.5e",var(estimator,index)),spaces(4))
-        nsamples_str = "$(estimator.nsamples[index])"
-        str = string(str,@sprintf("%s",nsamples_str),spaces(n-length(nsamples_str)))
-        str = string(str,@sprintf("%12.5e",cost(estimator,index)),spaces(4))
-        println(str)
-    end
-end
-
-function print_convergence(estimator::Estimator,converged::Bool)
-    print_status(estimator)
-    converged && println(string("Convergence reached. RMSE ≈",@sprintf("%12.5e",rmse(estimator)),"."))
-    print_footer() 
-end
-
-function warn_max_level(estimator)
-    warn("maximum level L = $(estimator.max_level) reached, no convergence")
-end
-
-function print_mse_analysis(estimator::Estimator,ϵ::T where {T<:Real})
-    print_status(estimator)
-    println(string("Checking convergence..."))
-    println(string("  ==> Rates: α ≈",@sprintf("%6.3f",α(estimator)),
-                              ", β ≈",@sprintf("%6.3f",β(estimator)),
-                              ", γ ≈",@sprintf("%6.3f",γ(estimator)),"."))
-    println(string("  ==> Variance of the estimator ≈",@sprintf("%12.5e",varest(estimator)),"."))
-    println(string("  ==> Bias of the estimator ≈",@sprintf("%12.5e",bias(estimator)),"."))
-    if rmse(estimator) > ϵ
-        println(string("No convergence yet. RMSE ≈",@sprintf("%12.5e",rmse(estimator))," > ",@sprintf("%9.3e",ϵ),"."))
-        println(string("Adding an extra level..."))
-    end
-end
-
-function print_header(estimator::Estimator,ϵ::Float64)
-    println(repeat("-",80))
-    println("*** MultilevelEstimators.jl @$(now())")
-    println("*** This is a $(print_name(estimator))")
-    println("*** Simulating $(estimator.sample_function)")
-    println(@sprintf("*** Tolerance on RMSE ϵ = %7.3e",ϵ))
-    println(repeat("-",80))
-end
-
-function print_footer()
-    println(repeat("-",80))
-    println("*** MultilevelEstimators.jl @$(now())")
-    println("*** Successfull termination")
-    println(repeat("-",80))
-end
 
 # convenience functions
 haskey(estimator::Estimator,index::Index) = in(index,estimator.current_index_set)

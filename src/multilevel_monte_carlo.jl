@@ -1,10 +1,10 @@
 ## multilevel_monte_carlo.jl : run Monte Carlo estimator
 
 ## ::::::::::::: TODO ::::::::::::::
-# 1. splitting
+############## 1. splitting
 ############## 2. do_regression (avoid expensive warm_up_samples, works hand in hand with 3.)
 ############## 3. repeat sampling until variance is smaller than 1.1*θ*ϵ^2 (avoids adding extra level unnecessary)
-# 4. samples0 ?
+############## 4. samples0 ?
 ############## 5. max_index !!!
 ############## 6. in continuate, should only use set of keys that is currently in use!
 ##############    FIX: append current_index_set to Estimator
@@ -14,13 +14,15 @@
 ##############    check this with original implementation ???
 ##############    ===> SeparableCovarianceFunction!!!!!!!!
 ##############    NO! THIS IS NO SOLUTION BECAUSE OF SMOOTHNESS!!!
-# 9. add possibility for own parallel_sample! function into estimator
+############## 9. add possibility for own parallel_sample! function into estimator
 ## main routine ##
 # 10. MLMC with multiple
 ############## 11. add rates
-# 12. catch empty bias / variance at start of loop
+############## 12. catch empty bias / variance at start of loop
 # 13. merge with MonteCarloEstimator
 # 14. complete history and add plotting commands
+# 15. define some default cost models
+#     and make ml_cost use diff
 function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
 
     # print status
@@ -36,9 +38,6 @@ function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
     ########################
     while isempty(keys(estimator)) || ( level <= (2,) ) || !converged 
 
-        # value of the MSE splitting paramter
-        θ = 0.5 # TODO catch empty bias/est here
-
         # obtain initial variance estimate
         N0 = estimator.nb_of_warm_up_samples
         if !haskey(estimator.samples,level)
@@ -48,6 +47,9 @@ function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
 
         # add new level to the index set
         push!(estimator,level)
+
+        # value of the MSE splitting paramter
+        θ = ( level > (2,) && estimator.do_splitting ) ?  min(0.9, max(1/2,1-bias(estimator)^2/ϵ^2)) : 1/2
 
         estimator.verbose && print_status(estimator)
 
@@ -67,7 +69,7 @@ function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
         end
 
         # show status
-        estimator.verbose && print_mse_analysis(estimator,ϵ)
+        estimator.verbose && print_mse_analysis(estimator,ϵ,θ)
 
         # check convergence
         converged = bias(estimator)^2 <= (1-θ)*ϵ^2
@@ -100,6 +102,7 @@ function parallel_sample!(estimator::MultiLevelMonteCarloEstimator,index::Index,
 
     # append samples
     append!(estimator.samples[index],dsamples)
+    append!(estimator.samples0[index],samples)
     estimator.nsamples[index] += iend-istart+1
     estimator.total_work[index] += estimator.use_cost_model ? (iend-istart+1)*estimator.cost_model(index) : t
 end
@@ -122,6 +125,16 @@ for f in [:mean :var :skewness]
            function $(f)(estimator::MultiLevelMonteCarloEstimator,index::Index)
                idx = point_with_max_var(estimator)
                $(f)([estimator.samples[index][j][idx] for j in 1:estimator.nsamples[index]])
+           end
+          )
+    eval(ex)
+end
+
+for f in [:mean :var] # for samples0
+    ex = :(
+           function $(Symbol(f,0))(estimator::MultiLevelMonteCarloEstimator,index::Index)
+               idx = point_with_max_var(estimator)
+               $(f)([estimator.samples0[index][j][idx] for j in 1:estimator.nsamples[index]])
            end
           )
     eval(ex)
