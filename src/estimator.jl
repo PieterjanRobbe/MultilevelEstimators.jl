@@ -174,7 +174,7 @@ function print_mse_analysis(estimator::Estimator,ϵ::T where {T<:Real})
     println(string("  ==> Variance of the estimator ≈",@sprintf("%12.5e",varest(estimator)),"."))
     println(string("  ==> Bias of the estimator ≈",@sprintf("%12.5e",bias(estimator)),"."))
     if rmse(estimator) > ϵ
-        println(string("No convergence yet. RMSE ≈ ",@sprintf("%12.5e",rmse(estimator))," > ",@sprintf("%12.3e",ϵ),"."))
+        println(string("No convergence yet. RMSE ≈",@sprintf("%12.5e",rmse(estimator))," > ",@sprintf("%9.3e",ϵ),"."))
         println(string("Adding an extra level..."))
     end
 end

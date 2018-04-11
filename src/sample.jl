@@ -1,7 +1,9 @@
 # sample.jl : sample methods
 
 ## main sample function ##
-function sample!(estimator::Estimator,index::Index,nb_of_samples::N where {N<:Integer}, warm_up::Bool)
+function sample!(estimator::Estimator,index::Index,nb_of_samples::N where {N<:Integer})
+
+    warm_up = !haskey(estimator.samples,index)
 
     estimator.verbose && begin
         name = warm_up ? "warm-up" : "additional"

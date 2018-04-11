@@ -22,6 +22,6 @@ end
 #@testset "MLMC, single qoi             " begin
 #    @suppress begin
 @show        estimator = init_lognormal_diffusion_mlmc()
-run(estimator,0.0005)
+run(estimator,0.005)
 #    end
 #end

@@ -1,9 +1,9 @@
 ## multilevel_monte_carlo.jl : run Monte Carlo estimator
 
-## TODO :: THREE EXTENSIONS
+## ::::::::::::: TODO ::::::::::::::
 # 1. splitting
-# 2. do_regression (avoid expensive warm_up_samples, works hand in hand with 3.)
-# 3. repeat sampling until variance is smaller than 1.1*θ*ϵ^2 (avoids adding extra level unnecessary)
+############## 2. do_regression (avoid expensive warm_up_samples, works hand in hand with 3.)
+############## 3. repeat sampling until variance is smaller than 1.1*θ*ϵ^2 (avoids adding extra level unnecessary)
 # 4. samples0 ?
 ############## 5. max_index !!!
 ############## 6. in continuate, should only use set of keys that is currently in use!
@@ -20,6 +20,7 @@
 ############## 11. add rates
 # 12. catch empty bias / variance at start of loop
 # 13. merge with MonteCarloEstimator
+# 14. complete history and add plotting commands
 function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
 
     # print status
@@ -35,17 +36,18 @@ function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
     ########################
     while isempty(keys(estimator)) || ( level <= (2,) ) || !converged 
 
-        # add new level to the index set
-        push!(estimator,level)
-
         # value of the MSE splitting paramter
         θ = 0.5 # TODO catch empty bias/est here
 
         # obtain initial variance estimate
         N0 = estimator.nb_of_warm_up_samples
-        if !haskey(estimator.samples,level) # if no samples have been taken yet on this level
-            sample!(estimator,level,N0,true)
+        if !haskey(estimator.samples,level)
+            N0_ = ( level > (2,) && estimator.do_regression ) ? regress(estimator,level,ϵ,θ) : N0 # regression
+            sample!(estimator,level,N0_)
         end
+
+        # add new level to the index set
+        push!(estimator,level)
 
         estimator.verbose && print_status(estimator)
 
@@ -61,7 +63,7 @@ function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
         # take additional samples
         for tau in keys(estimator)
             n_due = n_opt[tau] - estimator.nsamples[tau]
-            n_due > 0 && sample!(estimator,tau,n_due,false)
+            n_due > 0 && sample!(estimator,tau,n_due)
         end
 
         # show status
@@ -116,25 +118,26 @@ function point_with_max_var(estimator::MultiLevelMonteCarloEstimator)
 end
 
 for f in [:mean :var :skewness]
-    ex1 = :(
-            function $(f)(estimator::MultiLevelMonteCarloEstimator,index::Index)
-                idx = point_with_max_var(estimator)
-                $(f)([estimator.samples[index][j][idx] for j in 1:estimator.nsamples[index]])
-            end
-           )
-    eval(ex1)
-    ex2 = :(
-            $(f)(estimator::MultiLevelMonteCarloEstimator) = sum([$(f)(estimator,index) for index in keys(estimator)])
-           )
-    eval(ex2)
+    ex = :(
+           function $(f)(estimator::MultiLevelMonteCarloEstimator,index::Index)
+               idx = point_with_max_var(estimator)
+               $(f)([estimator.samples[index][j][idx] for j in 1:estimator.nsamples[index]])
+           end
+          )
+    eval(ex)
+end
+
+for f in [:mean :var :skewness :varest]
+    ex = :(
+           $(f)(estimator::MultiLevelMonteCarloEstimator) = sum([$(f)(estimator,index) for index in keys(estimator)])
+          )
+    eval(ex)
 end
 
 function varest(estimator::MultiLevelMonteCarloEstimator,index::Index)
     n = estimator.nsamples[index]
     var(estimator,index)/n 
 end
-
-varest(estimator::MultiLevelMonteCarloEstimator) = sum([varest(estimator,index) for index in keys(estimator)])
 
 function moment(estimator::MultiLevelMonteCarloEstimator,k::N where {N<:Integer},index::Index)
     idx = point_with_max_var(estimator)
@@ -185,17 +188,18 @@ function β(estimator::MultiLevelMonteCarloEstimator; both=false)
     end
 end
 
-function γ(estimator::MultiLevelMonteCarloEstimator)
+function γ(estimator::MultiLevelMonteCarloEstimator; both=false)
     max_idx = maximum(keys(estimator))
     if max_idx < (2,)
-        return NaN
+        return both ? [NaN, NaN] : NaN
     else
         x = 1:max_idx[1]
         y = zeros(size(x))
         for i in x
             y[i] = cost(estimator,(i,))
         end
-        return straight_line_fit(x,log2.(y))[2]
+        θ = straight_line_fit(x,log2.(y))
+        return both ? θ : θ[2]
     end
 end
 
@@ -203,4 +207,15 @@ function straight_line_fit(x::AbstractVector,y::AbstractVector)
     X = ones(length(x),2)
     X[:,2] = x
     X\y
+end
+
+function regress(estimator::MultiLevelMonteCarloEstimator,level::Index,ϵ::T,θ::T) where {T<:Real}
+    p = β(estimator,both=true)
+    var_est = 2^(p[1]+level[1]*p[2])
+    p = γ(estimator,both=true)
+    cost_est = 2^(p[1]+level[1]*p[2])
+    all_sum = sum(sqrt.([var(estimator,level)*cost(estimator,level) for level in setdiff(keys(estimator),level)])) 
+    all_sum += sqrt(var_est*cost_est)
+    n_opt = ceil.(Int,1/(θ*ϵ^2) * sqrt(var_est/cost_est) * all_sum)
+    max(2,min(n_opt,estimator.nb_of_warm_up_samples))
 end
