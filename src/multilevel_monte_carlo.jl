@@ -1,28 +1,6 @@
-## multilevel_monte_carlo.jl : run Monte Carlo estimator
+## multilevel_monte_carlo.jl : run Multilevel Monte Carlo estimator
 
-## ::::::::::::: TODO ::::::::::::::
-############## 1. splitting
-############## 2. do_regression (avoid expensive warm_up_samples, works hand in hand with 3.)
-############## 3. repeat sampling until variance is smaller than 1.1*θ*ϵ^2 (avoids adding extra level unnecessary)
-############## 4. samples0 ?
-############## 5. max_index !!!
-############## 6. in continuate, should only use set of keys that is currently in use!
-##############    FIX: append current_index_set to Estimator
-##############    let keys(estimator) return only those keys
-############## 7. implement better bias formula
-############## 8. PROBLEM ::: eigenfunctions are different !!!!!!!!
-##############    check this with original implementation ???
-##############    ===> SeparableCovarianceFunction!!!!!!!!
-##############    NO! THIS IS NO SOLUTION BECAUSE OF SMOOTHNESS!!!
-############## 9. add possibility for own parallel_sample! function into estimator
 ## main routine ##
-# 10. MLMC with multiple
-############## 11. add rates
-############## 12. catch empty bias / variance at start of loop
-# 13. merge with MonteCarloEstimator
-# 14. complete history and add plotting commands
-# 15. define some default cost models
-#     and make ml_cost use diff
 function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
 
     # print status
@@ -34,13 +12,12 @@ function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
     # loop variables
     converged = false
 
-    # to avoid error about empty set 
-    ########################
-    while isempty(keys(estimator)) || ( level <= (2,) ) || !converged 
+    # main loop
+    while !converged 
 
         # obtain initial variance estimate
         N0 = estimator.nb_of_warm_up_samples
-        if !haskey(estimator.samples,level)
+        if !haskey(estimator.samples[1],level)
             N0_ = ( level > (2,) && estimator.do_regression ) ? regress(estimator,level,ϵ,θ) : N0 # regression
             sample!(estimator,level,N0_)
         end
@@ -48,10 +25,11 @@ function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
         # add new level to the index set
         push!(estimator,level)
 
-        # value of the MSE splitting paramter
-        θ = ( level > (2,) && estimator.do_splitting ) ?  min(0.9, max(1/2,1-bias(estimator)^2/ϵ^2)) : 1/2
-
+        # print status
         estimator.verbose && print_status(estimator)
+
+        # value of the MSE splitting paramter
+        θ = estimator.do_splitting ? compute_splitting(estimator,ϵ) : 1/2
 
         # evaluate optimal number of samples
         n_opt = Dict{Index,Int}()
@@ -60,6 +38,7 @@ function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
             n_opt[tau] = ceil.(Int,1/(θ*ϵ^2) * sqrt(var(estimator,tau)/cost(estimator,tau)) * all_sum)
         end
 
+        # print optimal number of samples
         estimator.verbose && print_number_of_samples(estimator,n_opt)
 
         # take additional samples
@@ -72,7 +51,7 @@ function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
         estimator.verbose && print_mse_analysis(estimator,ϵ,θ)
 
         # check convergence
-        converged = bias(estimator)^2 <= (1-θ)*ϵ^2
+        converged = ( level > (2,) ) && ( bias(estimator)^2 <= (1-θ)*ϵ^2 || mse(estimator) <= ϵ^2 )
 
         # increase level
         level = level .+ 1
@@ -89,7 +68,7 @@ function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
 end
 
 ## Multilevel Monte Carlo parallel sampling ##
-function parallel_sample!(estimator::MultiLevelMonteCarloEstimator,index::Index,istart::N,iend::N) where {N<:Integer}
+function parallel_sample!(estimator::MonteCarloTypeEstimator,index::Index,istart::N,iend::N) where {N<:Integer}
 
     # parallel sampling
     wp = CachingPool(workers())
@@ -101,30 +80,24 @@ function parallel_sample!(estimator::MultiLevelMonteCarloEstimator,index::Index,
     dsamples = first.(all_samples)
 
     # append samples
-    append!(estimator.samples[index],dsamples)
-    append!(estimator.samples0[index],samples)
+    for n_qoi in 1:estimator.nb_of_qoi
+        append!(estimator.samples[n_qoi][index],getindex.(dsamples,n_qoi))
+        append!(estimator.samples0[n_qoi][index],getindex.(samples,n_qoi))
+    end
     estimator.nsamples[index] += iend-istart+1
     estimator.total_work[index] += estimator.use_cost_model ? (iend-istart+1)*estimator.cost_model(index) : t
 end
 
 ## inspector functions ##
-cost(estimator::MultiLevelMonteCarloEstimator,index::Index) = estimator.total_work[index]/estimator.nsamples[index]
+cost(estimator::MonteCarloTypeEstimator,index::Index) = estimator.total_work[index]/estimator.nsamples[index]
 
-function point_with_max_var(estimator::MultiLevelMonteCarloEstimator)
-    v = zeros(estimator.nb_of_qoi)
-    for index in keys(estimator)
-        for i = 1:estimator.nb_of_qoi
-            v[i] += var([estimator.samples[index][j][i] for j in 1:estimator.nsamples[index]])
-        end
-    end
-    return indmax(v)
-end
+point_with_max_var(estimator::MonteCarloTypeEstimator) = indmax([ sum([var(estimator.samples[i][idx]) for idx in keys(estimator)]) for i in 1:estimator.nb_of_qoi ])
 
 for f in [:mean :var :skewness]
     ex = :(
-           function $(f)(estimator::MultiLevelMonteCarloEstimator,index::Index)
+           function $(f)(estimator::MonteCarloTypeEstimator,index::Index)
                idx = point_with_max_var(estimator)
-               $(f)([estimator.samples[index][j][idx] for j in 1:estimator.nsamples[index]])
+               $(f)(estimator.samples[idx][index])
            end
           )
     eval(ex)
@@ -132,36 +105,47 @@ end
 
 for f in [:mean :var] # for samples0
     ex = :(
-           function $(Symbol(f,0))(estimator::MultiLevelMonteCarloEstimator,index::Index)
+           function $(Symbol(f,0))(estimator::MonteCarloTypeEstimator,index::Index)
                idx = point_with_max_var(estimator)
-               $(f)([estimator.samples0[index][j][idx] for j in 1:estimator.nsamples[index]])
+               $(f)(estimator.samples0[idx][index])
            end
           )
     eval(ex)
 end
 
-for f in [:mean :var :skewness :varest]
+for f in [:mean :var :skewness]
     ex = :(
-           $(f)(estimator::MultiLevelMonteCarloEstimator) = sum([$(f)(estimator,index) for index in keys(estimator)])
+           function $(f)(estimator::MonteCarloTypeEstimator)
+               idx = point_with_max_var(estimator)
+               sum([$(f)(estimator.samples[idx][index]) for index in keys(estimator)])
+           end
           )
     eval(ex)
 end
 
-function varest(estimator::MultiLevelMonteCarloEstimator,index::Index)
+function varest(estimator::MonteCarloTypeEstimator,index::Index)
     n = estimator.nsamples[index]
     var(estimator,index)/n 
 end
 
-function moment(estimator::MultiLevelMonteCarloEstimator,k::N where {N<:Integer},index::Index)
+function varest(estimator::MonteCarloTypeEstimator)
     idx = point_with_max_var(estimator)
-    moment([estimator.samples[index][j][idx] for j in 1:estimator.nsamples[index]],k)
+    sum([var(estimator.samples[idx][index])/estimator.nsamples[index] for index in keys(estimator)])
 end
 
-moment(estimator::MultiLevelMonteCarloEstimator,k::N where {N<:Integer}) = sum([moment(estimator,k,index) for index in keys(estimator)])
+function moment(estimator::MonteCarloTypeEstimator,k::N where {N<:Integer},index::Index)
+    idx = point_with_max_var(estimator)
+    moment(estimator.samples0[idx][index],k)
+end
 
-function bias(estimator::MultiLevelMonteCarloEstimator)
-    L = maximum(keys(estimator)).+1
-    θ = α(estimator,both=true,conservative=estimator.conservative_bias_estimate)
+function moment(estimator::MonteCarloTypeEstimator,k::N where {N<:Integer})
+    idx = point_with_max_var(estimator)
+    sum([moment(estimator.samples[idx][index],k) for index in keys(estimator)])
+end
+
+function bias(estimator::MultiLevelMonteCarloEstimator; max_idx=maximum(keys(estimator))::Level)
+    L = max_idx.+1
+    θ = α(estimator,both=true,conservative=estimator.conservative_bias_estimate,max_idx=max_idx)
     2^(θ[1]+L[1]*θ[2])
 end
 
@@ -170,8 +154,7 @@ mse(estimator::MultiLevelMonteCarloEstimator) = varest(estimator) + bias(estimat
 rmse(estimator::MultiLevelMonteCarloEstimator) = sqrt(mse(estimator))
 
 ## rates ##
-function α(estimator::MultiLevelMonteCarloEstimator; both=false, conservative=true)
-    max_idx = maximum(keys(estimator))
+function α(estimator::MultiLevelMonteCarloEstimator; both=false, conservative=true, max_idx=maximum(keys(estimator))::Level) # optional arguments account for regression, MSE splitting etc.
     if max_idx < (2,)
         return both ? [NaN, NaN] : NaN
     else
@@ -222,6 +205,7 @@ function straight_line_fit(x::AbstractVector,y::AbstractVector)
     X\y
 end
 
+# regression of optimal number of samples at unknown index
 function regress(estimator::MultiLevelMonteCarloEstimator,level::Index,ϵ::T,θ::T) where {T<:Real}
     p = β(estimator,both=true)
     var_est = 2^(p[1]+level[1]*p[2])
@@ -231,4 +215,15 @@ function regress(estimator::MultiLevelMonteCarloEstimator,level::Index,ϵ::T,θ:
     all_sum += sqrt(var_est*cost_est)
     n_opt = ceil.(Int,1/(θ*ϵ^2) * sqrt(var_est/cost_est) * all_sum)
     max(2,min(n_opt,estimator.nb_of_warm_up_samples))
+end
+
+# compute optimal value of MSE splitting parameter
+function compute_splitting(estimator::MultiLevelMonteCarloEstimator,ϵ::T where {T<:Float64})
+    if length(keys(estimator.samples[1])) < 3 # account for empty samples in first iteration
+        return 1/2
+    else
+        L = max(maximum(keys(estimator.samples[1])),maximum(keys(estimator)))
+        bias_est = bias(estimator,max_idx=L)
+        return min(0.95, max(1/2,1-bias_est^2/ϵ^2))
+    end
 end

@@ -72,11 +72,13 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
         user_data = user_data,
         verbose = true,
         continuate=true,
-        nb_of_qoi = is_multiple_qoi ? (2*2^max_level+1)^2 : 1,
+        nb_of_qoi = is_multiple_qoi ? 20^2 : 1,
         #do_regression=false,
-        cost_model = (index) -> ( (coarse_dof^sum(index))^2 )
+        cost_model = (index) -> geometric_cost_model(4,1.5,index),
+        #do_splitting = false,
     )
 end
+
 
 ## sample functions ##
 function SPDE_sample(Z::Matrix{T}) where {T<:Real}
@@ -93,7 +95,7 @@ function SPDE_sample(Z::Matrix{T}) where {T<:Real}
 end
 
 
-function SPDE_sample_multiple(Z::Matrix{T},pts) where {T<:Real}
+function SPDE_sample_multiple(Z::Matrix{T}) where {T<:Real}
 
     # solve system
     A = elliptic2d(exp.(Z))
@@ -106,7 +108,8 @@ function SPDE_sample_multiple(Z::Matrix{T},pts) where {T<:Real}
     x_padded = hcat(zeros(m,1),x_reshaped,zeros(m,1)) # pad solution with dirichlet conditions
     x_padded = vcat(zeros(1,m+2),x_padded,zeros(1,m+2))
     itp = interpolate(linspace.(0,1,(m+2,n+2)), x_padded, Gridded(Linear()))
-    return itp[pts...][:]
+    pts = linspace(0,1,20)
+    return itp[pts,pts][:]
 end
 
 function interpolate_field(pts_fine,pts_coarse,Z::Matrix{T}) where {T<:Real}
@@ -143,17 +146,16 @@ function lognormal_diffusion_multiple(index::Index, ξ::Vector{T} where {T<:Real
     max_idx = sort(collect(keys(data.fields)))[end] # find largest grid
     pts_ = data.fields[max_idx].pts
     m = round.(Int,(length.(pts_).+1)./2).+1
-    pts = linspace.(0,1,m)
 
     # solve
     Zf = sample(grf,xi=ξ[1:randdim(grf)]) # compute GRF
-    Qf = SPDE_sample_multiple(Zf,pts)
+    Qf = SPDE_sample_multiple(Zf)
 
     # compute difference
     dQ = Qf
     for (key,value) in diff(index)
         Zc = interpolate_field(data[index].pts,data[key].pts,Zf) # interpolation of fine grid GRF
-        Qc = SPDE_sample_multiple(Zc,pts)
+        Qc = SPDE_sample_multiple(Zc)
         dQ += value*Qc
     end
 

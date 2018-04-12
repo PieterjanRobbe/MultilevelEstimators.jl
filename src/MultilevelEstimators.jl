@@ -1,3 +1,40 @@
+## ::::::::::::: TODO ::::::::::::::
+############## 1. splitting
+############## 2. do_regression (avoid expensive warm_up_samples, works hand in hand with 3.)
+############## 3. repeat sampling until variance is smaller than 1.1*θ*ϵ^2 (avoids adding extra level unnecessary)
+############## 4. samples0 ?
+############## 5. max_index !!!
+############## 6. in continuate, should only use set of keys that is currently in use!
+##############    FIX: append current_index_set to Estimator
+##############    let keys(estimator) return only those keys
+############## 7. implement better bias formula
+############## 8. PROBLEM ::: eigenfunctions are different !!!!!!!!
+##############    check this with original implementation ???
+##############    ===> SeparableCovarianceFunction!!!!!!!!
+##############    NO! THIS IS NO SOLUTION BECAUSE OF SMOOTHNESS!!!
+############## 9. add possibility for own parallel_sample! function into estimator
+############## 10. MLMC with multiple
+##############     make pts to interploate to a bit smaller, say 100 x 100
+##############     too big! should be approx. 20 x 20!
+############## 11. add rates
+############## 12. catch empty bias / variance at start of loop
+############## 13. merge with MonteCarloEstimator
+# 14. complete history and add plotting AND reports commands
+# 15. define some default cost models
+#     and make ml_cost use diff
+############## 16. print methods for estimator
+
+
+
+
+
+
+
+
+
+
+
+
 # TODO define some standard cost models: \gamma and d, and provide multi_index_cost()
 # TODO default value is Nstar = convert(Int64,ceil(32/nshifts(numberGenerators[Index(zeros(Int64,d))])))
 # TODO avoid the "safety" keyword, only use doubling algorithm in QMC setting
@@ -5,6 +42,7 @@
 # TODO how about "real" continuation ?? specify k0 and k1 (trust parameters)
 # TODO what about the old store_samples_0 key
 # TODO make generator states obsolete by using a new number generator at each index
+# TODO QMC ::::: will just be a Matrix of nb_of_qoi x nb_of_shifts !!!!
 
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
 ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ## ##
@@ -46,6 +84,8 @@ export show
 
 export run
 
+export geometric_cost_model
+
 # include statements
 include("index.jl")
 
@@ -62,6 +102,8 @@ include("history.jl")
 include("sample.jl")
 
 include("run.jl")
+
+include("cost_models.jl")
 
 include("monte_carlo.jl")
 

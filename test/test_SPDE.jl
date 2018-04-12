@@ -1,11 +1,12 @@
 ## test_SPDE.jl
 
-#=
+ϵ = 0.01
+
 ## Monte Carlo, single qoi
 @testset "Monte Carlo, single qoi      " begin
     @suppress begin
         estimator = init_lognormal_diffusion_mc()
-        run(estimator,0.005)
+        run(estimator,ϵ)
     end
 end
 
@@ -13,23 +14,22 @@ end
 @testset "Monte Carlo, multiple qoi    " begin
     @suppress begin
         estimator = init_lognormal_diffusion_mc_multiple()
-        run(estimator,0.005)
+        run(estimator,ϵ)
     end
 end
-=#
 
 ## Multilevel Monte Carlo, single qoi
-#@testset "MLMC, single qoi             " begin
-#    @suppress begin
-#@show        estimator = init_lognormal_diffusion_mlmc()
-#run(estimator,0.001)
-#    end
-#end
+@testset "MLMC, single qoi             " begin
+    @suppress begin
+        estimator = init_lognormal_diffusion_mlmc()
+        run(estimator,ϵ)
+    end
+end
 
-## Multilevel Monte Carlo, multiple qoi
-#@testset "MLMC, single qoi             " begin
-#    @suppress begin
-@show        estimator = init_lognormal_diffusion_mlmc_multiple()
-run(estimator,0.001)
-#    end
-#end
+# Multilevel Monte Carlo, multiple qoi
+@testset "MLMC, multiple qoi           " begin
+    @suppress begin
+        estimator = init_lognormal_diffusion_mlmc_multiple()
+        run(estimator,ϵ)
+    end
+end

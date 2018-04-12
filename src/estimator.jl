@@ -64,6 +64,9 @@ const MultiLevelMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:ML, G<:M
 #const MultiIndexMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:TD, G<:MonteCarloNumberGenerator,T,N}
 #const MultiIndexQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:TD, G<:QuasiMonteCarloNumberGenerator,T,N}
 
+# common type for both MonteCarloEstimator and MultilevelMonteCarloEstimator
+const MonteCarloTypeEstimator = Estimator{I,G,T,N} where {I,G<:MonteCarloNumberGenerator,T,N}
+
 print_name(estimator::MonteCarloEstimator) = "Monte Carlo estimator"
 print_name(estimator::MultiLevelMonteCarloEstimator) = "Multilevel Monte Carlo estimator"
 
@@ -98,16 +101,22 @@ function create_estimator(;kwargs...)
     G = typeof(settings[:number_generator])
     T = Float64
     N = Int64
-    S_eltype = settings[:nb_of_qoi] > 1 ? Vector{Vector{T}} : Vector{T}
-    S = Dict{Index{ndims(settings[:method])},S_eltype}
+    S_eltype = Dict{Index{ndims(settings[:method])},Vector{T}}
+    S = Vector{S_eltype}
     U = typeof(settings[:user_data])
     P = Dict{Index{ndims(settings[:method])},N}
     Q = Dict{Index{ndims(settings[:method])},T}
     C = Set{Index{ndims(settings[:method])}}
 
     # estimator internals
-    settings[:samples] = S()
-    settings[:samples0] = S()
+    samples = S()
+    samples0 = S()
+    for n_qoi = 1:settings[:nb_of_qoi]
+        push!(samples,S_eltype())
+        push!(samples0,S_eltype())
+    end
+    settings[:samples] = samples
+    settings[:samples0] = samples0
     settings[:nsamples] = P()
     settings[:total_work] = Q()
     settings[:has_user_data] = isa(settings[:user_data],Void) ? false : true
@@ -150,3 +159,6 @@ clear(estimator::Estimator) = begin
         delete!(estimator.current_index_set,index)
     end
 end
+
+# show methods
+show(io::IO, estimator::Estimator) = print(io, print_name(estimator))
