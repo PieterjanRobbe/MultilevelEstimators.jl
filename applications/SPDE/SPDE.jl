@@ -66,12 +66,13 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
 
     ## Estimator ##
     create_estimator(
+        name = "SPDE",
         method = method,
         number_generator = NormalMCGenerator(nterms),
         sample_function = is_multiple_qoi ? lognormal_diffusion_multiple : lognormal_diffusion_single,
         user_data = user_data,
         verbose = true,
-        continuate=true,
+        continuate = true,
         nb_of_qoi = is_multiple_qoi ? 20^2 : 1,
         #do_regression=false,
         cost_model = (index) -> geometric_cost_model(4,1.5,index),

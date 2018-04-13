@@ -17,6 +17,7 @@ struct Estimator{I<:IndexSet,G<:NumberGenerator,T<:AbstractFloat,N<:Integer,S,U,
     p0::T # continuation parameter
 
     # saving options
+    name::String # problem name
     folder::String # name of folder 
     store_samples::Bool # option to save samples for making pdf etc.
 
@@ -144,7 +145,8 @@ get_default_settings(method, number_generator) = Dict{Symbol,Any}(
     :max_level => 100,
     :do_regression => true,
     :do_splitting => true,
-    :parallel_sample_function => parallel_sample!
+    :parallel_sample_function => parallel_sample!,
+    :name => ""
 )
 
 # convenience functions

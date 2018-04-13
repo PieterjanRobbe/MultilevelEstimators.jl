@@ -86,6 +86,11 @@ export run
 
 export geometric_cost_model
 
+# export plotting methods
+export plot_E, plot_dE, plot_V, plot_dV, plot_W, plot_samples, plot_time, plot_cost
+
+export report
+
 # include statements
 include("index.jl")
 
@@ -110,5 +115,9 @@ include("monte_carlo.jl")
 include("multilevel_monte_carlo.jl")
 
 include("print.jl")
+
+include("plot.jl")
+
+include("report.jl")
 
 end # module

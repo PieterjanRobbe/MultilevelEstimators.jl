@@ -8,7 +8,7 @@ end
 
 History() = History(0,now(),Dict{Symbol,Any}[])
 
-function push!(h::History, estimator::Estimator)
+function push!(h::History, estimator::Estimator,tol::T where {T<:Real})
     old_time_stamp = h.time_stamp
 
     h.iter += 1 # add extra iteration
@@ -16,13 +16,22 @@ function push!(h::History, estimator::Estimator)
     push!(h.data,Dict{Symbol,Any}()) # add empty Dict
 
     # log all keys
+    h[:name] = estimator.name
+    h[:tol] = tol
+    h[:max_level] = length(keys(estimator)) - 1
     h[:folder] = estimator.folder
-    h[:runtime] = h.time_stamp - old_time_stamp 
-    h[:nsamples] = estimator.nsamples
+    h[:runtime] = Dates.value(h.time_stamp - old_time_stamp)/1e3 # milliseconds
+    h[:cost] = sum([estimator.nsamples[index]*cost(estimator,index) for index in keys(estimator)])
+    h[:nsamples] = [estimator.nsamples[index] for index in keys(estimator)]
     h[:mse] = mse(estimator)
     h[:rmse] = rmse(estimator)
     h[:mean] = mean(estimator)
     h[:var] = var(estimator)
+    h[:E] = [mean0(estimator,index) for index in keys(estimator)]
+    h[:V] = [var0(estimator,index) for index in keys(estimator)]
+    h[:dE] = [mean(estimator,index) for index in keys(estimator)]
+    h[:dV] = [var(estimator,index) for index in keys(estimator)]
+    h[:W] = [cost(estimator,index) for index in keys(estimator)]
     if estimator.store_samples
         h[:samples] = estimator.samples
     end
@@ -44,3 +53,7 @@ end
 # convenience functions
 setindex!(h::History, val, s::Symbol) = h.data[h.iter][s] = val
 getindex(h::History, s::Symbol) = h.data[h.iter][s]
+getindex(h::History, i::N where {N<:Int}) = h.data[i]
+
+# show methods
+show(io::IO, history::History) = print(io, "MultilevelEstimators.jl history file")

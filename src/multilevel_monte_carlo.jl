@@ -29,7 +29,7 @@ function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
         estimator.verbose && print_status(estimator)
 
         # value of the MSE splitting paramter
-        θ = estimator.do_splitting ? compute_splitting(estimator,ϵ) : 1/2
+        θ = ( estimator.do_splitting && length(keys(estimator.samples[1])) > 2 ) ? compute_splitting(estimator,ϵ) : 1/2
 
         # evaluate optimal number of samples
         n_opt = Dict{Index,Int}()
@@ -51,7 +51,7 @@ function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
         estimator.verbose && print_mse_analysis(estimator,ϵ,θ)
 
         # check convergence
-        converged = ( level > (2,) ) && ( bias(estimator)^2 <= (1-θ)*ϵ^2 || mse(estimator) <= ϵ^2 )
+        converged = ( level >= (2,) ) && ( bias(estimator)^2 <= (1-θ)*ϵ^2 || mse(estimator) <= ϵ^2 )
 
         # increase level
         level = level .+ 1
@@ -117,7 +117,7 @@ for f in [:mean :var :skewness]
     ex = :(
            function $(f)(estimator::MonteCarloTypeEstimator)
                idx = point_with_max_var(estimator)
-               sum([$(f)(estimator.samples[idx][index]) for index in keys(estimator)])
+               sum(Float64[$(f)(estimator.samples[idx][index]) for index in keys(estimator)])
            end
           )
     eval(ex)
@@ -219,11 +219,7 @@ end
 
 # compute optimal value of MSE splitting parameter
 function compute_splitting(estimator::MultiLevelMonteCarloEstimator,ϵ::T where {T<:Float64})
-    if length(keys(estimator.samples[1])) < 3 # account for empty samples in first iteration
-        return 1/2
-    else
-        L = max(maximum(keys(estimator.samples[1])),maximum(keys(estimator)))
-        bias_est = bias(estimator,max_idx=L)
-        return min(0.95, max(1/2,1-bias_est^2/ϵ^2))
-    end
+    L = max(maximum(keys(estimator.samples[1])),maximum(keys(estimator)))
+    bias_est = bias(estimator,max_idx=L)
+    min(0.99, max(1/2,1-bias_est^2/ϵ^2))
 end

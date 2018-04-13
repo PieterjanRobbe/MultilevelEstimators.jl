@@ -11,7 +11,7 @@ function run(estimator::Estimator, tols::Vector{T} where {T<:AbstractFloat})
     # run the sequence of tolerances
     for tol in tols
         _run(estimator,tol)
-        push!(h,estimator) # log the results in history
+        push!(h,estimator,tol) # log the results in history
     end
 
     return h

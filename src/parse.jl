@@ -43,7 +43,7 @@ function check(settings::Dict{Symbol,T} where{T},val::V,::Type{Val{:p0}}) where 
 end
 
 # folder
-function check(settings::Dict{Symbol,T} where{T},val::V,::Type{Val{:folder}}) where {V}
+function check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:folder}}) where {V}
     isa(val,String) || throw(ArgumentError("folder must be of type String, got $(V)"))
     isdir(val) || mkpath(val)
     isempty(readdir(val)) || warn("directory $(val) is not empty, results might be overwritten!")
@@ -81,6 +81,9 @@ check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:do_splitting}}) wher
 
 # parallel_sample_function
 check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:parallel_sample_function}}) where {V} = isa(val,Function) || throw(ArgumentError("parallel_sample_function must be of type Function, got $(V)"))
+
+# name
+check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:name}}) where {V} = isa(val,String) || throw(ArgumentError("name must be of type String, got $(V)"))
 
 #=
 # parse symbol
