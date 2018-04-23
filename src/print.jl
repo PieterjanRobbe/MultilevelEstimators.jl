@@ -21,7 +21,9 @@ function print_status(estimator::Estimator)
         str = string(border,index_str,spaces(n-nb-length(index_str)-1))
         str = string(str,@sprintf("%12.5e",mean(estimator,index)),spaces(3))
         str = string(str,@sprintf("%12.5e",var(estimator,index)),spaces(4))
-        nsamples_str = "$(estimator.nsamples[index])"
+        nshifts = nb_of_shifts(estimator.number_generator)
+        nsamples_str = nshifts == 1 ? "" : "$(nshifts) x "
+        nsamples_str = string(nsamples_str,"$(estimator.nsamples[index])")
         str = string(str,@sprintf("%s",nsamples_str),spaces(n-length(nsamples_str)))
         str = string(str,@sprintf("%12.5e",cost(estimator,index)),spaces(4))
         println(str)
@@ -45,8 +47,8 @@ function print_mse_analysis(estimator::Estimator,ϵ::T where {T<:Real},θ::T whe
     print_status(estimator)
     println(string("Checking convergence..."))
     println(string("  ==> Rates: α ≈",@sprintf("%6.3f",α(estimator)),
-                              ", β ≈",@sprintf("%6.3f",β(estimator)),
-                              ", γ ≈",@sprintf("%6.3f",γ(estimator)),"."))
+                   ", β ≈",@sprintf("%6.3f",β(estimator)),
+                   ", γ ≈",@sprintf("%6.3f",γ(estimator)),"."))
     println(string("  ==> Variance of the estimator ≈",@sprintf("%12.5e",varest(estimator)),"."))
     println(string("  ==> Bias of the estimator ≈",@sprintf("%12.5e",bias(estimator)),"."))
     θ != 1/2 && println(string("  ==> Non-trivial MSE splitting parameter ≈",@sprintf("%5.2f",θ),"."))

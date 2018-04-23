@@ -12,6 +12,7 @@ function run(estimator::Estimator, tols::Vector{T} where {T<:AbstractFloat})
     for tol in tols
         _run(estimator,tol)
         push!(h,estimator,tol) # log the results in history
+        clear(estimator) # prepare new run 
     end
 
     return h

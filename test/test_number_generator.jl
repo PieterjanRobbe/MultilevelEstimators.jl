@@ -14,8 +14,7 @@ u = UniformQMCGenerator(100,16)
 u = UniformQMCGenerator(16,-1*ones(100),ones(100))
 @test typeof(u) <: MultilevelEstimators.NumberGenerator
 lat = LatSeq(12)
-rwr = RandWrapper(lat,16)
-u = UniformQMCGenerator(rwr,-1*ones(12),ones(12))
+u = UniformQMCGenerator(lat,16,-1*ones(12),ones(12))
 @test typeof(u) <: MultilevelEstimators.NumberGenerator
 
 # NormalMCGenerator
@@ -30,8 +29,7 @@ n = NormalQMCGenerator(100,16)
 n = NormalQMCGenerator(16,zeros(100),ones(100))
 @test typeof(n) <: MultilevelEstimators.NumberGenerator
 lat = LatSeq(100)
-rwr = RandWrapper(lat,16)
-n = NormalQMCGenerator(rwr,-1*ones(100),ones(100))
+n = NormalQMCGenerator(lat,64,-1*ones(100),ones(100))
 @test typeof(n) <: MultilevelEstimators.NumberGenerator
 
 # TruncatedNormalMCGenerator
@@ -46,8 +44,7 @@ t = TruncatedNormalQMCGenerator(10,16)
 t = TruncatedNormalQMCGenerator(16,zeros(100),ones(100),-2*ones(100),2*ones(100))
 @test typeof(t) <: MultilevelEstimators.NumberGenerator
 lat = LatSeq(3500)
-rwr = RandWrapper(lat,16)
-t = TruncatedNormalQMCGenerator(rwr,-1*ones(3500),ones(3500),-4*ones(3500),ones(3500))
+t = TruncatedNormalQMCGenerator(lat,16,-1*ones(3500),ones(3500),-4*ones(3500),ones(3500))
 @test typeof(t) <: MultilevelEstimators.NumberGenerator
 
 # argument error handling

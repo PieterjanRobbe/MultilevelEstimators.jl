@@ -218,18 +218,16 @@ function NumberGenerator{D,P}(params::Vector...) where {D<:Distribution,P<:MC}
     NumberGenerator(D{promote_type(typeof.(params)...)}(promote(params...)...),MC{s}())
 end
 
-
 # QMC generator, specify number of dimensions and number of shifts
 function NumberGenerator{D,P}(s::N where {N<:Integer},q::N where {N<:Integer}) where {D<:Distribution,P<:QMC}
     check_ndims(s)
     check_nshifts(q)
     lat = LatSeq(s)
-    rwr = RandWrapper(lat,q)
-    NumberGenerator{D,P}(rwr)
+    NumberGenerator(D(s),QMC{s,q,typeof(lat)}(lat))
 end
 
-# QMC generator, specify point generator
-NumberGenerator{D,P}(rwr::R) where {R<:RandWrapper,D<:Distribution,P<:QMC} = NumberGenerator(D(ndims(rwr)),QMC{ndims(rwr),nshifts(rwr),R}(rwr))
+# QMC generator, specify point generator and number of shifts
+NumberGenerator{D,P}(lat::L,q::N where {N<:Integer}) where {L<:LatSeq,D<:Distribution,P<:QMC} = NumberGenerator(D(ndims(lat)),QMC{ndims(lat),q,L}(lat))
 
 # QMC generator, specify lower and upper bounds and number of shifts
 function NumberGenerator{D,P}(q::N where {N<:Integer},params::Vector{T}...) where {T<:Real,D<:Distribution,P<:QMC}
@@ -237,22 +235,28 @@ function NumberGenerator{D,P}(q::N where {N<:Integer},params::Vector{T}...) wher
     check_ndims(s)
     check_nshifts(q)
     lat = LatSeq(s)
-    rwr = RandWrapper(lat,q)
-    NumberGenerator{D,P}(rwr,params...)
+    NumberGenerator(D{promote_type(typeof.(params)...)}(promote(params...)...),MC{s}())
+    NumberGenerator(D{promote_type(typeof.(params)...)}(promote(params...)...),QMC{s,q,typeof(lat)}(lat))
 end
 
 # QMC generator, specify lower and upper bounds and point generator
-function NumberGenerator{D,P}(rwr::R,params::Vector{T}...) where {R<:RandWrapper,T<:Real,D<:Distribution,P<:QMC}
+function NumberGenerator{D,P}(lat::L,q::N where {N<:Int},params::Vector{T}...) where {L<:LatSeq,T<:Real,D<:Distribution,P<:QMC}
     assert_length(D,params)
-    s = ndims(rwr)
+    s = ndims(lat)
     assert_lengths(params,s)
     assert_bounds(D,params)
-    NumberGenerator(D{promote_type(typeof.(params)...)}(promote(params...)...),QMC{s,nshifts(rwr),R}(rwr))
+    NumberGenerator(D{promote_type(typeof.(params)...)}(promote(params...)...),QMC{s,q,L}(lat))
 end
 
 ## get_point
 function get_point(nb::NumberGenerator{D,P} where {D,P},k::N where {N<:Integer})
     point =  get_point(nb.pointset,k)
+    transform(nb.distribution,point)
+end
+
+# get point with shift index
+function get_point(nb::QuasiMonteCarloNumberGenerator,k::N where {N<:Integer}, s::N where {N<:Integer})
+    point =  get_point(nb.pointset,k)[:,s]
     transform(nb.distribution,point)
 end
 
@@ -271,10 +275,10 @@ end
 Φ(x::T where {T<:Real}) = 1/2*(1+erf(x/√2))
 
 ## new
-new(nb::NumberGenerator{D,P} where {D,P<:MC}) = nb
-function new(nb::NumberGenerator{D,P} where {D,P<:QMC})
-    nb2 = deepcopy(nb)
-    nb2.pointset.generator = RandWrapper(nb.pointset.generator.generator,nshifts(nb.pointset.generator))
+random_shift(nb::NumberGenerator{D,P} where {D,P<:MC}) = nb
+function random_shift(nb::NumberGenerator{D,P} where {D,P<:QMC{s,q}}) where {s,q}
+    rwr = RandWrapper(nb.pointset.generator,q)
+    NumberGenerator(nb.distribution,QMC{s,q,typeof(rwr)}(rwr))
 end
 
 ## show methods
@@ -283,3 +287,8 @@ show(io::IO,nb::NumberGenerator{D,QMC{s,q,R}}) where {D,s,q,R} = print(io,"$(s)-
 show(io::IO,::Uniform) = print(io,"uniform")
 show(io::IO,::Normal) = print(io,"normal")
 show(io::IO,::TruncatedNormal) = print(io,"truncated normal")
+
+## number of shifts
+nb_of_shifts(nb::NumberGenerator{D,MC{s}}) where{D,s} = 1
+nb_of_shifts(nb::NumberGenerator{D,QMC{s,q,R}}) where{D,s,q,R} = q
+

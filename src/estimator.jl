@@ -1,6 +1,6 @@
 # estimator.jl : a multilevel estimator
 
-struct Estimator{I<:IndexSet,G<:NumberGenerator,T<:AbstractFloat,N<:Integer,S,U,P,Q,C}
+struct Estimator{I<:IndexSet,G<:NumberGenerator,T<:AbstractFloat,N<:Integer,S,U,P,Q,C,H}
 
     # required keys
     method::I
@@ -10,6 +10,7 @@ struct Estimator{I<:IndexSet,G<:NumberGenerator,T<:AbstractFloat,N<:Integer,S,U,
     # algorithm details
     nb_of_warm_up_samples::N # number of inital samples for variance estimate
     nb_of_qoi::N # number of quantities of interest
+    nb_of_shifts::N # number of shifts
 
     # continuation
     continuate::Bool # do continuaton
@@ -30,6 +31,7 @@ struct Estimator{I<:IndexSet,G<:NumberGenerator,T<:AbstractFloat,N<:Integer,S,U,
     nsamples::P # total number of samples taken in each index
     total_work::Q # total runtime or work per index
     current_index_set::C # indices currently in use
+    number_generators::H # stores shifted number generator at esach index
 
     # user_data
     has_user_data::Bool # does the estimator have user data?
@@ -56,20 +58,31 @@ struct Estimator{I<:IndexSet,G<:NumberGenerator,T<:AbstractFloat,N<:Integer,S,U,
 
     # parallel_sample_function
     parallel_sample_function::Function
+
+    # sample multiplication factor for QMC algorithm
+    sample_multiplication_factor::T
 end
 
 const MonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:SL, G<:MonteCarloNumberGenerator,T,N}
-#const QuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:SL, G<:QuasiMonteCarloNumberGenerator,T,N}
+const QuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:SL, G<:QuasiMonteCarloNumberGenerator,T,N}
 const MultiLevelMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:ML, G<:MonteCarloNumberGenerator,T,N}
-#const MultiLevelQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:ML, G<:QuasiMonteCarloNumberGenerator,T,N}
-#const MultiIndexMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:TD, G<:MonteCarloNumberGenerator,T,N}
-#const MultiIndexQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:TD, G<:QuasiMonteCarloNumberGenerator,T,N}
+const MultiLevelQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:ML, G<:QuasiMonteCarloNumberGenerator,T,N}
+const MultiIndexMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:Union{TD,FT,HC}, G<:MonteCarloNumberGenerator,T,N}
+const MultiIndexQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:Union{TD,FT,HC}, G<:QuasiMonteCarloNumberGenerator,T,N}
 
-# common type for both MonteCarloEstimator and MultilevelMonteCarloEstimator
+# type aliases
 const MonteCarloTypeEstimator = Estimator{I,G,T,N} where {I,G<:MonteCarloNumberGenerator,T,N}
+const QuasiMonteCarloTypeEstimator = Estimator{I,G,T,N} where {I,G<:QuasiMonteCarloNumberGenerator,T,N}
+
+const SingleLevelTypeEstimator = Estimator{I} where {I<:SL}
+const LevelTypeEstimator = Estimator{I} where {I<:ML}
+const IndexTypeEstimator = Estimator{I} where {I<:Union{TD,FT,HC}}
 
 print_name(estimator::MonteCarloEstimator) = "Monte Carlo estimator"
 print_name(estimator::MultiLevelMonteCarloEstimator) = "Multilevel Monte Carlo estimator"
+print_name(estimator::QuasiMonteCarloEstimator) = "Quasi-Monte Carlo estimator"
+print_name(estimator::MultiLevelQuasiMonteCarloEstimator) = "Multilevel Quasi-Monte Carlo estimator"
+print_name(estimator::MultiIndexMonteCarloEstimator) = "Multi-Index Monte Carlo estimator ($(estimator.method) index set)"
 
 function create_estimator(;kwargs...)
 
@@ -103,18 +116,23 @@ function create_estimator(;kwargs...)
     T = Float64
     N = Int64
     S_eltype = Dict{Index{ndims(settings[:method])},Vector{T}}
-    S = Vector{S_eltype}
+    S = Matrix{S_eltype}
     U = typeof(settings[:user_data])
     P = Dict{Index{ndims(settings[:method])},N}
     Q = Dict{Index{ndims(settings[:method])},T}
     C = Set{Index{ndims(settings[:method])}}
+    H = Dict{Index{ndims(settings[:method])},typeof(random_shift(settings[:number_generator]))}
 
     # estimator internals
-    samples = S()
-    samples0 = S()
-    for n_qoi = 1:settings[:nb_of_qoi]
-        push!(samples,S_eltype())
-        push!(samples0,S_eltype())
+    m = settings[:nb_of_qoi]
+    n = nb_of_shifts(settings[:number_generator])
+    samples = S(m,n)
+    samples0 = S(m,n)
+    for j = 1:n
+        for i = 1:m
+            samples[i,j] = S_eltype()
+            samples0[i,j] = S_eltype()
+        end
     end
     settings[:samples] = samples
     settings[:samples0] = samples0
@@ -123,15 +141,17 @@ function create_estimator(;kwargs...)
     settings[:has_user_data] = isa(settings[:user_data],Void) ? false : true
     settings[:use_cost_model] = isa(settings[:cost_model](zeros(N,ndims(settings[:method]))),Void) ? false : true
     settings[:current_index_set] = C()
+    settings[:nb_of_shifts] = n
+    settings[:number_generators] = H()
 
     # create estimator
-    return Estimator{I,G,T,N,S,U,P,Q,C}(
+    return Estimator{I,G,T,N,S,U,P,Q,C,H}(
         [settings[name] for name in fieldnames(Estimator)]...
     )
 end
 
 get_default_settings(method, number_generator) = Dict{Symbol,Any}(
-    :nb_of_warm_up_samples => 20,
+    :nb_of_warm_up_samples => isa(number_generator,MonteCarloNumberGenerator) ? 20 : 1,
     :nb_of_qoi => 1,
     :continuate => false,
     :ntols => 10,
@@ -146,7 +166,8 @@ get_default_settings(method, number_generator) = Dict{Symbol,Any}(
     :do_regression => true,
     :do_splitting => true,
     :parallel_sample_function => parallel_sample!,
-    :name => ""
+    :name => "",
+    :sample_multiplication_factor => 2
 )
 
 # convenience functions

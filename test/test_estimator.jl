@@ -8,7 +8,7 @@
     number_generator=UniformMCGenerator(100),
     sample_function=i->nothing
 )
-@test isa(estimator,MonteCarloEstimator)
+@test isa(estimator,MultilevelEstimators.MonteCarloEstimator)
 
 # Quasi-Monte Carlo
 @suppress estimator = create_estimator(
@@ -16,7 +16,7 @@
     number_generator=UniformQMCGenerator(100,16),
     sample_function=i->nothing
 )
-@test isa(estimator,QuasiMonteCarloEstimator)
+@test isa(estimator,MultilevelEstimators.QuasiMonteCarloEstimator)
 
 # Multilevel Monte Carlo
 @suppress estimator = create_estimator(
@@ -24,7 +24,7 @@
     number_generator=UniformMCGenerator(100),
     sample_function=i->nothing
 )
-@test isa(estimator,MultiLevelMonteCarloEstimator)
+@test isa(estimator,MultilevelEstimators.MultiLevelMonteCarloEstimator)
 
 # Multilevel Quasi-Monte Carlo
 @suppress estimator = create_estimator(
@@ -32,7 +32,7 @@
     number_generator=UniformQMCGenerator(100,20),
     sample_function=i->nothing
 )
-@test isa(estimator,MultiLevelQuasiMonteCarloEstimator)
+@test isa(estimator,MultilevelEstimators.MultiLevelQuasiMonteCarloEstimator)
 
 # Multi-Index Monte Carlo
 @suppress estimator = create_estimator(
@@ -40,7 +40,7 @@
     number_generator=UniformMCGenerator(100),
     sample_function=i->nothing
 )
-@test isa(estimator,MultiIndexMonteCarloEstimator)
+@test isa(estimator,MultilevelEstimators.MultiIndexMonteCarloEstimator)
 
 # Multi-Index Quasi-Monte Carlo
 @suppress estimator = create_estimator(
@@ -48,7 +48,7 @@
     number_generator=UniformQMCGenerator(100,8),
     sample_function=i->nothing
 )
-@test isa(estimator,MultiIndexQuasiMonteCarloEstimator)
+@test isa(estimator,MultilevelEstimators.MultiIndexQuasiMonteCarloEstimator)
 
 # test other options
 @suppress estimator = create_estimator(
@@ -61,7 +61,7 @@
     nb_of_qoi=120,
     cost_model=i->prod(2.^i)
 )
-@test isa(estimator,MonteCarloEstimator)
+@test isa(estimator,MultilevelEstimators.MonteCarloEstimator)
 
 @test_throws ArgumentError create_estimator(
     method=TD(2),

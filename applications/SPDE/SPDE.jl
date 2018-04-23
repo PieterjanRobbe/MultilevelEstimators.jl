@@ -5,10 +5,15 @@ using Interpolations, Reexport, PyPlot
 
 import Base.getindex
 
+export init_lognormal_diffusion_analyse_ml
 export init_lognormal_diffusion_mc
 export init_lognormal_diffusion_mc_multiple
 export init_lognormal_diffusion_mlmc
 export init_lognormal_diffusion_mlmc_multiple
+export init_lognormal_diffusion_qmc
+export init_lognormal_diffusion_qmc_multiple
+export init_lognormal_diffusion_mlqmc
+export init_lognormal_diffusion_mlqmc_multiple
 
 # user data type to hold GRF's
 struct SPDE_Data{V}
@@ -19,12 +24,17 @@ getindex(s::SPDE_Data,index::Index) = s.fields[index]
 
 ## init functions ##
 
-init_lognormal_diffusion_mc() = init_lognormal_diffusion(SL(),false,false)
-init_lognormal_diffusion_mc_multiple() = init_lognormal_diffusion(SL(),false,true)
-init_lognormal_diffusion_mlmc() = init_lognormal_diffusion(ML(),false,false)
-init_lognormal_diffusion_mlmc_multiple() = init_lognormal_diffusion(ML(),false,true)
+init_lognormal_diffusion_analyse_ml() = init_lognormal_diffusion(ML(),false,false,true)
+init_lognormal_diffusion_mc() = init_lognormal_diffusion(SL(),false,false,false)
+init_lognormal_diffusion_mc_multiple() = init_lognormal_diffusion(SL(),false,true,false)
+init_lognormal_diffusion_mlmc() = init_lognormal_diffusion(ML(),false,false,false)
+init_lognormal_diffusion_mlmc_multiple() = init_lognormal_diffusion(ML(),false,true,false)
+init_lognormal_diffusion_qmc() = init_lognormal_diffusion(SL(),true,false,false)
+init_lognormal_diffusion_qmc_multiple() = init_lognormal_diffusion(SL(),true,true,false)
+init_lognormal_diffusion_mlqmc() = init_lognormal_diffusion(ML(),true,false,false)
+init_lognormal_diffusion_mlqmc_multiple() = init_lognormal_diffusion(ML(),true,true,false)
 
-function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool)
+function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_analyse::Bool)
 
     ## Gaussian random fields ##
     corr_len = 0.5
@@ -64,19 +74,38 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
     # user data
     user_data = SPDE_Data(fields)
 
+    # number generator
+    if is_qmc
+        nshifts = 20
+        number_generator = NormalQMCGenerator(nterms,nshifts)
+    else
+        number_generator = NormalMCGenerator(nterms)
+    end
+
+    # name
+    name = "SPDE "
+    name = is_analyse ? string(name,"analyse ") : name
+    name = isa(method,ML) ? string(name,"ML") : name
+    name = is_qmc ? string(name,"Q") : name
+    name = string(name,"MC")
+    name = is_multiple_qoi ? string(name," (multiple)") : name
+
     ## Estimator ##
     create_estimator(
-        name = "SPDE",
+        name = name,
+        folder = string("data/",name),
         method = method,
-        number_generator = NormalMCGenerator(nterms),
+        number_generator = number_generator,
         sample_function = is_multiple_qoi ? lognormal_diffusion_multiple : lognormal_diffusion_single,
         user_data = user_data,
         verbose = true,
+        max_level = nlevels-1,
         continuate = true,
         nb_of_qoi = is_multiple_qoi ? 20^2 : 1,
         #do_regression=false,
         cost_model = (index) -> geometric_cost_model(4,1.5,index),
         #do_splitting = false,
+        #sample_multiplication_factor = 1.1
     )
 end
 

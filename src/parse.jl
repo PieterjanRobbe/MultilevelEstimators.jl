@@ -18,7 +18,8 @@ check(settings::Dict{Symbol,T} where{T}, val::V,::Type{Val{:sample_function}}) w
 # nb_of_warm_up_samples
 function check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:nb_of_warm_up_samples}}) where {V}
     isa(val,Integer) || throw(ArgumentError("nb_of_warm_up_samples must be of type Integer, got $(V)"))
-    val > 0 || throw(ArgumentError("nb_of_warm_up_samples must be larger than 0, got $(val)"))
+    ( isa(settings[:number_generator],MonteCarloNumberGenerator) && val < 2 ) && throw(ArgumentError("nb_of_warm_up_samples must be larger than 1, got $(val)"))
+    ( isa(settings[:number_generator],QuasiMonteCarloNumberGenerator) && val < 1 ) && throw(ArgumentError("nb_of_warm_up_samples must be larger than 0, got $(val)"))
 end
 
 # nb_of_qoi
@@ -26,6 +27,14 @@ function check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:nb_of_qoi}}
     isa(val,Integer) || throw(ArgumentError("nb_of_qoi must be of type Integer, got $(V)"))
     val > 0 || throw(ArgumentError("nb_of_qoi must be larger than 0, got $(val)"))
 end
+
+# nb_of_shifts
+#=
+function check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:nb_of_shifts}}) where {V}
+    isa(val,Integer) || throw(ArgumentError("nb_of_shifts must be of type Integer, got $(V)"))
+    val > 0 || throw(ArgumentError("nb_of_shifts must be larger than 0, got $(val)"))
+end
+=#
 
 # continuate
 check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:continuate}}) where {V} = isa(val,Bool) || throw(ArgumentError("continuate must be of type Bool, got $(V)"))
@@ -84,6 +93,12 @@ check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:parallel_sample_func
 
 # name
 check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:name}}) where {V} = isa(val,String) || throw(ArgumentError("name must be of type String, got $(V)"))
+
+# p0
+function check(settings::Dict{Symbol,T} where{T},val::V,::Type{Val{:sample_multiplication_factor}}) where {V}
+    isa(val,Real) || throw(ArgumentError("sample_multiplication_factor must be of type Real, got $(V)"))
+    val >= 0 || throw(ArgumentError("p0 must be larger than or equal to 0, got $(val)"))
+end
 
 #=
 # parse symbol

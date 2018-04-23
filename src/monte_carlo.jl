@@ -33,6 +33,5 @@ function _run(estimator::MonteCarloEstimator, ϵ::T where {T<:Real})
     estimator.verbose && print_convergence(estimator,true)
 end
 
-mse(estimator::MonteCarloEstimator) = varest(estimator)
-
-rmse(estimator::MonteCarloEstimator) = sqrt(mse(estimator))
+# bias
+bias(estimator::SingleLevelTypeEstimator) = 0.

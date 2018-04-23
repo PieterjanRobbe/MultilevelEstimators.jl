@@ -21,26 +21,29 @@ function push!(h::History, estimator::Estimator,tol::T where {T<:Real})
     h[:max_level] = length(keys(estimator)) - 1
     h[:folder] = estimator.folder
     h[:runtime] = Dates.value(h.time_stamp - old_time_stamp)/1e3 # milliseconds
-    h[:cost] = sum([estimator.nsamples[index]*cost(estimator,index) for index in keys(estimator)])
-    h[:nsamples] = [estimator.nsamples[index] for index in keys(estimator)]
+    h[:cost] = sum([estimator.nb_of_shifts*estimator.nsamples[index]*cost(estimator,index) for index in keys(estimator)])
+    h[:nsamples] = [estimator.nb_of_shifts*estimator.nsamples[index] for index in keys(estimator)]
+    h[:nb_of_shifts] = estimator.nb_of_shifts
     h[:mse] = mse(estimator)
     h[:rmse] = rmse(estimator)
     h[:mean] = mean(estimator)
     h[:var] = var(estimator)
+    h[:varest] = varest(estimator)
+    h[:bias] = bias(estimator)
     h[:E] = [mean0(estimator,index) for index in keys(estimator)]
     h[:V] = [var0(estimator,index) for index in keys(estimator)]
     h[:dE] = [mean(estimator,index) for index in keys(estimator)]
     h[:dV] = [var(estimator,index) for index in keys(estimator)]
     h[:W] = [cost(estimator,index) for index in keys(estimator)]
+    h[:α] = α(estimator)
+    h[:β] = β(estimator)
+    h[:γ] = γ(estimator)
     if estimator.store_samples
         h[:samples] = estimator.samples
     end
 
     # save
     save(h)
-
-    # clear estimator
-    clear(estimator) # prepare new run 
 end
 
 # save history

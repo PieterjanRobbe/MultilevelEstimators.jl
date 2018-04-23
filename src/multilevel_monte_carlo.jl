@@ -72,7 +72,7 @@ function parallel_sample!(estimator::MonteCarloTypeEstimator,index::Index,istart
 
     # parallel sampling
     wp = CachingPool(workers())
-    f(i) = estimator.sample_function(index,get_point(estimator.number_generator,i),estimator.user_data)
+    f(i) = estimator.sample_function(index,get_point(estimator.number_generators[index],i),estimator.user_data)
     t = @elapsed all_samples = pmap(wp,f,istart:iend)
 
     # extract samples
@@ -135,7 +135,7 @@ end
 
 function moment(estimator::MonteCarloTypeEstimator,k::N where {N<:Integer},index::Index)
     idx = point_with_max_var(estimator)
-    moment(estimator.samples0[idx][index],k)
+    moment(estimator.samples[idx][index],k)
 end
 
 function moment(estimator::MonteCarloTypeEstimator,k::N where {N<:Integer})
@@ -143,18 +143,18 @@ function moment(estimator::MonteCarloTypeEstimator,k::N where {N<:Integer})
     sum([moment(estimator.samples[idx][index],k) for index in keys(estimator)])
 end
 
-function bias(estimator::MultiLevelMonteCarloEstimator; max_idx=maximum(keys(estimator))::Level)
+function bias(estimator::LevelTypeEstimator; max_idx=maximum(keys(estimator))::Level)
     L = max_idx.+1
     θ = α(estimator,both=true,conservative=estimator.conservative_bias_estimate,max_idx=max_idx)
     2^(θ[1]+L[1]*θ[2])
 end
 
-mse(estimator::MultiLevelMonteCarloEstimator) = varest(estimator) + bias(estimator)^2
+mse(estimator::Estimator) = varest(estimator) + bias(estimator)^2
 
-rmse(estimator::MultiLevelMonteCarloEstimator) = sqrt(mse(estimator))
+rmse(estimator::Estimator) = sqrt(mse(estimator))
 
 ## rates ##
-function α(estimator::MultiLevelMonteCarloEstimator; both=false, conservative=true, max_idx=maximum(keys(estimator))::Level) # optional arguments account for regression, MSE splitting etc.
+function α(estimator::LevelTypeEstimator; both=false, conservative=true, max_idx=maximum(keys(estimator))::Level) # optional arguments account for regression, MSE splitting etc.
     if max_idx < (2,)
         return both ? [NaN, NaN] : NaN
     else
@@ -169,22 +169,30 @@ function α(estimator::MultiLevelMonteCarloEstimator; both=false, conservative=t
     end
 end
 
-function β(estimator::MultiLevelMonteCarloEstimator; both=false)
+function β(estimator::LevelTypeEstimator; both=false)
     max_idx = maximum(keys(estimator))
     if max_idx < (2,)
         return both ? [NaN, NaN] : NaN
     else
         x = 1:max_idx[1]
-        y = zeros(size(x))
+        y = Float64[]
         for i in x
-            y[i] = var(estimator,(i,))
+            v = var(estimator,(i,))
+            if !isnan(v)
+                push!(y,v)
+            end
         end
+        x = x[1:length(y)]
         θ = straight_line_fit(x,log2.(y))
-        return both ? θ : -θ[2]
+        if length(x) < 2
+            return both ? [NaN, NaN] : NaN
+        else
+            return both ? θ : -θ[2]
+        end
     end
 end
 
-function γ(estimator::MultiLevelMonteCarloEstimator; both=false)
+function γ(estimator::LevelTypeEstimator; both=false)
     max_idx = maximum(keys(estimator))
     if max_idx < (2,)
         return both ? [NaN, NaN] : NaN
@@ -218,7 +226,7 @@ function regress(estimator::MultiLevelMonteCarloEstimator,level::Index,ϵ::T,θ:
 end
 
 # compute optimal value of MSE splitting parameter
-function compute_splitting(estimator::MultiLevelMonteCarloEstimator,ϵ::T where {T<:Float64})
+function compute_splitting(estimator::LevelTypeEstimator,ϵ::T where {T<:Float64})
     L = max(maximum(keys(estimator.samples[1])),maximum(keys(estimator)))
     bias_est = bias(estimator,max_idx=L)
     min(0.99, max(1/2,1-bias_est^2/ϵ^2))

@@ -40,3 +40,17 @@ Level(i) = Index(i)
 ## difference ##
 diff(lvl::Level) = lvl > (0,) ? Dict(lvl.-1 => -1) : Dict{Level,Float64}()
 
+diff(idx::I) where {I<:Index} = begin
+    D = Dict{I,Float64}()
+    d = length(idx)
+    v = [bit.(1:d,xor(n,n>>1)) for n = 0:2^d-1]
+    for i = 1:2^(d-1)
+        a = idx.-tuple(v[2*i-1]...)
+        b = idx.-tuple(v[2*i]...)
+        if all(a.>=0); D[a] = 1; end
+        if all(b.>=0); D[b] = -1; end
+    end
+    return D
+end
+
+bit(N,m) = m & (1<<(N-1)) >> (N-1)

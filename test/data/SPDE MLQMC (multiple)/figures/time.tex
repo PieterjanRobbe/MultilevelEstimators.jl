@@ -1,0 +1,24 @@
+%!TEX root = ../report_SPDE MLQMC (multiple).tex
+
+\begin{tikzpicture}[trim axis left,trim axis right]
+\begin{axis}[
+width=\figurewidth,
+height=\figureheight,
+scale only axis,
+xlabel={\small accuracy},
+every x tick label/.append style={font=\scriptsize},
+every x label/.append style={font=\scriptsize},
+ylabel={\small run time},
+every y tick label/.append style={font=\scriptsize},
+every y label/.append style={font=\scriptsize},
+legend style={draw=none,font=\scriptsize,at={(0.03,0.03)},anchor=south west,fill=none},
+xmode = log,
+ ymode = log]
+
+
+\addplot [color=blue,solid,mark=*,mark options={solid,fill=blue},line width=0.75pt,mark size=1.2]
+table[]{data/time.txt};
+
+
+\end{axis}
+\end{tikzpicture}

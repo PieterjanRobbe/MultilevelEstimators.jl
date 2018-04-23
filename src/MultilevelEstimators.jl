@@ -91,6 +91,8 @@ export plot_E, plot_dE, plot_V, plot_dV, plot_W, plot_samples, plot_time, plot_c
 
 export report
 
+export analyse
+
 # include statements
 include("index.jl")
 
@@ -114,10 +116,16 @@ include("monte_carlo.jl")
 
 include("multilevel_monte_carlo.jl")
 
+include("quasi_monte_carlo.jl")
+
+include("multilevel_quasi_monte_carlo.jl")
+
 include("print.jl")
 
 include("plot.jl")
 
 include("report.jl")
+
+include("analyse.jl")
 
 end # module
