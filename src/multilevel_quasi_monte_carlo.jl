@@ -87,12 +87,14 @@ function parallel_sample!(estimator::QuasiMonteCarloTypeEstimator,index::Index,i
     dsamples = first.(all_samples)
 
     # append samples
+    @show "start append"
     for j in 1:nshifts
         for i in 1:nqoi
             append!(estimator.samples[i,j][index],getindex.(dsamples[j,:],i))
             append!(estimator.samples0[i,j][index],getindex.(samples[j,:],i))
         end
     end
+    @show "end append"
     estimator.nsamples[index] += iend-istart+1
     estimator.total_work[index] += estimator.use_cost_model ? (iend-istart+1)*estimator.cost_model(index) : t
 end

@@ -35,6 +35,7 @@ end
     end
 end
 
+
 ## Quasi-Monte Carlo, single qoi
 @testset "QMC, single qoi              " begin
     @suppress begin
@@ -42,6 +43,7 @@ end
         run(estimator,ϵ₁)
     end
 end
+
 
 # Quasi-Monte Carlo, multiple qoi
 @testset "QMC, multiple qoi            " begin
@@ -66,5 +68,3 @@ end
         run(estimator,ϵ₂)
     end
 end
-
-

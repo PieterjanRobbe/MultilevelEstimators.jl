@@ -40,7 +40,7 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
     corr_len = 0.5
     smoothness = 1.5
     nterms = 500
-    max_level = 5
+    max_level = 4
     nlevels = isa(method,SL) ? 1 : max_level + 1
     coarse_dof = 2
 
