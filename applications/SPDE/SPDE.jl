@@ -93,7 +93,7 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
     ## Estimator ##
     create_estimator(
         name = name,
-        folder = string("data/",name),
+        folder = string(Pkg.dir("MultilevelEstimators"),"applications/SPDE/data/",name),
         method = method,
         number_generator = number_generator,
         sample_function = is_multiple_qoi ? lognormal_diffusion_multiple : lognormal_diffusion_single,

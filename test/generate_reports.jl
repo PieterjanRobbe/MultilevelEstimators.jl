@@ -2,8 +2,9 @@
 
 using JLD, MultilevelEstimators, PyPlot, Suppressor
 
-for folder in readdir("data")
-    folderpath = joinpath("data",folder)
+data_dir = string(Pkg.dir("MultilevelEstimators"),"applications/SPDE/data")
+for folder in readdir(data_dir)
+    folderpath = joinpath(data_dir,folder)
     filepath = joinpath(folderpath,"history.jld")
     if isfile(filepath)
         print(string("generating report for ",folder,"..."))

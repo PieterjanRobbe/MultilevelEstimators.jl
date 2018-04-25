@@ -35,3 +35,8 @@ end
 
 # bias
 bias(estimator::SingleLevelTypeEstimator) = 0.
+
+# rates
+α(estimator::SingleLevelTypeEstimator) = NaN
+β(estimator::SingleLevelTypeEstimator) = NaN
+γ(estimator::SingleLevelTypeEstimator) = NaN

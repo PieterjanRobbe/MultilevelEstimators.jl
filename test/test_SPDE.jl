@@ -1,6 +1,6 @@
 ## test_SPDE.jl
 
-ϵ₁= 0.05
+ϵ₁= 0.01
 ϵ₂= 0.005
 
 ## Monte Carlo, single qoi
