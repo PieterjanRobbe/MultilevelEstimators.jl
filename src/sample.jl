@@ -10,7 +10,8 @@ function sample!(estimator::Estimator,index::Index,nb_of_samples::N where {N<:In
         is_qmc = isa(estimator,QuasiMonteCarloTypeEstimator)
         mult = is_qmc ? "$(estimator.nb_of_shifts) x " : ""
         withs = nb_of_samples > 1 ? "s" : ""
-        println("Taking $(mult)$(nb_of_samples) $(name) sample$(withs) at level $(index[1])...")
+        level_or_index = length(index) > 1 ? "index $(index)" : "level $(index[1])"
+        println("Taking $(mult)$(nb_of_samples) $(name) sample$(withs) at $(level_or_index)...")
     end
 
     # add new index if no samples are taken yet

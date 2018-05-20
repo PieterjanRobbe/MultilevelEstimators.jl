@@ -31,6 +31,8 @@ struct Estimator{I<:IndexSet,G<:NumberGenerator,T<:AbstractFloat,N<:Integer,S,U,
     nsamples::P # total number of samples taken in each index
     total_work::Q # total runtime or work per index
     current_index_set::C # indices currently in use
+    current_boundary::C # current boundary used for bias estimate
+    max_boundary::C # max boundary used for bias estimate
     number_generators::H # stores shifted number generator at esach index
 
     # user_data
@@ -143,6 +145,8 @@ function create_estimator(;kwargs...)
     settings[:current_index_set] = C()
     settings[:nb_of_shifts] = n
     settings[:number_generators] = H()
+    settings[:current_boundary] = C()
+    settings[:max_boundary] = C()
 
     # create estimator
     return Estimator{I,G,T,N,S,U,P,Q,C,H}(
@@ -182,6 +186,8 @@ clear(estimator::Estimator) = begin
         delete!(estimator.current_index_set,index)
     end
 end
+
+ndims(estimator::Estimator) = ndims(estimator.method)
 
 # show methods
 show(io::IO, estimator::Estimator) = print(io, print_name(estimator))

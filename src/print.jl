@@ -42,13 +42,25 @@ function warn_max_level(estimator)
     warn("maximum level L = $(estimator.max_level) reached, no convergence")
 end
 
+# print rates
+function print_rates(estimator::LevelTypeEstimator)
+    println(string("  ==> Rates: α ≈",@sprintf("%6.3f",α(estimator)),
+                   ", β ≈",@sprintf("%6.3f",β(estimator)),
+                   ", γ ≈",@sprintf("%6.3f",γ(estimator)),"."))
+end
+
+function print_rates(estimator::IndexTypeEstimator)
+    template = string("(",["%6.3f" for i in 1:ndims(estimator.method)]...,")")
+    println(string("  ==> Rates: α ≈ (",[@sprintf("%6.3f",α(estimator,dir)) for dir in 1:ndims(estimator.method)]...,")",
+                   ", β ≈ (",[@sprintf("%6.3f",β(estimator,dir)) for dir in 1:ndims(estimator.method)]...,")",  
+                   ", γ ≈ (",[@sprintf("%6.3f",γ(estimator,dir)) for dir in 1:ndims(estimator.method)]...,")."))  
+end
+
 # print MSE analysis
 function print_mse_analysis(estimator::Estimator,ϵ::T where {T<:Real},θ::T where {T<:Real})
     print_status(estimator)
     println(string("Checking convergence..."))
-    println(string("  ==> Rates: α ≈",@sprintf("%6.3f",α(estimator)),
-                   ", β ≈",@sprintf("%6.3f",β(estimator)),
-                   ", γ ≈",@sprintf("%6.3f",γ(estimator)),"."))
+    print_rates(estimator)
     println(string("  ==> Variance of the estimator ≈",@sprintf("%12.5e",varest(estimator)),"."))
     println(string("  ==> Bias of the estimator ≈",@sprintf("%12.5e",bias(estimator)),"."))
     θ != 1/2 && println(string("  ==> Non-trivial MSE splitting parameter ≈",@sprintf("%5.2f",θ),"."))

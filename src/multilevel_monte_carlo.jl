@@ -226,8 +226,10 @@ function regress(estimator::MultiLevelMonteCarloEstimator,level::Index,ϵ::T,θ:
 end
 
 # compute optimal value of MSE splitting parameter
-function compute_splitting(estimator::LevelTypeEstimator,ϵ::T where {T<:Float64})
+function compute_splitting(estimator::LevelTypeEstimator,ϵ::T where {T<:Real})
     L = max(maximum(keys(estimator.samples[1])),maximum(keys(estimator)))
     bias_est = bias(estimator,max_idx=L)
-    min(0.99, max(1/2,1-bias_est^2/ϵ^2))
+    compute_splitting(bias_est,ϵ)
 end
+
+compute_splitting(bias_est::T where {T<:Real}, ϵ::T where {T<:Real}) = min(0.99, max(1/2,1-bias_est^2/ϵ^2))

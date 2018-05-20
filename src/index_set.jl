@@ -117,9 +117,13 @@ function is_valid_index_set(idxset::Vector{T} where {T<:Index{d}}) where {d}
 end
 
 # output formatting
-show(io::IO, ::SL) = print(io, "single-level index set")
-show(io::IO, ::ML) = print(io, "multi-level index set")
-show(io::IO, ft::FT) = print(io, "$(ndims(ft))-dimensional index set of type FT with weights $(ft.δ)")
-show(io::IO, td::TD) = print(io, "$(ndims(td))-dimensional index set of type TD with weights $(td.δ)")
-show(io::IO, hc::HC) = print(io, "$(ndims(hc))-dimensional index set of type HC with weights $(hc.δ)")
-show(io::IO, ad::AD) = print(io, "$(ndims(ad))-dimensional adaptive index set")
+#for i in [:SL :ML :TD :HC :FT :AD]
+#    ex = :( show(io::IO, ::$(i)) = print(io, $(i)) )
+#    eval(ex)
+#end
+show(io::IO, ::SL) = print(io, "SL")
+show(io::IO, ::ML) = print(io, "ML")
+show(io::IO, ::TD) = print(io, "TD")
+show(io::IO, ::FT) = print(io, "FT")
+show(io::IO, ::HC) = print(io, "HC")
+show(io::IO, ::AD) = print(io, "AD")

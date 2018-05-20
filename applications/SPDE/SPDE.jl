@@ -14,6 +14,7 @@ export init_lognormal_diffusion_qmc
 export init_lognormal_diffusion_qmc_multiple
 export init_lognormal_diffusion_mlqmc
 export init_lognormal_diffusion_mlqmc_multiple
+export init_lognormal_diffusion_mimc
 
 # user data type to hold GRF's
 struct SPDE_Data{V}
@@ -33,6 +34,7 @@ init_lognormal_diffusion_qmc() = init_lognormal_diffusion(SL(),true,false,false)
 init_lognormal_diffusion_qmc_multiple() = init_lognormal_diffusion(SL(),true,true,false)
 init_lognormal_diffusion_mlqmc() = init_lognormal_diffusion(ML(),true,false,false)
 init_lognormal_diffusion_mlqmc_multiple() = init_lognormal_diffusion(ML(),true,true,false)
+init_lognormal_diffusion_mimc() = init_lognormal_diffusion(TD(2),false,false,false)
 
 function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_analyse::Bool)
 

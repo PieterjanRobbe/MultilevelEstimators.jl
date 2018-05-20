@@ -120,6 +120,8 @@ include("quasi_monte_carlo.jl")
 
 include("multilevel_quasi_monte_carlo.jl")
 
+include("multiindex_monte_carlo.jl")
+
 include("print.jl")
 
 include("plot.jl")

@@ -1,7 +1,10 @@
 ## test_SPDE.jl
 
 ϵ₁= 0.01
-ϵ₂= 0.005
+#ϵ₂= 0.005
+ϵ₂= 0.001
+
+#=
 
 ## Monte Carlo, single qoi
 @testset "Monte Carlo, single qoi      " begin
@@ -68,3 +71,7 @@ end
         run(estimator,ϵ₂)
     end
 end
+
+=#
+estimator = init_lognormal_diffusion_mimc()
+run(estimator,ϵ₂)

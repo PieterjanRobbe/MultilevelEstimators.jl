@@ -2,7 +2,7 @@
 
 ## Index ##
 """
-    Index(i...)
+Index(i...)
 
 Represents a multi-index.
 
@@ -20,7 +20,7 @@ Index(i::N...) where {N<:Integer} = all(i .>= 0) ? ntuple(idx -> i[idx], length(
 
 ## Level ##
 """
-    Level(l)
+Level(l)
 
 Represents a level.
 
@@ -43,14 +43,21 @@ diff(lvl::Level) = lvl > (0,) ? Dict(lvl.-1 => -1) : Dict{Level,Float64}()
 diff(idx::I) where {I<:Index} = begin
     D = Dict{I,Float64}()
     d = length(idx)
-    v = [bit.(1:d,xor(n,n>>1)) for n = 0:2^d-1]
-    for i = 1:2^(d-1)
-        a = idx.-tuple(v[2*i-1]...)
-        b = idx.-tuple(v[2*i]...)
-        if all(a.>=0); D[a] = 1; end
-        if all(b.>=0); D[b] = -1; end
+    signs = kron([[1,-1] for i=1:d]...)
+    for i = 1:length(signs)
+        new_idx = idx.-ind2sub(tuple([2 for i = 1:d]...),i).+1
+        if new_idx != idx && all(new_idx .> -1)
+            D[new_idx] = signs[i]
+        end
     end
     return D
 end
 
-bit(N,m) = m & (1<<(N-1)) >> (N-1)
+## unit ##
+function unit(T,i,d)
+    v = zeros(T,d)
+    v[i] = one(T)
+    return Index(v...)
+end
+
+unit(i,d) = unit(Int64,i,d)
