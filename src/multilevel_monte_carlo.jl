@@ -143,10 +143,11 @@ function moment(estimator::MonteCarloTypeEstimator,k::N where {N<:Integer})
     sum([moment(estimator.samples[idx][index],k) for index in keys(estimator)])
 end
 
-function bias(estimator::LevelTypeEstimator; max_idx=maximum(keys(estimator))::Level)
-    L = max_idx.+1
+function bias(estimator::LevelTypeEstimator; use_maximum=false::Bool)
+    L = use_maximum ? maximum(keys(estimator.samples[1])) : maximum(keys(estimator))
+    max_idx = (L,)
     θ = α(estimator,both=true,conservative=estimator.conservative_bias_estimate,max_idx=max_idx)
-    2^(θ[1]+L[1]*θ[2])
+    2^(θ[1]+(L+1)*θ[2])
 end
 
 mse(estimator::Estimator) = varest(estimator) + bias(estimator)^2
@@ -160,12 +161,10 @@ function α(estimator::LevelTypeEstimator; both=false, conservative=true, max_id
     else
         x_start = conservative ? 1 : max_idx[1]-1
         x = x_start:max_idx[1]
-        y = zeros(size(x))
-        for i in x
-            y[i-x_start+1] = mean(estimator,(i,))
-        end
+        y = [mean(estimator,(i,)) for i in x]
         θ = straight_line_fit(x,log2.(abs.(y)))
-        return both ? θ : max(0.5,-θ[2])
+        #θ[2] = min(θ[2],-0.5)
+        return both ? θ : -θ[2]
     end
 end
 
@@ -198,10 +197,7 @@ function γ(estimator::LevelTypeEstimator; both=false)
         return both ? [NaN, NaN] : NaN
     else
         x = 1:max_idx[1]
-        y = zeros(size(x))
-        for i in x
-            y[i] = cost(estimator,(i,))
-        end
+        y = [cost(estimator,(i,)) for i in x]
         θ = straight_line_fit(x,log2.(y))
         return both ? θ : θ[2]
     end
@@ -219,6 +215,7 @@ function regress(estimator::MultiLevelMonteCarloEstimator,level::Index,ϵ::T,θ:
     var_est = 2^(p[1]+level[1]*p[2])
     p = γ(estimator,both=true)
     cost_est = 2^(p[1]+level[1]*p[2])
+    # TODO setdiff ???
     all_sum = sum(sqrt.([var(estimator,level)*cost(estimator,level) for level in setdiff(keys(estimator),level)])) 
     all_sum += sqrt(var_est*cost_est)
     n_opt = ceil.(Int,1/(θ*ϵ^2) * sqrt(var_est/cost_est) * all_sum)
@@ -226,10 +223,8 @@ function regress(estimator::MultiLevelMonteCarloEstimator,level::Index,ϵ::T,θ:
 end
 
 # compute optimal value of MSE splitting parameter
-function compute_splitting(estimator::LevelTypeEstimator,ϵ::T where {T<:Real})
-    L = max(maximum(keys(estimator.samples[1])),maximum(keys(estimator)))
-    bias_est = bias(estimator,max_idx=L)
-    compute_splitting(bias_est,ϵ)
+function compute_splitting(estimator::Estimator,ϵ::T where {T<:Real})
+    bias_est = bias(estimator,use_maximum=true)
+    min(0.99, max(1/2,1-bias_est^2/ϵ^2))
 end
 
-compute_splitting(bias_est::T where {T<:Real}, ϵ::T where {T<:Real}) = min(0.99, max(1/2,1-bias_est^2/ϵ^2))

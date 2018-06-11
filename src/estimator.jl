@@ -1,5 +1,7 @@
 # estimator.jl : a multilevel estimator
 
+# TODO
+# less parameters in type?
 struct Estimator{I<:IndexSet,G<:NumberGenerator,T<:AbstractFloat,N<:Integer,S,U,P,Q,C,H}
 
     # required keys
@@ -31,9 +33,11 @@ struct Estimator{I<:IndexSet,G<:NumberGenerator,T<:AbstractFloat,N<:Integer,S,U,
     nsamples::P # total number of samples taken in each index
     total_work::Q # total runtime or work per index
     current_index_set::C # indices currently in use
-    current_boundary::C # current boundary used for bias estimate
-    max_boundary::C # max boundary used for bias estimate
-    number_generators::H # stores shifted number generator at esach index
+#    current_boundary::C # current boundary used for bias estimate
+#    max_boundary::C # max boundary used for bias estimate
+#    current_level_param::V
+#    max_level_param::V
+    number_generators::H # stores shifted number generator at each index
 
     # user_data
     has_user_data::Bool # does the estimator have user data?
@@ -124,6 +128,7 @@ function create_estimator(;kwargs...)
     Q = Dict{Index{ndims(settings[:method])},T}
     C = Set{Index{ndims(settings[:method])}}
     H = Dict{Index{ndims(settings[:method])},typeof(random_shift(settings[:number_generator]))}
+#    V = Vector{N}
 
     # estimator internals
     m = settings[:nb_of_qoi]
@@ -145,8 +150,10 @@ function create_estimator(;kwargs...)
     settings[:current_index_set] = C()
     settings[:nb_of_shifts] = n
     settings[:number_generators] = H()
-    settings[:current_boundary] = C()
-    settings[:max_boundary] = C()
+    #settings[:current_boundary] = C()
+    #settings[:max_boundary] = C()
+    #settings[:current_level_param] = V(1)
+    #settings[:max_level_param] = V(1)
 
     # create estimator
     return Estimator{I,G,T,N,S,U,P,Q,C,H}(

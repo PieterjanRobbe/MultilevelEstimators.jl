@@ -5,6 +5,9 @@ spaces(n) = repeat(" ",n)
 
 # print status of the estimator
 function print_status(estimator::Estimator)
+    # print index set shape if d == 2
+    print_index_set(collect(keys(estimator)))
+    # print status
     n = 14
     nb = 2
     border = spaces(nb)
@@ -28,6 +31,7 @@ function print_status(estimator::Estimator)
         str = string(str,@sprintf("%12.5e",cost(estimator,index)),spaces(4))
         println(str)
     end
+    println(repeat("-",80))
 end
 
 # print convergence of the estimator
@@ -51,6 +55,7 @@ end
 
 function print_rates(estimator::IndexTypeEstimator)
     template = string("(",["%6.3f" for i in 1:ndims(estimator.method)]...,")")
+    @show α(estimator,1)
     println(string("  ==> Rates: α ≈ (",[@sprintf("%6.3f",α(estimator,dir)) for dir in 1:ndims(estimator.method)]...,")",
                    ", β ≈ (",[@sprintf("%6.3f",β(estimator,dir)) for dir in 1:ndims(estimator.method)]...,")",  
                    ", γ ≈ (",[@sprintf("%6.3f",γ(estimator,dir)) for dir in 1:ndims(estimator.method)]...,")."))  
@@ -105,5 +110,26 @@ function print_number_of_samples(estimator,samples)
         str = string(border,index_str,spaces(n-nb-length(index_str)))
         str = string(str,@sprintf("%s",samples[index]))
         println(str)
+    end
+end
+
+# print index set
+function print_index_set(set::Vector{Index{d}}) where {d}
+    if d == 2
+        n = maximum(maximum.(set)+1)
+        A = zeros(Int64,n,n)
+        for index in set
+            A[index[1]+1,index[2]+1] = 1
+        end
+        str = "Shape of the index set:\n"
+        for j = n:-1:1
+            for i = 1:n
+                if A[i,j] > 0
+                    str = string(str,"\u25FC ")
+                end
+            end
+            str = string(str,"\n")
+        end
+        print(str)
     end
 end

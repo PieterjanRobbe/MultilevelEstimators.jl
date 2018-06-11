@@ -18,9 +18,10 @@ function _run(estimator::MultiIndexMonteCarloEstimator, ϵ::T where {T<:Real})
         # obtain initial variance estimate
         N0 = estimator.nb_of_warm_up_samples
         index_set = get_index_set(estimator.method,level)
+        all_sum = ( level > 2 && estimator.do_regression ) ? regress_all_sum(estimator,index_set) : 0.
         for index in index_set
             if !haskey(estimator.samples[1],index)
-                N0_ = ( level > 2 && estimator.do_regression ) ? regress(estimator,index,ϵ,θ) : N0 # regression
+                N0_ = ( level > 2 && estimator.do_regression ) ? regress(estimator,index,all_sum,ϵ,θ) : N0
                 sample!(estimator,index,N0_)
             end
         end
@@ -29,13 +30,12 @@ function _run(estimator::MultiIndexMonteCarloEstimator, ϵ::T where {T<:Real})
         for index in index_set
             push!(estimator,index)
         end
-        update_boundary(estimator,level)
 
         # print status
         estimator.verbose && print_status(estimator)
 
         # value of the MSE splitting paramter
-        θ = ( estimator.do_splitting && estimator.max_level_parameter.level > 1 ) ? compute_splitting(estimator,ϵ) : 1/2
+        θ = ( estimator.do_splitting && maximum(maximum(keys(estimator))) > 1 ) ? compute_splitting(estimator,ϵ) : 1/2
 
         # evaluate optimal number of samples
         n_opt = Dict{Index,Int}()
@@ -69,56 +69,97 @@ function _run(estimator::MultiIndexMonteCarloEstimator, ϵ::T where {T<:Real})
         end
     end
     
-    # save the current boundary for the next iterations
-    update_max_boundary(estimator,level)
-
     # print convergence status
     estimator.verbose && print_convergence(estimator,converged)
 end
 
+# NEW APPROACH
+# DO LINEAR FIT OF BIAS!!!
+# TODO: check if this is efficient...
 function bias(estimator::IndexTypeEstimator; use_maximum=false::Bool)
-    boundary = use_maximum ? estimator.max_boundary : estimator.current_boundary
+    index_set = use_maximum ? keys(estimator.samples[1]) : keys(estimator)
+    x = Int64[]
+    y = Float64[]
+    level = 1
+    max_reached = false
+    while !max_reached
+        boundary = setdiff(get_index_set(estimator.method,level),get_index_set(estimator.method,level-1))
+        if isempty(∩(index_set,boundary))
+            max_reached = true
+        else
+            push!(x,level)
+            push!(y,sum(mean.(estimator,boundary)))
+            level += 1
+        end
+    end
+    println("----- bias -----")
+    @show x
+    @show y
+    if length(x) > 1
+        start_level = estimator.conservative_bias_estimate ? 1 : length(x) - 1
+        θ = straight_line_fit(x[start_level:end],log2.(abs.(y[start_level:end])))
+        return 2^(θ[1]+(x[end]+1)*θ[2])
+    else
+        return NaN
+    end
+end
+
+#=
+    @show boundary = use_maximum ? isempty(estimator.max_boundary) ? estimator.current_boundary : estimator.max_boundary : estimator.current_boundary
     B = 0. # bias contribution
     for index in boundary 
         value = Float64[] # collect estimated contribution in each direction
         for dir in 1:ndims(estimator)
+            println("===============")
+            @show index
+            @show dir
+            println("===============")
             if index[dir] > 2 # if enough levels are available in direction dir
-                # fit from direction dir
-                x_start = estimator.conservative_bias_estimate ? index[dir] - 1 : 2
-                x = x_start:-1:1
-                y = [mean(estimator,index.-i.*unit(dir,ndims(estimator))) for i in x]
-                θ = straight_line_fit(x,log2.(abs.(y)))
-                push!(value,2^(θ[1]))
+                θ = α(estimator,dir,both=true,conservative=estimator.conservative_bias_estimate,start_idx=index)
+                @show θ
+                push!(value,2^(θ[1]+index[dir]*θ[2]))
             end
         end
+        @show index
+        @show value
         B += isempty(value) ? 0. : mean(value) # take mean value over all estimates
     end
     return iszero(B) ? NaN : B
 end
+=#
 
 ## rates ##
 α(estimator::IndexTypeEstimator) = tuple([α(estimator,i) for i in 1:ndims(estimator)]...)
 
 function α(estimator::IndexTypeEstimator, dir::Int64; both=false)
-    max_idx = maximum(getindex.(keys(estimator),dir))
+    max_idx = maximum(getindex.(keys(estimator),dir)) 
     if max_idx < 2
         return both ? [NaN, NaN] : NaN
     else
         x = 1:max_idx
         y = [mean(estimator,i.*unit(dir,ndims(estimator))) for i in x]
         θ = straight_line_fit(x,log2.(abs.(y)))
-        return both ? θ : max(0.5,-θ[2])
+        return both ? θ : -θ[2]
     end
 end
 
+# TODO β.(estimator,1:ndims(estimator))
 β(estimator::IndexTypeEstimator) = tuple([β(estimator,i) for i in 1:ndims(estimator)]...)
 
-function β(estimator::IndexTypeEstimator, dir::Int64; both=false)
-    max_idx = maximum(getindex.(keys(estimator),dir))
+function β(estimator::IndexTypeEstimator, dir::Int64; both=false, start_idx=Index(zeros(Int64,ndims(estimator))...)::Index)
+    max_idx = all(start_idx.==0) ? maximum(getindex.(keys(estimator),dir)) : start_idx[dir]-1
     if max_idx < 2
         return both ? [NaN, NaN] : NaN
     else
         x = 1:max_idx
+        start_vec = [start_idx...]
+        start_vec[dir] = 0
+        new_start_idx = Index(start_vec...)
+        y = [var(estimator,new_start_idx.+i.*unit(dir,ndims(estimator))) for i in x]
+        θ = straight_line_fit(x,log2.(y))
+        return both ? θ : -θ[2]
+    end
+#=
         y = Float64[]
         for i in x
             v = var(estimator,i.*unit(dir,ndims(estimator)))
@@ -130,32 +171,109 @@ function β(estimator::IndexTypeEstimator, dir::Int64; both=false)
         θ = straight_line_fit(x,log2.(y))
         return both ? θ : -θ[2]
     end
+    =#
 end
 
 γ(estimator::IndexTypeEstimator) = tuple([γ(estimator,i) for i in 1:ndims(estimator)]...)
 
-function γ(estimator::IndexTypeEstimator, dir::Int64; both=false)
-    max_idx = maximum(getindex.(keys(estimator),dir))
+function γ(estimator::IndexTypeEstimator, dir::Int64; both=false, start_idx=Index(zeros(Int64,ndims(estimator))...)::Index)
+    max_idx = all(start_idx.==0) ? maximum(getindex.(keys(estimator),dir)) : start_idx[dir]-1
     if max_idx < 2
         return both ? [NaN, NaN] : NaN
     else
         x = 1:max_idx
-        y = [cost(estimator,i.*unit(dir,ndims(estimator))) for i in x]
+        start_vec = [start_idx...]
+        start_vec[dir] = 0
+        new_start_idx = Index(start_vec...)
+        y = [cost(estimator,new_start_idx.+i.*unit(dir,ndims(estimator))) for i in x]
         θ = straight_line_fit(x,log2.(y))
         return both ? θ : θ[2]
     end
 end
 
 # compute optimal value of MSE splitting parameter
-function compute_splitting(estimator::IndexTypeEstimator,ϵ::T where {T<:Float64})
-    bias_est = bias(estimator,use_maximum=true)
-    compute_splitting(bias_est,ϵ)
+#function compute_splitting(estimator::IndexTypeEstimator,ϵ::T where {T<:Float64})
+#    bias_est = bias(estimator,use_maximum=true)
+#    compute_splitting(bias_est,ϵ)
+#end
+
+# regress on all_sum: \sum \sqrt{V_\ell*C_\ell}
+function regress_all_sum(estimator::Estimator,index_set)
+    all_sum = 0.
+    for index in index_set
+        @show index
+        if !haskey(estimator.samples[1],index) # no samples on this level yet; do regression on var/cost
+          @show  all_sum += sqrt(var_regress(estimator,index)*cost_regress(estimator,index))
+        else # already samples on this level; use measured var/cost
+          @show  all_sum += sqrt(var(estimator,index)*cost(estimator,index))
+        end
+    end
+    return all_sum
 end
 
+# regress variance on index based on available information in estimator
+function var_regress(estimator,index)
+    value = Float64[] # collect estimated contribution in each direction
+    for dir in 1:ndims(estimator)
+        if index[dir] > 2 # if enough levels are available in direction dir
+            θ = β(estimator,dir,both=true,start_idx=index)
+            push!(value,2^(θ[1]+index[dir]*θ[2]))
+        end
+    end
+    if isempty(value)
+        # multi-dimensional regression
+        idx_set = setdiff(collect(keys(estimator.samples[1])),[tuple(zeros(ndims(estimator))...)])
+        m = length(idx_set); n = ndims(estimator)+1
+        X = ones(m,n)
+        X[1:m,2:n] = [getindex(idx_set[i],j) for i in 1:m, j in 1:n-1]
+        y = [var(estimator,index) for index in idx_set]
+        θ = X\y
+        return 2.^(θ[1]+sum(θ[2:end].*index))
+    else
+        return mean(value)
+    end
+end
+
+# regress cost on index based on available information in estimator
+function cost_regress(estimator,index)
+    value = Float64[] # collect estimated contribution in each direction
+    for dir in 1:ndims(estimator)
+        if index[dir] > 2 # if enough levels are available in direction dir
+            θ = γ(estimator,dir,both=true,start_idx=index)
+            push!(value,2^(θ[1]+index[dir]*θ[2]))
+        end
+    end
+    if isempty(value)
+        # multi-dimensional regression
+        idx_set = setdiff(collect(keys(estimator.samples[1])),[tuple(zeros(ndims(estimator))...)])
+        m = length(idx_set); n = ndims(estimator)+1
+        X = ones(m,n)
+        X[1:m,2:n] = [getindex(idx_set[i],j) for i in 1:m, j in 1:n-1]
+        y = [cost(estimator,index) for index in idx_set]
+        θ = X\y
+        return 2.^(θ[1]+sum(θ[2:end].*index)) # TODO
+    else
+        return mean(value)
+    end
+end
+
+# regression
+function regress(estimator::MultiIndexMonteCarloEstimator,index::Index,all_sum::T,ϵ::T,θ::T) where {T<:Real}
+    @show var_est = var_regress(estimator,index)
+    @show cost_est = cost_regress(estimator,index)
+    @show all_sum
+    @show θ
+    @show ϵ
+    n_opt = ceil.(Int,1/(θ*ϵ^2) * sqrt(var_est/cost_est) * all_sum)
+    max(2,min(n_opt,estimator.nb_of_warm_up_samples))
+end
+
+# TODO merge the next two functions?
 # save the current boundary
+#=
 function update_boundary(estimator::IndexTypeEstimator,level::N where {N<:Integer})
     empty!(estimator.current_boundary)
-    boundary = setdiff(get_index_set(estimator.method,level),get_index_set(estimator.method,level+1))
+    boundary = setdiff(get_index_set(estimator.method,level+1),get_index_set(estimator.method,level))
     for idx in boundary
         push!(estimator.current_boundary,idx)
     end
@@ -163,15 +281,48 @@ end
 
 # save the max boundary
 function update_max_boundary(estimator::IndexTypeEstimator,level::N where {N<:Integer})
-    empty!(estimator.max__boundary)
-    boundary = setdiff(get_index_set(estimator.method,level),get_index_set(estimator.method,level+1))
+    empty!(estimator.max_boundary)
+    boundary = setdiff(get_index_set(estimator.method,level+1),get_index_set(estimator.method,level))
     for idx in boundary
         push!(estimator.max_boundary,idx)
     end
 end
+=#
 
 # regression of optimal number of samples at unknown index
+#=
 function regress(estimator::MultiIndexMonteCarloEstimator,level::Index,ϵ::T,θ::T) where {T<:Real}
+
+    # total variance on already known levels
+
+    # total variance on 
+
+    v = Float[]
+    d = ndims(estimator)
+    for dir in 1:d
+        if index[dir] > 2
+            x = 1:index[dir]-1
+            y = [var(estimator,i.*unit(dir,d)) for i in x]
+            θ = straight_line_fit(x,log2.(y))
+            push!(v,2^(θ[1]+index[dir]*θ[2]))
+        end
+    end
+    return isempty(v) ? estimator.nb_of_warm_up_samples : mean(v)
+end
+
+
+        x = 1:max_idx
+        y = Float64[]
+        for i in x
+            v = var(estimator,i.*unit(dir,ndims(estimator)))
+            if !isnan(v)
+                push!(y,v)
+            end
+        end
+        x = x[1:length(y)]
+        θ = straight_line_fit(x,log2.(y))
+        return both ? θ : -θ[2]
+    
     p = β(estimator,both=true)
     var_est = 2^(p[1]+level[1]*p[2])
     p = γ(estimator,both=true)
@@ -181,6 +332,8 @@ function regress(estimator::MultiIndexMonteCarloEstimator,level::Index,ϵ::T,θ:
     n_opt = ceil.(Int,1/(θ*ϵ^2) * sqrt(var_est/cost_est) * all_sum)
     max(2,min(n_opt,estimator.nb_of_warm_up_samples))
 end
+=#
+
 
 #=
 
