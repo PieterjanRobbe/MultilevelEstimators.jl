@@ -29,7 +29,7 @@ function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
         estimator.verbose && print_status(estimator)
 
         # value of the MSE splitting paramter
-        θ = ( estimator.do_splitting && length(keys(estimator.samples[1])) > 2 ) ? compute_splitting(estimator,ϵ) : 1/2
+        θ = estimator.do_splitting ? compute_splitting(estimator,ϵ) : 1/2
 
         # evaluate optimal number of samples
         n_opt = Dict{Index,Int}()
@@ -225,6 +225,6 @@ end
 # compute optimal value of MSE splitting parameter
 function compute_splitting(estimator::Estimator,ϵ::T where {T<:Real})
     bias_est = bias(estimator,use_maximum=true)
-    min(0.99, max(1/2,1-bias_est^2/ϵ^2))
+	isnan(bias_est) ? 0.5 : min(0.99, max(1/2,1-bias_est^2/ϵ^2))
 end
 

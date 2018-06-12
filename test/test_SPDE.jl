@@ -2,7 +2,7 @@
 
 ϵ₁= 0.01
 #ϵ₂= 0.005
-ϵ₂= 0.001
+ϵ₂= 0.0005
 
 #=
 
@@ -74,4 +74,6 @@ end
 
 =#
 estimator = init_lognormal_diffusion_mimc()
-run(estimator,ϵ₂)
+#h = run(estimator,ϵ₂)
+h = analyse(estimator,nsamples=10_000)
+save(h)

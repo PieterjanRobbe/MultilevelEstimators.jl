@@ -87,6 +87,8 @@ export run
 export geometric_cost_model
 
 # export plotting methods
+export save
+
 export plot_E, plot_dE, plot_V, plot_dV, plot_W, plot_samples, plot_time, plot_cost
 
 export report

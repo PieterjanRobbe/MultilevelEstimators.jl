@@ -18,7 +18,8 @@ function push!(h::History, estimator::Estimator,tol::T where {T<:Real})
     # log all keys
     h[:name] = estimator.name
     h[:tol] = tol
-    h[:max_level] = length(keys(estimator)) - 1
+    #h[:max_level] = length(keys(estimator)) - 1
+	h[:index_set] = keys(estimator)
     h[:folder] = estimator.folder
     h[:runtime] = Dates.value(h.time_stamp - old_time_stamp)/1e3 # milliseconds
     h[:cost] = sum([estimator.nb_of_shifts*estimator.nsamples[index]*cost(estimator,index) for index in keys(estimator)])

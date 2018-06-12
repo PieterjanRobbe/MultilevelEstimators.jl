@@ -42,7 +42,7 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
     corr_len = 0.5
     smoothness = 1.5
     nterms = 500
-    max_level = 4
+    max_level = 6
     nlevels = isa(method,SL) ? 1 : max_level + 1
     coarse_dof = 2
 
@@ -95,7 +95,7 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
     ## Estimator ##
     create_estimator(
         name = name,
-        folder = string(Pkg.dir("MultilevelEstimators"),"applications/SPDE/data/",name),
+        folder = string(Pkg.dir("MultilevelEstimators"),"/applications/SPDE/data/",name),
         method = method,
         number_generator = number_generator,
         sample_function = is_multiple_qoi ? lognormal_diffusion_multiple : lognormal_diffusion_single,
@@ -108,6 +108,7 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
         cost_model = (index) -> geometric_cost_model(4,1.5,index),
         #do_splitting = false,
         #sample_multiplication_factor = 1.1
+		#store_samples = true
     )
 end
 

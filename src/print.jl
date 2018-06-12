@@ -3,11 +3,12 @@
 # print spaces
 spaces(n) = repeat(" ",n)
 
+# short formatting
+short(num) = @sprintf("%6.3f",num)
+
 # print status of the estimator
 function print_status(estimator::Estimator)
-    # print index set shape if d == 2
     print_index_set(collect(keys(estimator)))
-    # print status
     n = 14
     nb = 2
     border = spaces(nb)
@@ -48,17 +49,16 @@ end
 
 # print rates
 function print_rates(estimator::LevelTypeEstimator)
-    println(string("  ==> Rates: α ≈",@sprintf("%6.3f",α(estimator)),
-                   ", β ≈",@sprintf("%6.3f",β(estimator)),
-                   ", γ ≈",@sprintf("%6.3f",γ(estimator)),"."))
+	println(string("  ==> Rates: α ≈",short(α(estimator)),
+                   ", β ≈",short(β(estimator)),
+                   ", γ ≈",short(γ(estimator)),"."))
 end
 
 function print_rates(estimator::IndexTypeEstimator)
     template = string("(",["%6.3f" for i in 1:ndims(estimator.method)]...,")")
-    @show α(estimator,1)
-    println(string("  ==> Rates: α ≈ (",[@sprintf("%6.3f",α(estimator,dir)) for dir in 1:ndims(estimator.method)]...,")",
-                   ", β ≈ (",[@sprintf("%6.3f",β(estimator,dir)) for dir in 1:ndims(estimator.method)]...,")",  
-                   ", γ ≈ (",[@sprintf("%6.3f",γ(estimator,dir)) for dir in 1:ndims(estimator.method)]...,")."))  
+	println(string("  ==> Rates: α ≈ (", join(short.(α.(estimator,1:ndims(estimator))),","), ")",
+                   ", β ≈ (", join(short.(β.(estimator,1:ndims(estimator))),","), ")",
+				   ", γ ≈ (", join(short.(γ.(estimator,1:ndims(estimator))),","), ")."))
 end
 
 # print MSE analysis
@@ -111,6 +111,7 @@ function print_number_of_samples(estimator,samples)
         str = string(str,@sprintf("%s",samples[index]))
         println(str)
     end
+    println(repeat("-",29))
 end
 
 # print index set
@@ -123,6 +124,7 @@ function print_index_set(set::Vector{Index{d}}) where {d}
         end
         str = "Shape of the index set:\n"
         for j = n:-1:1
+            str = string(str,"  ")
             for i = 1:n
                 if A[i,j] > 0
                     str = string(str,"\u25FC ")
