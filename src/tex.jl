@@ -41,7 +41,7 @@ figure_footer() = "
 \\end{figure}
 "
 
-file_contents(title) = "
+file_contents(title,d) = "
 \\documentclass[11pt, oneside]{article}
 
 \\usepackage[margin=2cm]{geometry}
@@ -62,9 +62,9 @@ figure_footer()*"\n"*
 figure_header()*
 "\\input{figures/V.tex}\n \\caption{\\label{fig:V}Decay of the variance \$V[\\Delta Q]\$.}"*
 figure_footer()*"\n"*
-#figure_header()*
-#"\\input{figures/samples.tex}\n \\caption{\\label{fig:samples}Total number of samples \$N_\\ell\$ taken on each level.}"*
-#figure_footer()*"\n"*
+figure_header()*
+"$(d == 1 ? "\\input{figures/samples.tex}\n \\caption{\\label{fig:samples}Total number of samples \$N_\\ell\$ taken on each level.}" : d < 4 ? "\\input{figures/index_set.tex}\n \\caption{\\label{fig:index_set}Shape of the index set for different tolerances on the RMSE.}" : "" )"*"\n"*
+figure_footer()*"\n"*
 figure_header()*
 "\\input{figures/time.tex}\n \\caption{\\label{fig:time}Total simulation run time.}"*
 figure_footer()*"\n"*

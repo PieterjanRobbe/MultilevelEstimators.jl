@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.9.28)  13 JUN 2018 15:54
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.5.23)  13 JUN 2018 17:39
 entering extended mode
  \write18 enabled.
  file:line:error style messages enabled.
@@ -669,7 +669,7 @@ Here is how much of TeX's memory you used:
  25171 multiletter control sequences out of 15000+600000
  7591 words of font info for 27 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 62i,19n,107p,736b,2279s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 62i,19n,107p,735b,2279s stack positions out of 5000i,500n,10000p,200000b,80000s
 </usr/local/texlive/2017/texmf-dist/fonts/type1/pub
 lic/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/publ
 ic/amsfonts/cm/cmmi6.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public
@@ -682,7 +682,7 @@ nts/cm/cmr6.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts
 sy10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cms
 y6.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8
 .pfb>
-Output written on "report_SPDE MC.pdf" (2 pages, 102929 bytes).
+Output written on "report_SPDE MC.pdf" (2 pages, 102662 bytes).
 PDF statistics:
  58 PDF objects out of 1000 (max. 8388607)
  42 compressed objects within 1 object stream

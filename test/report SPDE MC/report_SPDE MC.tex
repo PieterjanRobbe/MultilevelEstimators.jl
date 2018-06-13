@@ -4,8 +4,8 @@
 \usepackage[margin=2cm]{geometry}
 \usepackage{graphicx}
 \usepackage{pgfplots}
-	\newlength\figureheight
-	\newlength\figurewidth
+\newlength\figureheight
+\newlength\figurewidth
 \usepackage{tikz}
 
 \title{Report: SPDE MC}
@@ -19,7 +19,7 @@
 \setlength{\figureheight}{0.3\textwidth}
 \setlength{\figurewidth}{0.3\textwidth}
 \input{figures/E.tex}
- \caption{\label{fig:E}Decay of the expected value $E[\Delta Q_\ell]$.}
+ \caption{\label{fig:E}Decay of the expected value $E[\Delta Q]$.}
 \end{figure}
 
 
@@ -28,7 +28,17 @@
 \setlength{\figureheight}{0.3\textwidth}
 \setlength{\figurewidth}{0.3\textwidth}
 \input{figures/V.tex}
- \caption{\label{fig:V}Decay of the variance $V[\Delta Q_\ell]$.}
+ \caption{\label{fig:V}Decay of the variance $V[\Delta Q]$.}
+\end{figure}
+
+
+\begin{figure}[h]
+\centering
+\setlength{\figureheight}{0.3\textwidth}
+\setlength{\figurewidth}{0.3\textwidth}
+\input{figures/index_set.tex}
+ \caption{\label{fig:index_set}Shape of the index set for different tolerances on the RMSE.}
+
 \end{figure}
 
 

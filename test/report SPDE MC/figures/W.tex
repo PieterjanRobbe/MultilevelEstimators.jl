@@ -1,0 +1,34 @@
+%!TEX root = ../report_SPDE MC.tex
+
+\begin{tikzpicture}[trim axis left,trim axis right]
+\begin{axis}[
+width=\figurewidth,
+height=\figureheight,
+scale only axis,
+xlabel={\small level $\ell$},
+every x tick label/.append style={font=\scriptsize},
+every x label/.append style={font=\scriptsize},
+ylabel={\small $\log_2(C_\ell)$},
+every y tick label/.append style={font=\scriptsize},
+every y label/.append style={font=\scriptsize},
+legend style={draw=none,font=\scriptsize,at={(0.03,0.03)},anchor=south west,fill=none},
+xmin=0,
+ xmax=5,
+ xtick={0,1,...,5},
+]
+
+
+\addplot [color=green,solid,mark=*,mark options={solid,fill=green},line width=0.75pt,mark size=1.2,line cap=round]
+table[]{data/W10.txt};
+\addlegendentry{$W_{(\ell, 0)}$};
+
+\addplot [color=green,solid,mark=square*,mark options={solid,fill=green},line width=0.75pt,mark size=1.2,line cap=round]
+table[]{data/W01.txt};
+\addlegendentry{$W_{(0, \ell)}$};
+
+\addplot [color=green,solid,mark=triangle*,mark options={solid,fill=green},line width=0.75pt,mark size=1.2,line cap=round]
+table[]{data/W11.txt};
+\addlegendentry{$W_{(\ell, \ell)}$};
+
+\end{axis}
+\end{tikzpicture}
