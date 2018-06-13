@@ -74,6 +74,6 @@ end
 
 =#
 estimator = init_lognormal_diffusion_mimc()
-#h = run(estimator,ϵ₂)
-h = analyse(estimator,nsamples=10_000)
+h = run(estimator,ϵ₂)
+#h = analyse(estimator,nsamples=10_000)
 save(h)

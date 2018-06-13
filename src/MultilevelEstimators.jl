@@ -128,6 +128,8 @@ include("print.jl")
 
 include("plot.jl")
 
+include("tex.jl")
+
 include("report.jl")
 
 include("analyse.jl")

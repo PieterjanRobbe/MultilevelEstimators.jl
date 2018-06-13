@@ -1,6 +1,6 @@
 ## plot.jl : loads a history file and make some plots
 
-const MARKERS = ["o","s","v","^","<",">","*"]
+const MARKERS = ["*","s","v","^","<",">","o"]
 const COLORS = ["blue","green","red"]
 
 function plot_E(h::History)
@@ -14,7 +14,7 @@ function plot_E(h::History)
 		while cntr.*proto_idx ∈ h[:index_set]
 			idx = findfirst([cntr.*proto_idx].==h[:index_set])
 			push!(x1,cntr); push!(x2,cntr)
-			push!(y1,log2(abs(h[:E][idx]))),push!(y2,log2(abs(h[:dE][idx])))
+			push!(y1,log2(abs(h[:E][idx]))); push!(y2,log2(abs(h[:dE][idx])))
 			cntr += 1
 		end
 		plot(x1,y1,linestyle="-",marker=MARKERS[mod(i-2,length(MARKERS))+1],color=COLORS[mod(sum(proto_idx)-1,length(COLORS))+1],label="E, $(replace(string(proto_idx),"1","\u2605"))")
@@ -41,7 +41,7 @@ function plot_V(h::History)
 		while cntr.*proto_idx ∈ h[:index_set]
 			idx = findfirst([cntr.*proto_idx].==h[:index_set])
 			push!(x1,cntr); push!(x2,cntr)
-			push!(y1,log2(h[:V][idx])),push!(y2,log2(h[:dV][idx]))
+			push!(y1,log2(h[:V][idx])); push!(y2,log2(h[:dV][idx]))
 			cntr += 1
 		end
 		plot(x1,y1,linestyle="-",marker=MARKERS[mod(i-2,length(MARKERS))+1],color=COLORS[mod(length(COLORS)-sum(proto_idx),length(COLORS))+1],label="V, $(replace(string(proto_idx),"1","\u2605"))")
