@@ -1,0 +1,46 @@
+%!TEX root = ../report_SPDE MC.tex
+
+\begin{tikzpicture}[trim axis left,trim axis right]
+\begin{axis}[
+width=\figurewidth,
+height=\figureheight,
+scale only axis,
+xlabel={\small level $\ell$},
+every x tick label/.append style={font=\scriptsize},
+every x label/.append style={font=\scriptsize},
+ylabel={\small $\log_2(|E[\;\cdot\;]|)$},
+every y tick label/.append style={font=\scriptsize},
+every y label/.append style={font=\scriptsize},
+legend style={draw=none,font=\scriptsize,at={(0.03,0.03)},anchor=south west,fill=none},
+xmin=0,
+ xmax=5,
+ xtick={0,1,...,5},
+]
+
+
+\addplot [color=red,solid,mark=*,mark options={solid,fill=red},line width=0.75pt,mark size=1.2,line cap=round, forget plot]
+table[]{data/E10.txt};
+
+
+\addplot [color=red,dashed,mark=*,mark options={solid,fill=red},line width=0.75pt,mark size=1.2,line cap=round]
+table[]{data/dE10.txt};
+\addlegendentry{$\Delta Q_{(\ell, 0)}$};
+
+\addplot [color=red,solid,mark=square*,mark options={solid,fill=red},line width=0.75pt,mark size=1.2,line cap=round, forget plot]
+table[]{data/E01.txt};
+
+
+\addplot [color=red,dashed,mark=square*,mark options={solid,fill=red},line width=0.75pt,mark size=1.2,line cap=round]
+table[]{data/dE01.txt};
+\addlegendentry{$\Delta Q_{(0, \ell)}$};
+
+\addplot [color=red,solid,mark=triangle*,mark options={solid,fill=red},line width=0.75pt,mark size=1.2,line cap=round, forget plot]
+table[]{data/E11.txt};
+
+
+\addplot [color=red,dotted,mark=triangle*,mark options={solid,fill=red},line width=0.75pt,mark size=1.2,line cap=round]
+table[]{data/dE11.txt};
+\addlegendentry{$\Delta Q_{(\ell, \ell)}$};
+
+\end{axis}
+\end{tikzpicture}
