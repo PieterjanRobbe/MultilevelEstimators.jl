@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.5.23)  13 JUN 2018 17:39
+This is pdfTeX, Version 3.14159265-2.6-1.40.18 (TeX Live 2017) (preloaded format=pdflatex 2017.5.23)  14 JUN 2018 19:35
 entering extended mode
  \write18 enabled.
  file:line:error style messages enabled.
@@ -494,21 +494,46 @@ File: pgflibraryplotmarks.code.tex 2015/08/03 v3.0.1a (rcs-revision 1.14)
 )))
 \figureheight=\skip43
 \figurewidth=\skip44
- (./report_SPDE MC.aux)
+
+(/usr/local/texlive/2017/texmf-dist/tex/latex/booktabs/booktabs.sty
+Package: booktabs 2016/04/27 v1.618033 publication quality tables
+\heavyrulewidth=\dimen173
+\lightrulewidth=\dimen174
+\cmidrulewidth=\dimen175
+\belowrulesep=\dimen176
+\belowbottomsep=\dimen177
+\aboverulesep=\dimen178
+\abovetopsep=\dimen179
+\cmidrulesep=\dimen180
+\cmidrulekern=\dimen181
+\defaultaddspace=\dimen182
+\@cmidla=\count118
+\@cmidlb=\count119
+\@aboverulesep=\dimen183
+\@belowrulesep=\dimen184
+\@thisruleclass=\count120
+\@lastruleclass=\count121
+\@thisrulewidth=\dimen185
+)
+(./report_SPDE MC.aux
+
+LaTeX Warning: Label `fig:index_set' multiply defined.
+
+)
 \openout1 = `"report_SPDE MC.aux"'.
 
-LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 14.
-LaTeX Font Info:    ... okay on input line 14.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 14.
-LaTeX Font Info:    ... okay on input line 14.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 14.
-LaTeX Font Info:    ... okay on input line 14.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 14.
-LaTeX Font Info:    ... okay on input line 14.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 14.
-LaTeX Font Info:    ... okay on input line 14.
-LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 14.
-LaTeX Font Info:    ... okay on input line 14.
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 29.
+LaTeX Font Info:    ... okay on input line 29.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 29.
+LaTeX Font Info:    ... okay on input line 29.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 29.
+LaTeX Font Info:    ... okay on input line 29.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 29.
+LaTeX Font Info:    ... okay on input line 29.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 29.
+LaTeX Font Info:    ... okay on input line 29.
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 29.
+LaTeX Font Info:    ... okay on input line 29.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -546,16 +571,16 @@ LaTeX Font Info:    ... okay on input line 14.
 
 (/usr/local/texlive/2017/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count118
-\scratchdimen=\dimen173
+\scratchcounter=\count122
+\scratchdimen=\dimen186
 \scratchbox=\box38
-\nofMPsegments=\count119
-\nofMParguments=\count120
+\nofMPsegments=\count123
+\nofMParguments=\count124
 \everyMPshowfont=\toks32
-\MPscratchCnt=\count121
-\MPscratchDim=\dimen174
-\MPnumerator=\count122
-\makeMPintoPDFobject=\count123
+\MPscratchCnt=\count125
+\MPscratchDim=\dimen187
+\MPnumerator=\count126
+\makeMPintoPDFobject=\count127
 \everyMPtoPDFconversion=\toks33
 ) (/usr/local/texlive/2017/texmf-dist/tex/generic/oberdiek/pdftexcmds.sty
 Package: pdftexcmds 2017/03/19 v0.25 Utility functions of pdfTeX for LuaTeX (HO
@@ -604,18 +629,15 @@ File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Liv
 e
 ))
 ABD: EveryShipout initializing macros
-
-Package pgfplots Warning: running in backwards compatibility mode (unsuitable t
-ick labels; missing features). Consider writing \pgfplotsset{compat=1.14} into 
-your preamble.
- on input line 14.
+Package pgfplots notification 'compat/show suggested version=true': document ha
+s been generated with the most recent feature set (\pgfplotsset{compat=1.14}).
 
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <12> on input line 15.
+(Font)              <12> on input line 30.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <8> on input line 15.
+(Font)              <8> on input line 30.
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <6> on input line 15.
+(Font)              <6> on input line 30.
 
 LaTeX Warning: No \author given.
 
@@ -635,7 +657,7 @@ LaTeX Font Info:    External font `cmex10' loaded for size
 (Font)              <7> on input line 45.
 )
 LaTeX Font Info:    External font `cmex10' loaded for size
-(Font)              <10.95> on input line 22.
+(Font)              <10.95> on input line 37.
  (./figures/V.tex
 PGFPlots: reading {data/V10.txt}
 PGFPlots: reading {data/dV10.txt}
@@ -646,13 +668,58 @@ Missing character: There is no ; in font nullfont!
 PGFPlots: reading {data/V11.txt}
 PGFPlots: reading {data/dV11.txt}
 Missing character: There is no ; in font nullfont!
+) (./figures/index_set.tex
+(./figures/index_set_1.tex
+PGFPlots: reading {data/index_set_1.txt}
+) (./figures/index_set_2.tex
+PGFPlots: reading {data/index_set_2.txt}
+)
+(./figures/index_set_3.tex
+PGFPlots: reading {data/index_set_3.txt}
+) (./figures/index_set_4.tex
+PGFPlots: reading {data/index_set_4.txt}
+)
+(./figures/index_set_5.tex
+PGFPlots: reading {data/index_set_5.txt}
+) (./figures/index_set_6.tex
+PGFPlots: reading {data/index_set_6.txt}
+)
+(./figures/index_set_7.tex
+PGFPlots: reading {data/index_set_7.txt}
+) (./figures/index_set_8.tex
+PGFPlots: reading {data/index_set_8.txt}
+)
+(./figures/index_set_9.tex
+PGFPlots: reading {data/index_set_9.txt}
+)
+Overfull \hbox (15.12794pt too wide) in paragraph at lines 7--17
+ [][] 
+ []
+
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
+(./figures/index_set_10.tex
+PGFPlots: reading {data/index_set_10.txt}
+)
+
+LaTeX Warning: `h' float specifier changed to `ht'.
+
 ) (./figures/time.tex
+Package pgfplots info on input line 16: Using 'lua backend=false' for axis: xmo
+de=log unsupported (yet).
+Package pgfplots info on input line 16: Using 'lua backend=false' for axis: ymo
+de=log unsupported (yet).
 PGFPlots: reading {data/time.txt}
 )
 
 LaTeX Warning: `h' float specifier changed to `ht'.
 
 (./figures/cost.tex
+Package pgfplots info on input line 16: Using 'lua backend=false' for axis: xmo
+de=log unsupported (yet).
+Package pgfplots info on input line 16: Using 'lua backend=false' for axis: ymo
+de=log unsupported (yet).
 PGFPlots: reading {data/cost.txt}
 )
 
@@ -661,31 +728,34 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 [1
 
 {/usr/local/texlive/2017/texmf-var/fonts/map/pdftex/updmap/pdftex.map}]
-[2] (./report_SPDE MC.aux) ) 
+[2] [3] (./report_SPDE MC.aux)
+
+LaTeX Warning: There were multiply-defined labels.
+
+ ) 
 Here is how much of TeX's memory you used:
- 22002 strings out of 492995
- 580438 string characters out of 6132704
- 772203 words of memory out of 5000000
- 25171 multiletter control sequences out of 15000+600000
+ 22199 strings out of 492995
+ 584018 string characters out of 6132704
+ 817547 words of memory out of 5000000
+ 25321 multiletter control sequences out of 15000+600000
  7591 words of font info for 27 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 62i,19n,107p,735b,2279s stack positions out of 5000i,500n,10000p,200000b,80000s
-</usr/local/texlive/2017/texmf-dist/fonts/type1/pub
-lic/amsfonts/cm/cmmi10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/publ
-ic/amsfonts/cm/cmmi6.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public
-/amsfonts/cm/cmmi8.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/a
-msfonts/cm/cmr10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/ams
-fonts/cm/cmr17.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfo
-nts/cm/cmr6.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts
-/cm/cmr7.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm
-/cmr8.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cm
-sy10.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cms
-y6.pfb></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8
-.pfb>
-Output written on "report_SPDE MC.pdf" (2 pages, 102662 bytes).
+ 79i,19n,134p,743b,2287s stack positions out of 5000i,500n,10000p,200000b,80000s
+</usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb
+></usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi6.pfb><
+/usr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi8.pfb></u
+sr/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></usr
+/local/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmr17.pfb></usr/l
+ocal/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmr6.pfb></usr/loca
+l/texlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></usr/local/t
+exlive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmr8.pfb></usr/local/texl
+ive/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></usr/local/texli
+ve/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy6.pfb></usr/local/texlive
+/2017/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy8.pfb>
+Output written on "report_SPDE MC.pdf" (3 pages, 107616 bytes).
 PDF statistics:
- 58 PDF objects out of 1000 (max. 8388607)
- 42 compressed objects within 1 object stream
+ 61 PDF objects out of 1000 (max. 8388607)
+ 44 compressed objects within 1 object stream
  0 named destinations out of 1000 (max. 500000)
  13 words of extra memory for PDF output out of 10000 (max. 10000000)
 

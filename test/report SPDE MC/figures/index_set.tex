@@ -1,0 +1,33 @@
+%!TEX root = ../report_SPDE MC.tex
+
+\begin{figure}[h]
+\centering
+\setlength{\figureheight}{0.3\textwidth}
+\setlength{\figurewidth}{0.3\textwidth}
+\begin{tabular}{ccc} \toprule
+$\epsilon = \pgfmathprintnumber[/pgf/number format/sci,precision=3,fixed zerofill]{1.922e-02}$ & $\epsilon = \pgfmathprintnumber[/pgf/number format/sci,precision=3,fixed zerofill]{1.281e-02}$ & $\epsilon = \pgfmathprintnumber[/pgf/number format/sci,precision=3,fixed zerofill]{8.543e-03}$\\ \midrule 
+ \input{figures/index_set_1.tex} & \input{figures/index_set_2.tex} & \input{figures/index_set_3.tex}\\ 
+ \toprule
+$\epsilon = \pgfmathprintnumber[/pgf/number format/sci,precision=3,fixed zerofill]{5.695e-03}$ & $\epsilon = \pgfmathprintnumber[/pgf/number format/sci,precision=3,fixed zerofill]{3.797e-03}$ & $\epsilon = \pgfmathprintnumber[/pgf/number format/sci,precision=3,fixed zerofill]{2.531e-03}$\\ \midrule 
+ \input{figures/index_set_4.tex} & \input{figures/index_set_5.tex} & \input{figures/index_set_6.tex}\\ 
+ \toprule
+$\epsilon = \pgfmathprintnumber[/pgf/number format/sci,precision=3,fixed zerofill]{1.687e-03}$ & $\epsilon = \pgfmathprintnumber[/pgf/number format/sci,precision=3,fixed zerofill]{1.125e-03}$ & $\epsilon = \pgfmathprintnumber[/pgf/number format/sci,precision=3,fixed zerofill]{7.500e-04}$\\ \midrule 
+ \input{figures/index_set_7.tex} & \input{figures/index_set_8.tex} & \input{figures/index_set_9.tex}\\ 
+
+\end{tabular}\\
+
+\caption{\label{fig:index_set}Shape of the index set for different tolerances on the RMSE (1/2).}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\setlength{\figureheight}{0.3\textwidth}
+\setlength{\figurewidth}{0.3\textwidth}
+\begin{tabular}{ccc} \toprule
+$\epsilon = \pgfmathprintnumber[/pgf/number format/sci,precision=3,fixed zerofill]{5.000e-04}$ & &\\ \midrule 
+ \input{figures/index_set_10.tex} & &\\ 
+
+\end{tabular}\\
+
+\caption{\label{fig:index_set}Shape of the index set for different tolerances on the RMSE (2/2).}
+\end{figure}

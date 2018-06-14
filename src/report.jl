@@ -26,6 +26,7 @@ function report(h::History;folder="report $(h[:name])"::AbstractString)
     write_figure_V(h,folder,fname)
     write_figure_W(h,folder,fname)
     write_figure_samples(h,folder,fname)
+    write_figure_index_set(h,folder,fname)
     write_figure_cost(h,folder,fname)
     write_figure_time(h,folder,fname)
 
@@ -186,10 +187,23 @@ function write_figure_index_set(h::History, folder::AbstractString, fname::Abstr
     end
 end
 
-function write_figure_index_set_2(h::History, folder::AbstractString, fname::AbstractString)
-end
-
-function write_figure_index_set_2(h::History, folder::AbstractString, fname::AbstractString)
+for d in ["2" "3"]
+    ex = :(function $(Symbol("write_figure_index_set_",d))(h::History, folder::AbstractString, fname::AbstractString)
+               for i = 1:h.iter
+                   open(joinpath(folder,"figures","index_set_$(i).tex"), "w") do f
+                       max_level = maximum(maximum.(h[:index_set]))
+                       str = $(Symbol("tikz_index_set_",d,"d"))(fname,i,max_level)
+                       write(f, str)
+                   end
+               end
+               open(joinpath(folder,"figures","index_set.tex"), "w") do f
+                   tols = [h[i][:tol] for i in 1:h.iter]
+                   str = tikz_index_set_table(fname,tols)
+                   write(f, str)
+               end
+           end
+          )
+    eval(ex)
 end
 
 for (name,color,ylabel) in zip(["time","cost"],["blue","red"],["run time","standard cost"])
