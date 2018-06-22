@@ -4,6 +4,14 @@
 @testset "analyse SPDE, ML case        " begin
     @suppress begin
         estimator = init_lognormal_diffusion_analyse_ml()
-        analyse(estimator)
+        analyse(estimator, nsamples=100)
+    end
+end
+
+## Analyse SPDE, multi-index case
+@testset "analyse SPDE, MI case        " begin
+    @suppress begin
+        estimator = init_lognormal_diffusion_analyse_mi()
+        analyse(estimator, nsamples=100)
     end
 end

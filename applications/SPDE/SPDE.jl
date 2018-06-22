@@ -6,6 +6,7 @@ using Interpolations, Reexport, PyPlot
 import Base.getindex
 
 export init_lognormal_diffusion_analyse_ml
+export init_lognormal_diffusion_analyse_mi
 export init_lognormal_diffusion_mc
 export init_lognormal_diffusion_mc_multiple
 export init_lognormal_diffusion_mlmc
@@ -15,6 +16,9 @@ export init_lognormal_diffusion_qmc_multiple
 export init_lognormal_diffusion_mlqmc
 export init_lognormal_diffusion_mlqmc_multiple
 export init_lognormal_diffusion_mimc
+export init_lognormal_diffusion_mimc_multiple
+export init_lognormal_diffusion_miqmc
+export init_lognormal_diffusion_miqmc_multiple
 
 # user data type to hold GRF's
 struct SPDE_Data{V}
@@ -26,6 +30,7 @@ getindex(s::SPDE_Data,index::Index) = s.fields[index]
 ## init functions ##
 
 init_lognormal_diffusion_analyse_ml() = init_lognormal_diffusion(ML(),false,false,true)
+init_lognormal_diffusion_analyse_mi() = init_lognormal_diffusion(TD(2),false,false,true)
 init_lognormal_diffusion_mc() = init_lognormal_diffusion(SL(),false,false,false)
 init_lognormal_diffusion_mc_multiple() = init_lognormal_diffusion(SL(),false,true,false)
 init_lognormal_diffusion_mlmc() = init_lognormal_diffusion(ML(),false,false,false)
@@ -35,6 +40,9 @@ init_lognormal_diffusion_qmc_multiple() = init_lognormal_diffusion(SL(),true,tru
 init_lognormal_diffusion_mlqmc() = init_lognormal_diffusion(ML(),true,false,false)
 init_lognormal_diffusion_mlqmc_multiple() = init_lognormal_diffusion(ML(),true,true,false)
 init_lognormal_diffusion_mimc() = init_lognormal_diffusion(TD(2),false,false,false)
+init_lognormal_diffusion_mimc_multiple() = init_lognormal_diffusion(TD(2),false,true,false)
+init_lognormal_diffusion_miqmc() = init_lognormal_diffusion(TD(2),true,false,false)
+init_lognormal_diffusion_miqmc_multiple() = init_lognormal_diffusion(TD(2),true,true,false)
 
 function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_analyse::Bool)
 
@@ -42,7 +50,7 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
     corr_len = 0.5
     smoothness = 1.5
     nterms = 500
-    max_level = 6
+    max_level = 5
     nlevels = isa(method,SL) ? 1 : max_level + 1
     coarse_dof = 2
 
@@ -87,7 +95,7 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
     # name
     name = "SPDE "
     name = is_analyse ? string(name,"analyse ") : name
-    name = isa(method,ML) ? string(name,"ML") : name
+    name = isa(method,ML) ? string(name,"ML") : MultilevelEstimators.ndims(method) > 1 ? string(name,"MI") : name
     name = is_qmc ? string(name,"Q") : name
     name = string(name,"MC")
     name = is_multiple_qoi ? string(name," (multiple)") : name
@@ -95,7 +103,7 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
     ## Estimator ##
     create_estimator(
         name = name,
-        folder = string(Pkg.dir("MultilevelEstimators"),"/applications/SPDE/data/",name),
+        folder = string(joinpath(Pkg.dir("MultilevelEstimators"),"applications","SPDE","data",name)),
         method = method,
         number_generator = number_generator,
         sample_function = is_multiple_qoi ? lognormal_diffusion_multiple : lognormal_diffusion_single,
@@ -104,11 +112,7 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
         max_level = nlevels-1,
         continuate = true,
         nb_of_qoi = is_multiple_qoi ? 20^2 : 1,
-        #do_regression=false,
         cost_model = (index) -> geometric_cost_model(4,1.5,index),
-        #do_splitting = false,
-        #sample_multiplication_factor = 1.1
-		#store_samples = true
     )
 end
 
@@ -139,7 +143,7 @@ function SPDE_sample_multiple(Z::Matrix{T}) where {T<:Real}
     m,n = round.(Int,(size(Z).+1)./2).-1
     x_reshaped = reshape(x,(m,n))
     x_padded = hcat(zeros(m,1),x_reshaped,zeros(m,1)) # pad solution with dirichlet conditions
-    x_padded = vcat(zeros(1,m+2),x_padded,zeros(1,m+2))
+    x_padded = vcat(zeros(1,n+2),x_padded,zeros(1,n+2))
     itp = interpolate(linspace.(0,1,(m+2,n+2)), x_padded, Gridded(Linear()))
     pts = linspace(0,1,20)
     return itp[pts,pts][:]
@@ -174,11 +178,6 @@ function lognormal_diffusion_multiple(index::Index, ξ::Vector{T} where {T<:Real
 
     # extract grf
     grf = data[index]
-
-    # points where to compute the solution
-    max_idx = sort(collect(keys(data.fields)))[end] # find largest grid
-    pts_ = data.fields[max_idx].pts
-    m = round.(Int,(length.(pts_).+1)./2).+1
 
     # solve
     Zf = sample(grf,xi=ξ[1:randdim(grf)]) # compute GRF

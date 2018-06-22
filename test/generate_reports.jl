@@ -1,8 +1,6 @@
 ## automatically generate all reports from the test files
 
-using JLD, MultilevelEstimators, PyPlot, Suppressor
-
-data_dir = string(Pkg.dir("MultilevelEstimators"),"applications/SPDE/data")
+data_dir = string(joinpath(Pkg.dir("MultilevelEstimators"),"applications","SPDE","data"))
 for folder in readdir(data_dir)
     folderpath = joinpath(data_dir,folder)
     filepath = joinpath(folderpath,"history.jld")

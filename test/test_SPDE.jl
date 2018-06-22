@@ -1,13 +1,10 @@
 ## test_SPDE.jl
 
-ϵ₁= 0.01
-#ϵ₂= 0.005
-ϵ₂= 0.0005
-
-#=
+ϵ₁= 0.1
+ϵ₂= 0.005
 
 ## Monte Carlo, single qoi
-@testset "Monte Carlo, single qoi      " begin
+@testset "MC, single qoi               " begin
     @suppress begin
         estimator = init_lognormal_diffusion_mc()
         run(estimator,ϵ₁)
@@ -15,7 +12,7 @@
 end
 
 ## Monte Carlo, multiple qoi
-@testset "Monte Carlo, multiple qoi    " begin
+@testset "MC, multiple qoi             " begin
     @suppress begin
         estimator = init_lognormal_diffusion_mc_multiple()
         run(estimator,ϵ₁)
@@ -38,7 +35,6 @@ end
     end
 end
 
-
 ## Quasi-Monte Carlo, single qoi
 @testset "QMC, single qoi              " begin
     @suppress begin
@@ -46,7 +42,6 @@ end
         run(estimator,ϵ₁)
     end
 end
-
 
 # Quasi-Monte Carlo, multiple qoi
 @testset "QMC, multiple qoi            " begin
@@ -72,8 +67,34 @@ end
     end
 end
 
-=#
-estimator = init_lognormal_diffusion_mimc()
-h = run(estimator,ϵ₂)
-#h = analyse(estimator,nsamples=10_000)
-save(h)
+# Multi-Index Monte Carlo, single qoi
+@testset "MIMC, single qoi             " begin
+    @suppress begin
+        estimator = init_lognormal_diffusion_mimc()
+        run(estimator,ϵ₂)
+    end
+end
+
+# Multi-Index Monte Carlo, multiple qoi
+@testset "MIMC, multiple qoi           " begin
+    @suppress begin
+        estimator = init_lognormal_diffusion_mimc_multiple()
+        run(estimator,ϵ₂)
+    end
+end
+
+# Multi-Index Quasi-Monte Carlo, single qoi
+@testset "MIQMC, single qoi            " begin
+    @suppress begin
+        estimator = init_lognormal_diffusion_miqmc()
+        run(estimator,ϵ₂)
+    end
+end
+
+# Multi-Index Quasi-Monte Carlo, multiple qoi
+@testset "MIQMC, multiple qoi          " begin
+    @suppress begin
+        estimator = init_lognormal_diffusion_miqmc_multiple()
+        run(estimator,ϵ₂)
+    end
+end
