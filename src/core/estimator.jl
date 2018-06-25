@@ -73,10 +73,8 @@ const MonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:SL, G<:MonteCarloN
 const QuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:SL, G<:QuasiMonteCarloNumberGenerator,T,N}
 const MultiLevelMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:ML, G<:MonteCarloNumberGenerator,T,N}
 const MultiLevelQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:ML, G<:QuasiMonteCarloNumberGenerator,T,N}
-const MultiIndexMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:Union{TD,FT,HC}, G<:MonteCarloNumberGenerator,T,N}
-const MultiIndexQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:Union{TD,FT,HC}, G<:QuasiMonteCarloNumberGenerator,T,N}
-const AdaptiveMultiIndexMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:AD, G<:MonteCarloNumberGenerator,T,N}
-const AdaptiveMultiIndexQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:AD, G<:QuasiMonteCarloNumberGenerator,T,N}
+const MultiIndexMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:Union{TD,FT,HC,AD}, G<:MonteCarloNumberGenerator,T,N}
+const MultiIndexQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:Union{TD,FT,HC,AD}, G<:QuasiMonteCarloNumberGenerator,T,N}
 
 # type aliases
 const MonteCarloTypeEstimator = Estimator{I,G,T,N} where {I,G<:MonteCarloNumberGenerator,T,N}
@@ -172,7 +170,7 @@ get_default_settings(method, number_generator) = Dict{Symbol,Any}(
     :parallel_sample_function => parallel_sample!,
     :name => "",
     :sample_multiplication_factor => 2,
-    :max_search_space => TD(ndims(method))
+    :max_search_space => isa(method, AD) ? TD(ndims(method)) : method
 )
 
 # convenience functions
@@ -201,7 +199,5 @@ print_name(estimator::QuasiMonteCarloEstimator) = "Quasi-Monte Carlo estimator"
 print_name(estimator::MultiLevelQuasiMonteCarloEstimator) = "Multilevel Quasi-Monte Carlo estimator"
 print_name(estimator::MultiIndexMonteCarloEstimator) = "Multi-Index Monte Carlo estimator ($(estimator.method) index set)"
 print_name(estimator::MultiIndexQuasiMonteCarloEstimator) = "Multi-Index Quasi-Monte Carlo estimator ($(estimator.method) index set)"
-print_name(estimator::AdaptiveMultiIndexMonteCarloEstimator) = "Multi-Index Monte Carlo estimator ($(estimator.method) index set)"
-print_name(estimator::AdaptiveMultiIndexQuasiMonteCarloEstimator) = "Multi-Index Quasi-Monte Carlo estimator ($(estimator.method) index set)"
 
 show(io::IO, estimator::Estimator) = print(io, print_name(estimator))

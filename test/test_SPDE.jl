@@ -3,7 +3,6 @@
 ϵ₁= 0.1
 ϵ₂= 0.005
 
-#=
 ## Monte Carlo, single qoi
 @testset "MC, single qoi               " begin
     @suppress begin
@@ -99,7 +98,35 @@ end
         run(estimator,ϵ₂)
     end
 end
-=#
 
-estimator = init_lognormal_diffusion_amimc()
-run(estimator,5e-4)
+# Adaptive Multi-Index Monte Carlo, single qoi
+@testset "AMIMC, single qoi            " begin
+    @suppress begin
+        estimator = init_lognormal_diffusion_mimc()
+        run(estimator,ϵ₂)
+    end
+end
+
+# Adaptive Multi-Index Monte Carlo, multiple qoi
+@testset "AMIMC, multiple qoi          " begin
+    @suppress begin
+        estimator = init_lognormal_diffusion_mimc_multiple()
+        run(estimator,ϵ₂)
+    end
+end
+
+# Adaptive Multi-Index Quasi-Monte Carlo, single qoi
+@testset "AMIQMC, single qoi           " begin
+    @suppress begin
+        estimator = init_lognormal_diffusion_miqmc()
+        run(estimator,ϵ₂)
+    end
+end
+
+# Adaptive Multi-Index Quasi-Monte Carlo, multiple qoi
+@testset "AMIQMC, multiple qoi         " begin
+    @suppress begin
+        estimator = init_lognormal_diffusion_miqmc_multiple()
+        run(estimator,ϵ₂)
+    end
+end

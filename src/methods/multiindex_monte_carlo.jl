@@ -15,9 +15,11 @@ function _run(estimator::MultiIndexMonteCarloEstimator, ϵ::T where {T<:Real})
     # main loop
     while !converged 
 
+        # update index set
+        index_set = new_index_set(estimator,level)
+
         # obtain initial variance estimate
         N0 = estimator.nb_of_warm_up_samples
-        index_set = get_index_set(estimator.method,level)
         all_sum = ( level > 2 && estimator.do_regression ) ? regress_all_sum(estimator,index_set) : 0.
         for index in index_set
             if !haskey(estimator.samples[1],index)
@@ -63,11 +65,14 @@ function _run(estimator::MultiIndexMonteCarloEstimator, ϵ::T where {T<:Real})
         level = level + 1
 
         # check if the new level exceeds the maximum level
-        if !converged && ( level > estimator.max_level ) 
+        if max_level_exceeded(estimator,level,converged)
             estimator.verbose && warn_max_level(estimator)
             break
         end
     end
+
+    # update maximum active set
+    update_max_active(estimator)
 
     # print convergence status
     estimator.verbose && print_convergence(estimator,converged)
@@ -148,6 +153,14 @@ function γ(estimator::MultiIndexTypeEstimator, dir::Int64; both=false, start_id
     end
 end
 
+## regression functions ##
+function regress(estimator::MultiIndexTypeEstimator,index::Index,all_sum::T,ϵ::T,θ::T) where {T<:Real}
+    var_est = var_regress(estimator,index)
+    cost_est = cost_regress(estimator,index)
+    n_opt = ceil.(Int,1/(θ*ϵ^2) * sqrt(var_est/cost_est) * all_sum)
+    max(2,min(n_opt,estimator.nb_of_warm_up_samples))
+end
+
 # regress on all_sum: \sum \sqrt{V_\ell*C_\ell} (to avoid duplication)
 function regress_all_sum(estimator::Estimator,index_set)
     all_sum = 0.
@@ -190,10 +203,58 @@ for i in zip(["var","cost"],["β","γ"])
     eval(ex)
 end
 
-# regression
-function regress(estimator::MultiIndexTypeEstimator,index::Index,all_sum::T,ϵ::T,θ::T) where {T<:Real}
-    var_est = var_regress(estimator,index)
-    cost_est = cost_regress(estimator,index)
-    n_opt = ceil.(Int,1/(θ*ϵ^2) * sqrt(var_est/cost_est) * all_sum)
-    max(2,min(n_opt,estimator.nb_of_warm_up_samples))
+## adaptivity ##
+new_index_set(estimator::MultiIndexTypeEstimator, level::N where {N<:Integer}) = get_index_set(estimator.method,level)
+
+function new_index_set(estimator::AdaptiveMultiIndexTypeEstimator, level::N where {N<:Integer})
+    d = ndims(estimator) # dimension of index set
+    # empty index set
+    index_set = typeof(estimator.current_index_set)()
+    if level == 0 # if first run
+        max_index = ntuple(i->0,d)
+        push!(index_set,max_index)
+    else
+        # find index with largest "profit" and add to old set; enlarge active set
+        temp_active_set = collect(active_set(estimator))
+        idx = indmax(profit.(estimator,temp_active_set))
+        max_index = temp_active_set[idx]
+        push!(estimator.old_index_set,max_index)
+        print_largest_profit(max_index)
+        for k in 1:d
+            new_index = max_index .+ unit(k,d)
+            if is_admissable(estimator.old_index_set,new_index)
+                if new_index ∈ get_index_set(estimator.max_search_space,estimator.max_level) 
+                    push!(index_set,new_index)
+                else
+                    warn_spill_index(max_index)
+                    push!(estimator.spill_index_set,max_index)
+                end
+            end
+        end
+    end
+    return index_set
+end
+
+max_level_exceeded(estimator::MultiIndexTypeEstimator, level::N where {N<:Integer}, converged::Bool) = !converged && (level > estimator.max_level) 
+max_level_exceeded(estimator::AdaptiveMultiIndexTypeEstimator, level::N where {N<:Integer}, converged::Bool) = !converged && isempty(active_set(estimator))
+
+update_max_active(estimator::MultiIndexTypeEstimator) = nothing
+function update_max_active(estimator::AdaptiveMultiIndexTypeEstimator)
+    empty!(estimator.max_active_set)
+    union!(estimator.max_active_set,active_set(estimator))
+    union!(estimator.max_active_set,estimator.spill_index_set)
+end
+
+# TODO for AMIQM, realize that this is not the best approach to compute gains...
+function profit(estimator::AdaptiveMultiIndexTypeEstimator,index::Index)
+    mean(estimator,index)/sqrt(var(estimator,index)*cost(estimator,index))
+end
+
+function bias(estimator::AdaptiveMultiIndexTypeEstimator; use_maximum=false::Bool)
+    if use_maximum
+        boundary = estimator.max_active_set
+    else
+        boundary = union(estimator.spill_index_set,active_set(estimator))
+    end
+    return length(boundary) < 2 ? NaN : sum(mean.(estimator,collect(boundary)))
 end

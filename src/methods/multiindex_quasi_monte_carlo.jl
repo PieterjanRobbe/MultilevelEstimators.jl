@@ -15,9 +15,11 @@ function _run(estimator::MultiIndexQuasiMonteCarloEstimator, ϵ::T where {T<:Rea
     # main loop
     while !converged 
 
+        # update index set
+        index_set = new_index_set(estimator,level)
+
         # obtain initial variance estimate
         N0 = estimator.nb_of_warm_up_samples
-        index_set = get_index_set(estimator.method,level)
         for index in index_set
             if !haskey(estimator.samples[1],index)
                 sample!(estimator,index,N0)
@@ -74,11 +76,14 @@ function _run(estimator::MultiIndexQuasiMonteCarloEstimator, ϵ::T where {T<:Rea
         level = level + 1
 
         # check if the new level exceeds the maximum level
-        if !converged && ( level > estimator.max_level ) 
+        if max_level_exceeded(estimator,level,converged)
             estimator.verbose && warn_max_level(estimator)
             break
         end
     end
+
+    # update maximum active set
+    update_max_active(estimator)
 
     # print convergence status
     estimator.verbose && print_convergence(estimator,converged)

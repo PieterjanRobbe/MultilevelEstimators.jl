@@ -20,6 +20,9 @@ export init_lognormal_diffusion_mimc_multiple
 export init_lognormal_diffusion_miqmc
 export init_lognormal_diffusion_miqmc_multiple
 export init_lognormal_diffusion_amimc
+export init_lognormal_diffusion_amimc_multiple
+export init_lognormal_diffusion_amiqmc
+export init_lognormal_diffusion_amiqmc_multiple
 
 # user data type to hold GRF's
 struct SPDE_Data{V}
@@ -45,6 +48,9 @@ init_lognormal_diffusion_mimc_multiple() = init_lognormal_diffusion(TD(2),false,
 init_lognormal_diffusion_miqmc() = init_lognormal_diffusion(TD(2),true,false,false)
 init_lognormal_diffusion_miqmc_multiple() = init_lognormal_diffusion(TD(2),true,true,false)
 init_lognormal_diffusion_amimc() = init_lognormal_diffusion(AD(2),false,false,false)
+init_lognormal_diffusion_amimc_multiple() = init_lognormal_diffusion(AD(2),false,true,false)
+init_lognormal_diffusion_amiqmc() = init_lognormal_diffusion(AD(2),true,false,false)
+init_lognormal_diffusion_amiqmc_multiple() = init_lognormal_diffusion(AD(2),true,true,false)
 
 function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_analyse::Bool)
 
@@ -118,7 +124,8 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
         max_level = nlevels-1,
         continuate = true,
         nb_of_qoi = is_multiple_qoi ? 20^2 : 1,
-        cost_model = (index) -> geometric_cost_model(4,1.5,index),
+#        cost_model = (index) -> geometric_cost_model(4,1.5,index),
+        sample_multiplication_factor = 1.1
     )
 end
 
