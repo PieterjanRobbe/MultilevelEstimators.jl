@@ -3,6 +3,7 @@
 ϵ₁= 0.1
 ϵ₂= 0.005
 
+#=
 ## Monte Carlo, single qoi
 @testset "MC, single qoi               " begin
     @suppress begin
@@ -98,3 +99,7 @@ end
         run(estimator,ϵ₂)
     end
 end
+=#
+
+estimator = init_lognormal_diffusion_amimc()
+run(estimator,5e-4)

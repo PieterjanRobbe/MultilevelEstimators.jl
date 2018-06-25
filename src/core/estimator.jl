@@ -1,6 +1,8 @@
 # estimator.jl : a multilevel estimator
 
-struct Estimator{I<:IndexSet,G<:NumberGenerator,T<:AbstractFloat,N<:Integer,S,U,P,Q,C,H}
+# TODO at some point this should be rewritten with a "BaseEstimator"
+# and dedicated types for each method: avoids empty keys
+struct Estimator{I<:IndexSet,G<:NumberGenerator,T<:AbstractFloat,N<:Integer,S,U,P,Q,C,H,J}
 
     # required keys
     method::I
@@ -31,6 +33,9 @@ struct Estimator{I<:IndexSet,G<:NumberGenerator,T<:AbstractFloat,N<:Integer,S,U,
     nsamples::P # total number of samples taken in each index
     total_work::Q # total runtime or work per index
     current_index_set::C # indices currently in use
+    old_index_set::C # "old" index set in adaptive algorithm
+    spill_index_set::C # "spill" indices that exceed the maximum allowed level
+    max_active_set::C # maximum "active" index set to usa for bias estimate
     number_generators::H # stores shifted number generator at each index
 
     # user_data
@@ -49,6 +54,7 @@ struct Estimator{I<:IndexSet,G<:NumberGenerator,T<:AbstractFloat,N<:Integer,S,U,
 
     # maximum level
     max_level::N
+    max_search_space::J
 
     # regression instead of warm-up samples
     do_regression::Bool
@@ -69,13 +75,16 @@ const MultiLevelMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:ML, G<:M
 const MultiLevelQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:ML, G<:QuasiMonteCarloNumberGenerator,T,N}
 const MultiIndexMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:Union{TD,FT,HC}, G<:MonteCarloNumberGenerator,T,N}
 const MultiIndexQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:Union{TD,FT,HC}, G<:QuasiMonteCarloNumberGenerator,T,N}
+const AdaptiveMultiIndexMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:AD, G<:MonteCarloNumberGenerator,T,N}
+const AdaptiveMultiIndexQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:AD, G<:QuasiMonteCarloNumberGenerator,T,N}
 
 # type aliases
 const MonteCarloTypeEstimator = Estimator{I,G,T,N} where {I,G<:MonteCarloNumberGenerator,T,N}
 const QuasiMonteCarloTypeEstimator = Estimator{I,G,T,N} where {I,G<:QuasiMonteCarloNumberGenerator,T,N}
 const SingleLevelTypeEstimator = Estimator{I} where {I<:SL}
 const MultiLevelTypeEstimator = Estimator{I} where {I<:ML}
-const MultiIndexTypeEstimator = Estimator{I} where {I<:Union{TD,FT,HC}}
+const MultiIndexTypeEstimator = Estimator{I} where {I<:Union{TD,FT,HC,AD}}
+const AdaptiveMultiIndexTypeEstimator = Estimator{I} where {I<:AD}
 
 function create_estimator(;kwargs...)
 
@@ -115,6 +124,7 @@ function create_estimator(;kwargs...)
     Q = Dict{Index{ndims(settings[:method])},T}
     C = Set{Index{ndims(settings[:method])}}
     H = Dict{Index{ndims(settings[:method])},typeof(random_shift(settings[:number_generator]))}
+    J = typeof(settings[:max_search_space])
 
     # estimator internals
     m = settings[:nb_of_qoi]
@@ -134,11 +144,14 @@ function create_estimator(;kwargs...)
     settings[:has_user_data] = isa(settings[:user_data],Void) ? false : true
     settings[:use_cost_model] = isa(settings[:cost_model](zeros(N,ndims(settings[:method]))),Void) ? false : true
     settings[:current_index_set] = C()
+    settings[:old_index_set] = C()
+    settings[:spill_index_set] = C()
+    settings[:max_active_set] = C()
     settings[:nb_of_shifts] = n
     settings[:number_generators] = H()
 
     # create estimator
-    return Estimator{I,G,T,N,S,U,P,Q,C,H}([settings[name] for name in fieldnames(Estimator)]...)
+    return Estimator{I,G,T,N,S,U,P,Q,C,H,J}([settings[name] for name in fieldnames(Estimator)]...)
 end
 
 get_default_settings(method, number_generator) = Dict{Symbol,Any}(
@@ -158,7 +171,8 @@ get_default_settings(method, number_generator) = Dict{Symbol,Any}(
     :do_splitting => true,
     :parallel_sample_function => parallel_sample!,
     :name => "",
-    :sample_multiplication_factor => 2
+    :sample_multiplication_factor => 2,
+    :max_search_space => TD(ndims(method))
 )
 
 # convenience functions
@@ -166,11 +180,15 @@ haskey(estimator::Estimator,index::Index) = in(index,estimator.current_index_set
 
 keys(estimator::Estimator) = sort(collect(estimator.current_index_set))
 
+active_set(estimator::AdaptiveMultiIndexTypeEstimator) = setdiff(estimator.current_index_set,estimator.old_index_set) 
+
 push!(estimator::Estimator,index::Index) = push!(estimator.current_index_set,index)
 
 clear(estimator::Estimator) = begin
     for index in keys(estimator)
         delete!(estimator.current_index_set,index)
+        delete!(estimator.old_index_set,index)
+        delete!(estimator.spill_index_set,index)
     end
 end
 
@@ -183,5 +201,7 @@ print_name(estimator::QuasiMonteCarloEstimator) = "Quasi-Monte Carlo estimator"
 print_name(estimator::MultiLevelQuasiMonteCarloEstimator) = "Multilevel Quasi-Monte Carlo estimator"
 print_name(estimator::MultiIndexMonteCarloEstimator) = "Multi-Index Monte Carlo estimator ($(estimator.method) index set)"
 print_name(estimator::MultiIndexQuasiMonteCarloEstimator) = "Multi-Index Quasi-Monte Carlo estimator ($(estimator.method) index set)"
+print_name(estimator::AdaptiveMultiIndexMonteCarloEstimator) = "Multi-Index Monte Carlo estimator ($(estimator.method) index set)"
+print_name(estimator::AdaptiveMultiIndexQuasiMonteCarloEstimator) = "Multi-Index Quasi-Monte Carlo estimator ($(estimator.method) index set)"
 
 show(io::IO, estimator::Estimator) = print(io, print_name(estimator))

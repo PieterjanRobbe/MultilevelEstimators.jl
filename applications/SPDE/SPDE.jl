@@ -19,6 +19,7 @@ export init_lognormal_diffusion_mimc
 export init_lognormal_diffusion_mimc_multiple
 export init_lognormal_diffusion_miqmc
 export init_lognormal_diffusion_miqmc_multiple
+export init_lognormal_diffusion_amimc
 
 # user data type to hold GRF's
 struct SPDE_Data{V}
@@ -43,6 +44,7 @@ init_lognormal_diffusion_mimc() = init_lognormal_diffusion(TD(2),false,false,fal
 init_lognormal_diffusion_mimc_multiple() = init_lognormal_diffusion(TD(2),false,true,false)
 init_lognormal_diffusion_miqmc() = init_lognormal_diffusion(TD(2),true,false,false)
 init_lognormal_diffusion_miqmc_multiple() = init_lognormal_diffusion(TD(2),true,true,false)
+init_lognormal_diffusion_amimc() = init_lognormal_diffusion(AD(2),false,false,false)
 
 function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_analyse::Bool)
 
@@ -62,13 +64,16 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
     v = 1/2/m:1/2/m:1-1/2/m
     grf = GaussianRandomField(cov_fun,KarhunenLoeve(nterms),v,v)
 
+    # for AD index set, pich all fields in TD manner
+    nmethod = isa(method,AD) ? TD(2) : method
+
     # create fields
-    zero_idx = get_index_set(method,0)[1]
+    zero_idx = get_index_set(nmethod,0)[1]
     fields = Dict{typeof(zero_idx),typeof(grf)}()
     fields[zero_idx] = grf
 
     # all other levels
-    for idx in get_index_set(method,nlevels-1)
+    for idx in get_index_set(nmethod,nlevels-1)
         if !haskey(fields,idx) # avoid duplication of zero_idx
             i = idx[1]
             j = length(idx) > 1 ? idx[2] : i
@@ -95,6 +100,7 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
     # name
     name = "SPDE "
     name = is_analyse ? string(name,"analyse ") : name
+    name = isa(method,AD) ? "A" : ""
     name = isa(method,ML) ? string(name,"ML") : MultilevelEstimators.ndims(method) > 1 ? string(name,"MI") : name
     name = is_qmc ? string(name,"Q") : name
     name = string(name,"MC")

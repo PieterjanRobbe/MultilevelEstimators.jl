@@ -3,7 +3,7 @@
 ## main sample function ##
 function sample!(estimator::Estimator,index::Index,nb_of_samples::N where {N<:Integer})
 
-    warm_up = !haskey(estimator.samples[1],index)
+    warm_up = !haskey(estimator.samples[1],index) # TODO or check if samples are empty; avoid pushing curr_idx_st
 
     estimator.verbose && begin
         name = warm_up ? "warm-up" : "additional"

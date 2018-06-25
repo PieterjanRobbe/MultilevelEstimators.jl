@@ -72,6 +72,8 @@ include("methods/multiindex_monte_carlo.jl")
 
 include("methods/multiindex_quasi_monte_carlo.jl")
 
+include("methods/adaptive_multiindex_monte_carlo.jl")
+
 include("utils/plot.jl")
 
 include("utils/tex.jl")

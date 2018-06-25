@@ -116,6 +116,20 @@ function is_valid_index_set(idxset::Vector{T} where {T<:Index{d}}) where {d}
     return true
 end
 
+function is_admissable(idxset::Set{Index{d}}, index::Index{d})  where {d}
+    if in(index,idxset)
+        return false
+    else
+        for k in 1:d
+            new_index = index .- unit(k,d)
+            if !( in(new_index,idxset) || new_index[k] < 0 )
+                return false
+            end
+        end
+        return true
+    end
+end
+
 # output formatting
 for i in ["SL" "ML" "TD" "HC" "FT" "AD"]
     ex = :( show(io::IO, ::$(Symbol(i))) = print(io, $(i)) )

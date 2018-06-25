@@ -8,7 +8,7 @@ short(num) = @sprintf("%6.3f",num)
 
 # print status of the estimator
 function print_status(estimator::Estimator)
-    print_index_set(collect(keys(estimator)))
+    print_index_set(estimator)
     n = 14
     nb = 2
     border = spaces(nb)
@@ -46,6 +46,13 @@ end
 function warn_max_level(estimator)
     warn("maximum level L = $(estimator.max_level) reached, no convergence")
 end
+
+# print warning about spill index
+function warn_spill_index(index)
+    warn("a maximum index $(index) was reached, ignoring its active neighbours")
+end
+
+print_largest_profit(index) = println("The index with largest profit is $(index), checking forward neighbours...")
 
 # print rates
 function print_rates(estimator::MultiLevelTypeEstimator)
@@ -122,19 +129,33 @@ function print_number_of_samples(estimator,samples)
 end
 
 # print index set
-function print_index_set(set::Vector{Index{d}}) where {d}
+print_index_set(estimator::MultiIndexTypeEstimator) = print_index_set(collect(keys(estimator)))
+
+print_index_set(estimator::AdaptiveMultiIndexTypeEstimator) = print_index_set( collect(setdiff(estimator.old_index_set,estimator.spill_index_set)), active_set=collect(union(estimator.spill_index_set,active_set(estimator))) )
+
+function print_index_set(old_set::Vector{Index{d}}; active_set::Vector{Index{d}}=Index{d}()) where {d}
     if d == 2
-        n = maximum(maximum.(set)+1)
+        unicode_old = "\u25FC"
+        unicode_active = "\u25A3"
+        n = isempty(old_set) ? 0 : maximum(maximum.(old_set)+1)
+        n = isempty(active_set) ? n : max(maximum(maximum.(active_set)+1),n)
         A = zeros(Int64,n,n)
-        for index in set
+        for index in old_set
             A[index[1]+1,index[2]+1] = 1
         end
-        str = "Shape of the index set:\n"
+        B = zeros(Int64,n,n)
+        for index in active_set
+            B[index[1]+1,index[2]+1] = 1
+        end
+        str = "Shape of the index set$(isempty(active_set) ? "" : " ($(unicode_active) = active set)"):\n"
         for j = n:-1:1
             str = string(str,"  ")
             for i = 1:n
                 if A[i,j] > 0
-                    str = string(str,"\u25FC ")
+                    str = string(str,"$(unicode_old) ")
+                end
+                if B[i,j] > 0
+                    str = string(str,"$(unicode_active) ")
                 end
             end
             str = string(str,"\n")

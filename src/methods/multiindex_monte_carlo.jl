@@ -191,7 +191,7 @@ for i in zip(["var","cost"],["β","γ"])
 end
 
 # regression
-function regress(estimator::MultiIndexMonteCarloEstimator,index::Index,all_sum::T,ϵ::T,θ::T) where {T<:Real}
+function regress(estimator::MultiIndexTypeEstimator,index::Index,all_sum::T,ϵ::T,θ::T) where {T<:Real}
     var_est = var_regress(estimator,index)
     cost_est = cost_regress(estimator,index)
     n_opt = ceil.(Int,1/(θ*ϵ^2) * sqrt(var_est/cost_est) * all_sum)

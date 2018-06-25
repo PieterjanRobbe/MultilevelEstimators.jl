@@ -74,6 +74,12 @@ function check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:max_level}}
     val < 0 && throw(ArgumentError("max_level must be larger than or equal to 0, got $(val)"))
 end
 
+# max_search_space
+function check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:max_search_space}}) where {V}
+    isa(val,IndexSet) || throw(ArgumentError("max_search_space must be of type IndexSet, got $(V)"))
+    ndims(val) == ndims(settings[:method]) || throw(ArgumentError("max_search_space must be an index set in $(ndims(settings[:method])) dimensions, got $(ndims(val))"))
+end
+
 # do_regression
 check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:do_regression}}) where {V} = isa(val,Bool) || throw(ArgumentError("do_regression must be of type Bool, got $(V)"))
 
