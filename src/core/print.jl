@@ -133,7 +133,7 @@ print_index_set(estimator::Estimator) = nothing
 
 print_index_set(estimator::MultiIndexTypeEstimator) = print_index_set(collect(estimator.current_index_set),Index{ndims(estimator)}[])
 
-print_index_set(estimator::AdaptiveMultiIndexTypeEstimator) = print_index_set( collect(setdiff(estimator.old_index_set,estimator.spill_index_set)), active_set=collect(union(estimator.spill_index_set,active_set(estimator))) )
+print_index_set(estimator::AdaptiveMultiIndexTypeEstimator) = print_index_set( collect(setdiff(estimator.old_index_set,estimator.spill_index_set)), collect(union(estimator.spill_index_set,active_set(estimator))) )
 
 function print_index_set(old_set::Vector{Index{d}}, active_set::Vector{Index{d}}=Index{d}()) where {d}
     if d == 2

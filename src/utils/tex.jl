@@ -96,7 +96,7 @@ x	y	z\\\\
 }--cycle;
 }\n"
 
-file_contents(title,d) = "\\documentclass[11pt, oneside]{article}
+file_contents(title,d,is_adaptive) = "\\documentclass[11pt, oneside]{article}
 
 \\usepackage[margin=2cm]{geometry}
 \\usepackage{graphicx}
@@ -118,6 +118,7 @@ figure_header()*
 "\\input{figures/V.tex}\n \\caption{\\label{fig:V}Decay of the variance.}"*
 figure_footer()*"\n"*
 "$(d == 1 ? figure_header()*"\\input{figures/samples.tex}\n \\caption{\\label{fig:samples}Total number of samples \$N_\\ell\$ taken on each level.}"*figure_footer()*"\n" : d < 4 ? "\\input{figures/index_set.tex}\n" : "" )"*"\n"*
+"$(is_adaptive ? d < 4 ? "\\input{figures/adaptive_index_set.tex}\n" : "" : "" )"*
 figure_header()*
 "\\input{figures/runtime.tex}\n \\caption{\\label{fig:time}Total simulation run time.}"*
 figure_footer()*"\n"*
@@ -126,14 +127,12 @@ figure_header()*
 figure_footer()*
 "\\end{document}"
 
-tikz_index_set_2d(name,i,max_level) = "%!TEX root = ../$(name)\n
-\\pgfplotstableread[header=false]{data/index_set_$(i).txt}\\indexset
-\\pgfplotstablegetrowsof{\\indexset}
-\\pgfmathsetmacro{\\rows}{\\pgfplotsretval-1}\n
-\\begin{tikzpicture}[trim axis left,trim axis right]
+tikz_index_set_2d(name,i,max_level,is_adaptive,has_active,has_old,has_maximum,scaling,mode) = "%!TEX root = ../$(name)\n"*
+tikz_load_index_set_tables(is_adaptive,i,has_active,has_old,has_maximum)*
+"\\begin{tikzpicture}[trim axis left,trim axis right]
 \\begin{axis}[
-width=\\figurewidth,
-height=\\figureheight,
+width=\\figurewidth$(scaling != 1 ? "/$(scaling)" : ""),
+height=\\figureheight$(scaling != 1 ? "/$(scaling)" : ""),
 scale only axis,
 xmin=-0.1,
 xmax=$(max_level+1).1,
@@ -144,19 +143,55 @@ ymax=$(max_level+1).1,
 yticklabel={},
 ymajorticks=false,
 axis line style={ultra thin, draw opacity=0}
-]\n
-\\foreach \\j in {0,...,\\rows} {
-    \\pgfplotstablegetelem{\\j}{0}\\of\\indexset
-        \\pgfmathsetmacro{\\a}{\\pgfplotsretval}
-        \\pgfplotstablegetelem{\\j}{1}\\of\\indexset
-        \\pgfmathsetmacro{\\b}{\\pgfplotsretval}
-	\\drawsquare{\\a}{\\b}{white!90!black}
-}
-\\end{axis}\n
+]\n"*
+tikz_draw_index_sets_2d_from_table(is_adaptive,has_active,has_old,has_maximum,mode)*
+"\\end{axis}\n
 \\end{tikzpicture}
 "
 
-tikz_index_set_3d(name,i,max_level) = "%!TEX root = ../$(name)\n
+function tikz_draw_index_sets_2d_from_table(is_adaptive,has_active,has_old,has_maximum,mode)
+	if is_adaptive
+		str = ""
+		str = has_old ? string(str,tikz_draw_index_set_2d_from_table("oldset","white!90!black")) : str
+		str = has_active ? string(str,tikz_draw_index_set_2d_from_table("activeset","orange!50!white")) : str
+		str = has_maximum ? string(str,tikz_draw_index_set_2d_from_table("maximumindex","blue!50!white")) : str
+		return str
+	else
+		if mode == "active"
+			return tikz_draw_index_set_2d_from_table("indexset","orange!50!white")
+		elseif mode == "maximum"
+			return tikz_draw_index_set_2d_from_table("indexset","blue!50!white")
+		else
+			return tikz_draw_index_set_2d_from_table("indexset","white!90!black")
+		end
+	end
+end
+
+tikz_draw_index_set_2d_from_table(name,color) = 
+"\\foreach \\j in {0,...,\\$(name)rows} {
+\\pgfplotstablegetelem{\\j}{0}\\of\\$(name)
+\\pgfmathsetmacro{\\a}{\\pgfplotsretval}
+\\pgfplotstablegetelem{\\j}{1}\\of\\$(name)
+\\pgfmathsetmacro{\\b}{\\pgfplotsretval}
+\\drawsquare{\\a}{\\b}{$(color)}\n}\n"
+
+function tikz_load_index_set_tables(is_adaptive,i,has_active,has_old,has_maximum)
+	if is_adaptive
+		str = ""
+		str = has_active ? string(str,tikz_load_table("activeset","level_$(i)_active.txt")) : str
+		str = has_old ? string(str,tikz_load_table("oldset","level_$(i)_old.txt")) : str
+		str = has_maximum ? string(str,tikz_load_table("maximumindex","level_$(i)_maximum.txt")) : str
+		return str
+	else
+		return tikz_load_table("indexset","index_set_$(i).txt")
+	end
+end
+
+tikz_load_table(name,filename) = "\\pgfplotstableread[header=false]{data/$(filename)}\\$(name)\%
+\\pgfplotstablegetrowsof{\\$(name)}\%
+\\pgfmathsetmacro{\\$(name)rows}{\\pgfplotsretval-1}\%\n"
+
+tikz_index_set_3d(name,i,max_level,is_adaptive) = "%!TEX root = ../$(name)\n
 \\pgfplotstableread[header=false]{data/index_set_$(i).txt}\\indexset
 \\pgfplotstablegetrowsof{\\indexset}
 \\pgfmathsetmacro{\\rows}{\\pgfplotsretval-1}\n
@@ -193,27 +228,40 @@ axis line style={ultra thin, draw opacity=0}
 \\end{tikzpicture}
 "
 
-function tikz_index_set_table(name,tols)
-    str = "%!TEX root = ../$(name)\n"#\n\\begin{table}[t]\n\\centering\n"
-    for tabnum = 1:div(length(tols)-1,9)+1
+tikz_index_set_table(name,tols) = tikz_index_set_table_internal(name,tols,"\$\\epsilon = \\pgfmathprintnumber[/pgf/number format/sci,precision=3,sci zerofill]",false) 
+
+tikz_adaptive_index_set_table(name,levels) = tikz_index_set_table_internal(name,levels,"\$L = \\pgfmathprintnumber[/pgf/number format/fixed]",true) 
+
+function tikz_index_set_table_internal(name,iters,headerstring,is_adaptive)
+    str = "%!TEX root = ../$(name)\n"
+    for tabnum = 1:div(length(iters)-1,9)+1
         str = string(str,figure_header())
-        str = string(str,"\\begin{tabular}{ccc}")
-        # TODO newpage ?
-        for col in 1:min(3,div(length(tols)-(tabnum-1)*9-1,3)+1)
+		str = string(str,"\\begin{tabular}{ccc}")
+		# add adaptive legend
+		if is_adaptive
+			str = string(str,"\\multicolumn{1}{l}{\\raisebox{-0.025\\textwidth}{\\input{figures/index_set_legend_old.tex}} = old set} \&\n")
+			str = string(str,"\\multicolumn{1}{l}{\\raisebox{-0.025\\textwidth}{\\input{figures/index_set_legend_active.tex}} = active set} \&\n")
+			str = string(str,"\\multicolumn{1}{l}{\\raisebox{-0.025\\textwidth}{\\input{figures/index_set_legend_maximum.tex}} = maximum profit} \\\\\n")
+		end
+		for col in 1:min(3,div(length(iters)-(tabnum-1)*9-1,3)+1)
             # header
-            str = string(str," \\toprule\n\$\\epsilon = \\pgfmathprintnumber[/pgf/number format/sci,precision=3,fixed zerofill]\{", @sprintf("%7.3e",tols[(tabnum-1)*9+(col-1)*3+1]), "\}\$ \&")
-            str = length(tols) > (tabnum-1)*9+(col-1)*3+1 ? string(str," \$\\epsilon = \\pgfmathprintnumber[/pgf/number format/sci,precision=3,fixed zerofill]\{", @sprintf("%7.3e",tols[(tabnum-1)*9+(col-1)*3+2]), "\}\$") : str
+            str = string(str," \\toprule\n",headerstring,"\{", @sprintf("%7.3e",iters[(tabnum-1)*9+(col-1)*3+1]), "\}\$ \&")
+            str = length(iters) > (tabnum-1)*9+(col-1)*3+1 ? string(str," ",headerstring,"\{", @sprintf("%7.3e",iters[(tabnum-1)*9+(col-1)*3+2]), "\}\$") : str
             str = string(str," \&")
-            str = length(tols) > (tabnum-1)*9+(col-1)*3+2 ? string(str," \$\\epsilon = \\pgfmathprintnumber[/pgf/number format/sci,precision=3,fixed zerofill]\{", @sprintf("%7.3e",tols[(tabnum-1)*9+(col-1)*3+3]), "\}\$") : str
+            str = length(iters) > (tabnum-1)*9+(col-1)*3+2 ? string(str," ",headerstring,"\{", @sprintf("%7.3e",iters[(tabnum-1)*9+(col-1)*3+3]), "\}\$") : str
             str = string(str,"\\\\ \\midrule \n")
-            str = string(str," \\input\{figures/index_set_",(tabnum-1)*9+(col-1)*3+1, ".tex\} \&")
-            str = length(tols) > (tabnum-1)*9+(col-1)*3+1 ? string(str," \\input\{figures/index_set_",(tabnum-1)*9+(col-1)*3+2, ".tex\}") : str
+			str = string(str," \\input\{figures/"*"$(is_adaptive ? "adaptive_" : "")"*"index_set_",(tabnum-1)*9+(col-1)*3+1, ".tex\} \&")
+            str = length(iters) > (tabnum-1)*9+(col-1)*3+1 ? string(str," \\input\{figures/"*"$(is_adaptive ? "adaptive_" : "")"*"index_set_",(tabnum-1)*9+(col-1)*3+2, ".tex\}") : str
             str = string(str," \&")
-            str = length(tols) > (tabnum-1)*9+(col-1)*3+2 ? string(str," \\input\{figures/index_set_",(tabnum-1)*9+(col-1)*3+3, ".tex\}") : str
+            str = length(iters) > (tabnum-1)*9+(col-1)*3+2 ? string(str," \\input\{figures/"*"$(is_adaptive ? "adaptive_" : "")"*"index_set_",(tabnum-1)*9+(col-1)*3+3, ".tex\}") : str
             str = string(str,"\\\\ \n")
         end
         str = string(str,"\n\\end{tabular}\\\\\n\n")
-        str = string(str,"\\caption{\\label{fig:index_set}Shape of the index set for different tolerances on the RMSE ($(tabnum)/$(div(length(tols)-1,9)+1)).}")
+		if is_adaptive
+        	str = string(str,"\\caption{\\label{fig:adaptive_index_set}Shape of the index set for different level parameters in the adaptive algorithm ($(tabnum)/$(div(length(iters)-1,9)+1)).}")
+		else
+        	str = string(str,"\\caption{\\label{fig:index_set}Shape of the index set for different tolerances on the RMSE ($(tabnum)/$(div(length(iters)-1,9)+1)).}")
+		end
         str = string(str,figure_footer())
     end
     str

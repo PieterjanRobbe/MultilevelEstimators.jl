@@ -106,7 +106,7 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
     # name
     name = "SPDE "
     name = is_analyse ? string(name,"analyse ") : name
-    name = isa(method,AD) ? "A" : ""
+	name = isa(method,AD) ? string(name,"A") : name
     name = isa(method,ML) ? string(name,"ML") : MultilevelEstimators.ndims(method) > 1 ? string(name,"MI") : name
     name = is_qmc ? string(name,"Q") : name
     name = string(name,"MC")

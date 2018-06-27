@@ -42,6 +42,8 @@ function push!(h::History, estimator::Estimator,tol::T where {T<:Real})
         h[:samples] = estimator.samples
     end
     h[:ndims] = ndims(estimator)
+	h[:method] = estimator.method
+	h[:adaptive_index_set] = estimator.adaptive_index_set
 
     # save
     save(h)

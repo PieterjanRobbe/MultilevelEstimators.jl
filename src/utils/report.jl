@@ -18,6 +18,7 @@ function report(h::History;folder="report $(h[:name])"::AbstractString)
     write_W(h,folder)
     write_samples(h,folder)
     write_index_set(h,folder)
+    write_adaptive_index_set(h,folder)
     write_runtime(h,folder)
     write_cost(h,folder)
 
@@ -27,6 +28,7 @@ function report(h::History;folder="report $(h[:name])"::AbstractString)
     write_figure_W(h,folder,fname)
     write_figure_samples(h,folder,fname)
     write_figure_index_set(h,folder,fname)
+    write_figure_adaptive_index_set(h,folder,fname)
     write_figure_cost(h,folder,fname)
     write_figure_runtime(h,folder,fname)
 
@@ -95,6 +97,24 @@ function write_index_set(h::History, folder::AbstractString)
                 write(f, "\n")
             end
         end
+    end
+end
+
+function write_adaptive_index_set(h::History, folder::AbstractString)
+    d = h[:ndims]
+	dicts = h[:adaptive_index_set]
+    for i in 1:length(dicts)
+		for (val,name,mode) in zip(0:3,["old","active","active","maximum"],["w" "w" "a" "w"])
+			open(joinpath(folder,"data",string("level_",i,"_",name,".txt")), mode) do f
+				index_set = collect(keys(dicts[i]))[collect(values(dicts[i])).==val] 
+            	for idx in index_set
+                	for j in 1:d
+                    	write(f, @sprintf("%i ",idx[j]))
+                	end
+                	write(f, "\n")
+            	end
+        	end # open
+		end
     end
 end
 
@@ -206,7 +226,7 @@ for d in ["2" "3"]
                for i = 1:h.iter
                    open(joinpath(folder,"figures","index_set_$(i).tex"), "w") do f
                        max_level = maximum(maximum.(h[:index_set]))
-                       str = $(Symbol("tikz_index_set_",d,"d"))(fname,i,max_level)
+                       str = $(Symbol("tikz_index_set_",d,"d"))(fname,i,max_level,false,false,false,false,1,"")
                        write(f, str)
                    end
                end
@@ -218,6 +238,53 @@ for d in ["2" "3"]
            end
           )
     eval(ex)
+end
+
+function write_figure_adaptive_index_set(h::History, folder::AbstractString, fname::AbstractString)
+    d = h[:ndims]
+	if isa(h[:method],AD)
+    	if d == 2
+        	write_figure_adaptive_index_set_2(h, folder, fname)
+    	elseif d == 3
+        	write_figure_adaptive_index_set_3(h, folder, fname)
+    	end
+	end
+end
+
+for d in ["2" "3"]
+	ex = :(function $(Symbol("write_figure_adaptive_index_set_",d))(h::History, folder::AbstractString, fname::AbstractString)
+			   dicts = h[:adaptive_index_set]
+			   for i = 1:length(dicts)
+				   open(joinpath(folder,"figures","adaptive_index_set_$(i).tex"), "w") do f
+					   max_level = maximum(maximum.(keys(dicts[end])))
+					   v = collect(values(dicts[i]))
+					   has_active = any(v.==1) || any(v.==2)
+					   has_old = any(v.==0)
+					   has_maximum = any(v.==3)
+					   str = $(Symbol("tikz_index_set_",d,"d"))(fname,i,max_level,true,has_active,has_old,has_maximum,1,"")
+					   write(f, str)
+				   end
+			   end
+			   open(joinpath(folder,"figures","adaptive_index_set.tex"), "w") do f
+				   str = tikz_adaptive_index_set_table(fname,0:length(dicts)-1)
+				   write(f, str)
+			   end
+			   for mode in ["active","old","maximum"]
+				   open(joinpath(folder,"data","index_set_legend_$(mode).txt"), "w") do f
+					   dim = h[:ndims]
+					   for j in 1:dim
+						   write(f, @sprintf("%i ",0))
+					   end
+				   end
+				   open(joinpath(folder,"figures","index_set_legend_$(mode).tex"), "w") do f
+					   max_level = maximum(maximum.(keys(dicts[end])))
+					   scaling = (max_level+1.2)/1.2
+					   write(f, $(Symbol("tikz_index_set_",d,"d"))(fname,"legend",0,false,false,false,false,scaling,mode))
+				   end
+			   end
+		   end
+		  )
+	eval(ex)
 end
 
 for (name,color,ylabel) in zip(["runtime","cost"],["blue","red"],["run time","standard cost"])
@@ -236,6 +303,6 @@ end
 
 function write_main_file(h::History,folder::AbstractString,fname::AbstractString)
     open(joinpath(folder,fname), "w") do f
-        write(f, file_contents(h[:name],length(h[:index_set][1])))
+		write(f, file_contents(h[:name],length(h[:index_set][1]),isa(h[:method],AD)))
     end
 end

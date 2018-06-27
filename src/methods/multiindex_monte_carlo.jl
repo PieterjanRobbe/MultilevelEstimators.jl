@@ -232,7 +232,28 @@ function new_index_set(estimator::AdaptiveMultiIndexTypeEstimator, level::N wher
             end
         end
     end
+	log_adaptive_index_set(estimator,keys(estimator) ∪ index_set,max_index)
     return index_set
+end
+
+# log indices (for plotting adaptive index set)
+function log_adaptive_index_set(estimator,indices,max_index)
+	d = ndims(estimator)
+	dict = Dict{Index{d},Int64}()
+	for index in indices
+		if !haskey(dict,index)
+			if index == max_index # max index
+				dict[index] = 3
+			elseif index ∈ estimator.spill_index_set # spill index
+				dict[index] = 1
+			elseif index ∈ estimator.old_index_set # old index
+				dict[index] = 0
+			else # active index
+				dict[index] = 2
+			end
+		end
+	end
+	push!(estimator.adaptive_index_set,dict)
 end
 
 max_level_exceeded(estimator::MultiIndexTypeEstimator, level::N where {N<:Integer}, converged::Bool) = !converged && (level > estimator.max_level) 
