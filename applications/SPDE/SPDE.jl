@@ -1,10 +1,29 @@
+#=
+SPDE.jl : Module for simulating a PDE with random coefficents using various
+          methods as implemented in MultilevelEstimators.jl.
+This file defines a module that contains methods to initialize the estimator.
+Currently implemented:
+    - MC        : Monte Carlo
+    - QMC       : Quasi-Monte Carlo
+    - MLMC      : Multilevel Monte Carlo
+    - MLQMC     : Multilevel Quasi-Monte Carlo
+    - MIMC      : Multi-Index Monte Carlo
+    - MIQMC     : Multi-Index Quasi-Monte Carlo
+    - AMIMC     : Adaptive Multi-Index Monte Carlo
+    - AMIQMC    : Adaptive Multi-Index Quasi-Monte Carlo
+NOTE: Technically, we are simulating a PDE with random coefficients, but this is too
+long to write down, so with a slight abuse of notation, this module is called "SPDE".
+=#
 module SPDE
 
+## dependencies ##
 using Interpolations, Reexport, PyPlot
 @reexport using MultilevelEstimators, GaussianRandomFields
 
+## import statements ##
 import Base.getindex
 
+## export statements ##
 export init_lognormal_diffusion_analyse_ml
 export init_lognormal_diffusion_analyse_mi
 export init_lognormal_diffusion_mc
@@ -24,15 +43,7 @@ export init_lognormal_diffusion_amimc_multiple
 export init_lognormal_diffusion_amiqmc
 export init_lognormal_diffusion_amiqmc_multiple
 
-# user data type to hold GRF's
-struct SPDE_Data{V}
-    fields::V
-end
-
-getindex(s::SPDE_Data,index::Index) = s.fields[index]
-
 ## init functions ##
-
 init_lognormal_diffusion_analyse_ml() = init_lognormal_diffusion(ML(),false,false,true)
 init_lognormal_diffusion_analyse_mi() = init_lognormal_diffusion(TD(2),false,false,true)
 init_lognormal_diffusion_mc() = init_lognormal_diffusion(SL(),false,false,false)
@@ -106,7 +117,7 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
     # name
     name = "SPDE "
     name = is_analyse ? string(name,"analyse ") : name
-	name = isa(method,AD) ? string(name,"A") : name
+    name = isa(method,AD) ? string(name,"A") : name
     name = isa(method,ML) ? string(name,"ML") : MultilevelEstimators.ndims(method) > 1 ? string(name,"MI") : name
     name = is_qmc ? string(name,"Q") : name
     name = string(name,"MC")
@@ -114,20 +125,27 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
 
     ## Estimator ##
     create_estimator(
-        name = name,
-        folder = string(joinpath(Pkg.dir("MultilevelEstimators"),"applications","SPDE","data",name)),
-        method = method,
-        number_generator = number_generator,
-        sample_function = is_multiple_qoi ? lognormal_diffusion_multiple : lognormal_diffusion_single,
-        user_data = user_data,
-        verbose = true,
-        max_level = nlevels-1,
-        continuate = true,
-        nb_of_qoi = is_multiple_qoi ? 20^2 : 1,
-#        cost_model = (index) -> geometric_cost_model(4,1.5,index),
-        sample_multiplication_factor = 1.1
+        name = name, # estimator name
+        folder = string(joinpath(Pkg.dir("MultilevelEstimators"),"applications","SPDE","data",name)), # for report
+        method = method, # method: ML, SL, TD...
+        number_generator = number_generator, # number generator
+        sample_function = is_multiple_qoi ? lognormal_diffusion_multiple : lognormal_diffusion_single, # qoi
+        user_data = user_data, # GRF's
+        verbose = true, # display information
+        max_level = nlevels-1, # maximum number of levels
+        continuate = true, # continuate on larger tolerances
+        nb_of_qoi = is_multiple_qoi ? 20^2 : 1, # number of qoi
+        cost_model = (index) -> geometric_cost_model(4,1.5,index), # cost model
+        sample_multiplication_factor = 1.1 # qmc multiplication factor
     )
 end
+
+## user data ##
+struct SPDE_Data{V}
+    fields::V
+end
+
+getindex(s::SPDE_Data,index::Index) = s.fields[index]
 
 
 ## sample functions ##

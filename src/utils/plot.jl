@@ -120,6 +120,20 @@ function plot_time(h::History)
     show()
 end
 
+function plot_time_vs_rmse(h::History)
+    x = [h[i][:rmse] for i in 1:h.iter]
+    y = cumsum([h[i][:runtime] for i in 1:h.iter])
+    figure()
+    plot(x,y,linestyle="-",marker="o",color="blue")
+    ax = gca()
+    ax[:set_xscale]("log")
+    ax[:set_yscale]("log")
+    xlabel("tolerance")
+    ylabel("run time")
+    title("run time")
+    show()
+end
+
 function plot_cost(h::History)
     x = [h[i][:tol] for i in 1:h.iter]
     y = [h[i][:cost] for i in 1:h.iter]

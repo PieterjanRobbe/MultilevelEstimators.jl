@@ -1,10 +1,4 @@
-# TODO add possibility for own parallel_sample! function into estimator
-# TODO define some standard cost models: \gamma and d, and provide multi_index_cost()
-# TODO default value is Nstar = convert(Int64,ceil(32/nshifts(numberGenerators[Index(zeros(Int64,d))])))
-# TODO how about "real" continuation ?? specify k0 and k1 (trust parameters)
-# TODO what about the old store_samples_0 key
-
-#__precompile()__
+__precompile()__
 module MultilevelEstimators
 
 # load other modules
@@ -28,12 +22,11 @@ export run # from run.jl
 
 export geometric_cost_model # from cost_models.jl
 
-# export plotting methods
 export save # from history.jl
 
 export report # from report.jl
 
-export plot_E, plot_dE, plot_V, plot_dV, plot_W, plot_samples, plot_time, plot_cost # from plot.jl
+export plot_E, plot_dE, plot_V, plot_dV, plot_W, plot_samples, plot_time, plot_cost, plot_time_vs_rmse # from plot.jl
 
 export analyse # from analyse.jl
 

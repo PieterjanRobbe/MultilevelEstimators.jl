@@ -20,6 +20,7 @@ function report(h::History;folder="report $(h[:name])"::AbstractString)
     write_index_set(h,folder)
     write_adaptive_index_set(h,folder)
     write_runtime(h,folder)
+    write_runtime_vs_rmse(h,folder)
     write_cost(h,folder)
 
     # make the tikz files
@@ -29,8 +30,9 @@ function report(h::History;folder="report $(h[:name])"::AbstractString)
     write_figure_samples(h,folder,fname)
     write_figure_index_set(h,folder,fname)
     write_figure_adaptive_index_set(h,folder,fname)
-    write_figure_cost(h,folder,fname)
     write_figure_runtime(h,folder,fname)
+    write_figure_runtime_vs_rmse(h,folder,fname)
+    write_figure_cost(h,folder,fname)
 
     # make the report file
     write_main_file(h,folder,fname)
@@ -115,6 +117,16 @@ function write_adaptive_index_set(h::History, folder::AbstractString)
             	end
         	end # open
 		end
+    end
+end
+
+function write_runtime_vs_rmse(h::History, folder::AbstractString)
+    open(joinpath(folder,"data","runtime_vs_rmse.txt"), "w") do f
+        x = [h[i][:rmse] for i in 1:h.iter]
+        y = cumsum([h[i][:runtime] for i in 1:h.iter])
+        for i in 1:length(x)
+            write(f, @sprintf("%12.5f %12.5e\n",x[i],y[i]))
+        end
     end
 end
 
@@ -287,7 +299,7 @@ for d in ["2" "3"]
 	eval(ex)
 end
 
-for (name,color,ylabel) in zip(["runtime","cost"],["blue","red"],["run time","standard cost"])
+for (name,color,ylabel) in zip(["runtime","cost","runtime_vs_rmse"],["blue","red","blue"],["run time","standard cost","run time"])
     ex = :(
            function $(Symbol("write_figure_",name))(h::History, folder::AbstractString, fname::AbstractString)
                open(joinpath(folder,"figures",string($(name),".tex")), "w") do f
