@@ -580,7 +580,7 @@ It is also possible to combine MIMC with QMC, see [1]. The latest additons to th
 
 ### Parallel Sampling
 
-Of course, as for any Monte Carlo method, all samples can be taken in parallel. The most convenient way is wrapping your code into a custom module, see, e.g., the [applications](https://github.com/PieterjanRobbe/MultilevelEstimators.jl/tree/master/applications/SPDE) folder.
+Of course, as for any Monte Carlo method, all samples can be taken in parallel. The most convenient way is wrapping your code into a custom module, see, e.g., the [applications](https://github.com/PieterjanRobbe/MultilevelEstimators.jl/tree/fresh/applications/SPDE) folder.
 
 Start julia in parallel or execute `addprocs(p)`, and include your module.
 
