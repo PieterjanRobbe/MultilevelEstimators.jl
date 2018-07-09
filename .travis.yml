@@ -4,10 +4,10 @@ os:
   - linux
   - osx
 julia:
-  - 0.5
+  - 0.6
 before_script:
-  - julia -e 'Pkg.add("Interpolations");Pkg.add("Reexport");Pkg.add("FastGaussQuadrature");Pkg.clone("https://github.com/PieterjanRobbe/QMC.jl");Pkg.update()'
-  - if [ $TRAVIS_JULIA_VERSION = "0.4" ]; then export JULIA_LOAD_PATH=$JULIA_LOAD_PATH:~/.julia/v$TRAVIS_JULIA_VERSION/QMC; fi
+  - julia -e 'Pkg.clone("https://github.com/PieterjanRobbe/QMC.jl";'
+  - if [ $TRAVIS_JULIA_VERSION = "0.6" ]; then export JULIA_LOAD_PATH=$JULIA_LOAD_PATH:~/.julia/v$TRAVIS_JULIA_VERSION/QMC; fi
 notifications:
   email: false
 # uncomment the following lines to override the default test script
