@@ -1,4 +1,4 @@
-__precompile()__
+__precompile__()
 module MultilevelEstimators
 
 # load other modules
@@ -16,7 +16,7 @@ export IndexSet, SL, ML, FT, TD, HC, AD, get_index_set # from index_set.jl
 
 export UniformMCGenerator, NormalMCGenerator, TruncatedNormalMCGenerator, UniformQMCGenerator, NormalQMCGenerator, TruncatedNormalQMCGenerator, get_point # from number_generator.jl
 
-export create_estimator, show # from estimator.jl
+export create_estimator, show, clear # from estimator.jl
 
 export run # from run.jl
 

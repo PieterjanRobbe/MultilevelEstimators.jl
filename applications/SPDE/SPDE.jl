@@ -44,32 +44,28 @@ export init_lognormal_diffusion_amiqmc
 export init_lognormal_diffusion_amiqmc_multiple
 
 ## init functions ##
-init_lognormal_diffusion_analyse_ml() = init_lognormal_diffusion(ML(),false,false,true)
-init_lognormal_diffusion_analyse_mi() = init_lognormal_diffusion(TD(2),false,false,true)
-init_lognormal_diffusion_mc() = init_lognormal_diffusion(SL(),false,false,false)
-init_lognormal_diffusion_mc_multiple() = init_lognormal_diffusion(SL(),false,true,false)
-init_lognormal_diffusion_mlmc() = init_lognormal_diffusion(ML(),false,false,false)
-init_lognormal_diffusion_mlmc_multiple() = init_lognormal_diffusion(ML(),false,true,false)
-init_lognormal_diffusion_qmc() = init_lognormal_diffusion(SL(),true,false,false)
-init_lognormal_diffusion_qmc_multiple() = init_lognormal_diffusion(SL(),true,true,false)
-init_lognormal_diffusion_mlqmc() = init_lognormal_diffusion(ML(),true,false,false)
-init_lognormal_diffusion_mlqmc_multiple() = init_lognormal_diffusion(ML(),true,true,false)
-init_lognormal_diffusion_mimc() = init_lognormal_diffusion(TD(2),false,false,false)
-init_lognormal_diffusion_mimc_multiple() = init_lognormal_diffusion(TD(2),false,true,false)
-init_lognormal_diffusion_miqmc() = init_lognormal_diffusion(TD(2),true,false,false)
-init_lognormal_diffusion_miqmc_multiple() = init_lognormal_diffusion(TD(2),true,true,false)
-init_lognormal_diffusion_amimc() = init_lognormal_diffusion(AD(2),false,false,false)
-init_lognormal_diffusion_amimc_multiple() = init_lognormal_diffusion(AD(2),false,true,false)
-init_lognormal_diffusion_amiqmc() = init_lognormal_diffusion(AD(2),true,false,false)
-init_lognormal_diffusion_amiqmc_multiple() = init_lognormal_diffusion(AD(2),true,true,false)
+init_lognormal_diffusion_analyse_ml(;kwargs...) = init_lognormal_diffusion(ML(),false,false,true;kwargs...)
+init_lognormal_diffusion_analyse_mi(;kwargs...) = init_lognormal_diffusion(TD(2),false,false,true;kwargs...)
+init_lognormal_diffusion_mc(;kwargs...) = init_lognormal_diffusion(SL(),false,false,false;kwargs...)
+init_lognormal_diffusion_mc_multiple(;kwargs...) = init_lognormal_diffusion(SL(),false,true,false;kwargs...)
+init_lognormal_diffusion_mlmc(;kwargs...) = init_lognormal_diffusion(ML(),false,false,false;kwargs...)
+init_lognormal_diffusion_mlmc_multiple(;kwargs...) = init_lognormal_diffusion(ML(),false,true,false;kwargs...)
+init_lognormal_diffusion_qmc(;kwargs...) = init_lognormal_diffusion(SL(),true,false,false;kwargs...)
+init_lognormal_diffusion_qmc_multiple(;kwargs...) = init_lognormal_diffusion(SL(),true,true,false;kwargs...)
+init_lognormal_diffusion_mlqmc(;kwargs...) = init_lognormal_diffusion(ML(),true,false,false;kwargs...)
+init_lognormal_diffusion_mlqmc_multiple(;kwargs...) = init_lognormal_diffusion(ML(),true,true,false;kwargs...)
+init_lognormal_diffusion_mimc(;kwargs...) = init_lognormal_diffusion(TD(2),false,false,false;kwargs...)
+init_lognormal_diffusion_mimc_multiple(;kwargs...) = init_lognormal_diffusion(TD(2),false,true,false;kwargs...)
+init_lognormal_diffusion_miqmc(;kwargs...) = init_lognormal_diffusion(TD(2),true,false,false;kwargs...)
+init_lognormal_diffusion_miqmc_multiple(;kwargs...) = init_lognormal_diffusion(TD(2),true,true,false;kwargs...)
+init_lognormal_diffusion_amimc(;kwargs...) = init_lognormal_diffusion(AD(2),false,false,false;kwargs...)
+init_lognormal_diffusion_amimc_multiple(;kwargs...) = init_lognormal_diffusion(AD(2),false,true,false;kwargs...)
+init_lognormal_diffusion_amiqmc(;kwargs...) = init_lognormal_diffusion(AD(2),true,false,false;kwargs...)
+init_lognormal_diffusion_amiqmc_multiple(;kwargs...) = init_lognormal_diffusion(AD(2),true,true,false;kwargs...)
 
-function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_analyse::Bool)
+function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_analyse::Bool; corr_len::T=0.5, smoothness::T=1.5, nterms::N=500, max_level::N=5, continuate::Bool=false, nshifts::N=20, verbose::Bool=true, sample_multiplication_factor::T=1.1) where {T<:AbstractFloat,N<:Integer}
 
     ## Gaussian random fields ##
-    corr_len = 0.5
-    smoothness = 1.5
-    nterms = 500
-    max_level = 5
     nlevels = isa(method,SL) ? 1 : max_level + 1
     coarse_dof = 2
 
@@ -108,7 +104,6 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
 
     # number generator
     if is_qmc
-        nshifts = 20
         number_generator = NormalQMCGenerator(nterms,nshifts)
     else
         number_generator = NormalMCGenerator(nterms)
@@ -133,10 +128,10 @@ function init_lognormal_diffusion(method::IndexSet, is_qmc::Bool, is_multiple_qo
         user_data = user_data, # GRF's
         verbose = true, # display information
         max_level = nlevels-1, # maximum number of levels
-        continuate = true, # continuate on larger tolerances
+        continuate = continuate, # continuate on larger tolerances
         nb_of_qoi = is_multiple_qoi ? 20^2 : 1, # number of qoi
         cost_model = (index) -> geometric_cost_model(4,1.5,index), # cost model
-        sample_multiplication_factor = 1.1 # qmc multiplication factor
+        sample_multiplication_factor = sample_multiplication_factor # qmc multiplication factor
     )
 end
 
