@@ -36,7 +36,7 @@ struct Estimator{I<:IndexSet,G<:NumberGenerator,T<:AbstractFloat,N<:Integer,S,U,
     old_index_set::C # "old" index set in adaptive algorithm
     spill_index_set::C # "spill" indices that exceed the maximum allowed level
     max_active_set::C # maximum "active" index set to usa for bias estimate
-	adaptive_index_set::D # a vector with a Dict that contains all indices in the set, and their type (for plotting)
+    adaptive_index_set::D # a vector with a Dict that contains all indices in the set, and their type (for plotting)
     number_generators::H # stores shifted number generator at each index
 
     # user_data
@@ -124,7 +124,7 @@ function create_estimator(;kwargs...)
     C = Set{Index{ndims(settings[:method])}}
     H = Dict{Index{ndims(settings[:method])},typeof(random_shift(settings[:number_generator]))}
     J = typeof(settings[:max_search_space])
-	D = Vector{Dict{Index{ndims(settings[:method])},N}}
+    D = Vector{Dict{Index{ndims(settings[:method])},N}}
 
     # estimator internals
     m = settings[:nb_of_qoi]
@@ -149,7 +149,7 @@ function create_estimator(;kwargs...)
     settings[:max_active_set] = C()
     settings[:nb_of_shifts] = n
     settings[:number_generators] = H()
-	settings[:adaptive_index_set] = D()
+    settings[:adaptive_index_set] = D()
 
     # create estimator
     return Estimator{I,G,T,N,S,U,P,Q,C,H,J,D}([settings[name] for name in fieldnames(Estimator)]...)

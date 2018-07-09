@@ -450,27 +450,34 @@ A full list of parameters that can be specified is given below
 
 | Parameter name         | Type                                      | Description                                    |
 | ---------------------- | ----------------------------------------- | ---------------------------------------------- |
-| `indexSet`             | <div>`SL`/`ML`</div><div>`TD`/`FT`/`HC`/`AD`</div> | Index set to be used. Can be single level, multilevel, total degree, full tensor, hyperbolic cross, or adaptive. |
-| `numberGenerator`      |<div> `Uniform`/`Gaussian`+</div><div>`MC`/`QMC`+`Generator`</div> | Point generator to be used. Can be Uniform (between `lb` and `ub`) or Gaussian, Monte Carlo or QuasiMonte Carlo|
-| `sampleFunction`       | `Function`                                | Function that specifies the quantity of interest or QOI. Inputs are a `Vector` of random numbers, an `Index` and a `Sampler`. The mean of this QOI will be estimated. |
-| `maxL`                 | `Int64`                                   | Maximum parameter L to be used in index set definition. The simulation will terminate whenever this value is reached, and return the result achieved so far. Default is `6`.|
-| `γ`                    | `Vector{Float64}`                         | Parameters in the cost model `cost(index)~prod(2^(γ*index))`. Default is `1.5*ones(Float64,d)`. |
-| `Z`                    | `Int64 `                                  | Number of QOIs that will be returned by the `sampleFunction`. Default is `1`. |
-| `Nstar`                | `Int64 `                                  | Number of warm-up samples. Default is `32/nshifts(numberGenerator)`, so, `32` for plain Monte Carlo sampling. |
-| `gaussianFieldSampler` | `KLExpansion`                             | Usefull when using random fields in QOI definition. Can be something of type `GaussianFieldSampler`, or `Vector{GaussianFieldSampler}`. Default is `EmptySampler()`. |
-| `useTime`              | `Bool`                                    | Boolean. Is equal to `true` when the estimated actual simulation time is used in the computation of the number of samples. Use this if no cost model is available. Default is `false`.|
-| `safety`               | `Bool`                                    | Boolean. Is equal to `true` when the variance of the estimator is guaranteed to be smaller then `TOL^2/2`. `safety` must always be `true` when using QMC point generators. Default is `true`. |
-| `continuate`           | `Bool`                                    | Boolean. Is equal to `true` when doing continuation. Default is `false`.|
-| `nTOL`                 | `Int64`                                   | Number of tolerances to be used in the continuation algorithm. Only specify `nTOL` when `continuate` is `true`. Default is `10`. |
-| `k`                    | `Tuple{Float64,Float64}`                  | Trust parameters for variance estimation in the CMLMC algorithm. Default is `(0.1,0.1)`. |
-| `showInfo`             | `Bool`                                    | Boolean. Is equal to `true` when info must be printed to `ioStream`. Default is `true`. |
-| `ioStream`             | `IO`                                      | Where to write output of the simualtion to. Default is `STDOUT`. |
-| `storeSamples`         | `Bool`                                    | Boolean. Is equal to `true` when not only differences, but also the values at each index must be stored. Usefull for diagnostics. Default is `false`. |
-| `procMap`              | `Dict{Index,Int64}`                       | Allows to specify the distribution of processors across all levels. Each entry in the Dict is an `Index` that specifies the number of processors to be used when sampling at that `Index`. Default is a `Dict` with all entries equal to `nprocs()` - the maximum number of processors available. | 
-| `userType`             | `T`                                       | Allows to append a user-defined type to the `Sampler`. Usefull when for example, meshes of a FE approximation must be loaded. Default is `Void`. |
+| `method` | <div>`SL`/`ML`</div><div>`TD`/`FT`/`HC`/`AD`</div> | Required. Index set to be used. Can be single level, multilevel, total degree, full tensor, hyperbolic cross, or adaptive. |
+| `number_generator` |<div> `Uniform`/`Normal`+</div><div>`MC`/`QMC`+`Generator`</div> | Required. Point generator to be used. Can be Uniform (between `lb` and `ub`) or Normal, and Monte Carlo or Quasi-Monte Carlo|
+| `sample_function`       | `Function`                                | Required. Function that specifies the quantity of interest or QOI. Inputs are an `Index` or `Level` to sample on, a `Vector` of random numbers, and an optional object with user data. This last input is usefull to pass objects (such as a `GaussianRandomField` or a Finite Element mesh) to the sample function. The mean of this QOI will be estimated. |
+| `nb_of_warm_up_samples` | `Int64` | Number of warm-up samples. Default is `20` for Monte Carlo sampling, and `1` for Quasi-Monte Carlo. |
+| `nb_of_qoi` | `Int64 ` | Number of QOI's that will be returned by the `sample_function`. Default is `1`. |
+| `continuate` | `Bool` | Boolean. When equal to `true`, we run the simulation for a sequence of larger tolerances to obtain better estimates for the model parameters. Default is `false`.|
+| `ntols` | `Int64` | Number of tolerances to be used in the continuation algorithm. Only used when `continuate` is `true`. Default is `10`. |
+| `p0` | `Float64` | Parameter in the continuation algorithm. Determines the ratio between the different larger tolerances in the continuation. Default is `1.5`. |
+| `name` | `String` | Problem name to be used when saving the simulation results. Default is `""`.|
+| `folder` | `String` | Folder where the simulation results will be saved. Default is the current folder (returned by `cd()`)|
+| `store_samples` | `Bool` | Option to store all samples taken. Usefull when plotting a probabiltiy distribution function of the QOI. Default is `false`.|
+| `user_data` | `Any` | Option to add a user-defined object to the `Estimator`. Will be passed to the sample function. Default is `nothing`.|
+| `verbose` | `Bool` | Log information to the terminal when `true`. Default is `false`.|
+| `cost_model` | `Function` | A function that defines the cost to take a sample at a certain `level` or `index`. A predefined geometric cost model is provided as `(index) -> geometric_cost_model(index, M, c)`. When no cost model is provided, the actual run time is used. Beware of Julia's LLVM compiler though!|
+| `conservative_bias_estimate` | `Bool` | When set to `false`, we use only the two finest levels to perform a regression and compute the bias. This is closer to the original method of Mike Giles. However, when the estimates of the expected value is poor, this might result in an inaccurate bias estimate and an early termination. |
+| `max_level` | `Int64` | Maximum parameter `L` to be used in index set definition. The simulation will terminate whenever this value is reached, and the estimate so far will be returned. Default is `100`. |
+| `max_search_space` | `IndexSet` | Shape of the search space in the adaptive MIMC algorithm, evaluated with `max_level`. Default is `TD`. |
+| `do_regression` | `Bool` | When set to `true`, we compute regression on the number of samples on the finer levels instead of taking `nb_of_warm_up_samples` samples. Default is `true`. |
+| `do_splitting` | `Bool` | When set to `true`, we compute a nontrivial splitting of the MSE. Default is `true`. |
+| `parallel_sample_function` | `Function` | Usefull when defining your own parallel sample function. |
+| `sample_multiplication_factor` | `Float64` | Determines the multiplication factor in the QMC *doubling* algorithm. Default is `2`. When `sample_multiplication_factor <=1 `, we compute one extra point at a time. |
 
 </center>
 
 [1] Le Maître, O., Knio., O. M. *Spectral methods for uncertainty quantification*. Springer Science & Business Media, 2010.
 
 [2] Haji-Ali, A.-L., Nobile, F., Tempone, R. *Multi-index Monte Carlo: when sparsity meets sampling*. Numerische Mathematik 132.4 (2016): 767-806.
+
+[3] Robbe, P., Nuyens, D., Vandewalle, S. *A Multi-Index Quasi-Monte Carlo Algorithm for Lognormal Diffusion Problems.* SIAM Journal on Scientific Computing 39.5 (2017): S851-S872.
+
+[4] Robbe, P., Nuyens, D., Vandewalle, S. *A Dimension-Adaptive Multi-Index Monte Carlo Method Applied to a Model of a Heat Exchanger.* Proceedings of the Twelfth International Conference on Monte Carlo and Quasi-Monte Carlo Methods in Scientific Computing (MCQMC2016).
