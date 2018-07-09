@@ -26,7 +26,7 @@ using MultilevelEstimators
 In most mathematical models, parameters or coefficients are unknown or subject to uncertainty, particularly due to lack of data or measurements. Often, these problems involve the computation of a *quantity of interest* as the expected value over the uncertain input parameters. The classical sample-based approach then chooses <img src="https://latex.codecogs.com/svg.latex?\Large&space;N"/> realisations of the uncertain parameters and approximates this expected value as a sample average. The Multilevel Monte Carlo (MLMC) method improves the error versus work complexity rate of the classical approach by using models  with different levels of accuracy. These models are called *levels*. The main idea is to write the approximation to <img src="https://latex.codecogs.com/svg.latex?\Large&space;G"/> at the most accurate level <img src="https://latex.codecogs.com/svg.latex?\Large&space;L"/> as a telescoping sum
 
 <center>
-<img src="https://latex.codecogs.com/svg.latex?\Large&space;\mathbb{E}[G_L(\omega)]=\mathbb{E}[G_0(\omega)]+\sum_{\ell=1}^L\mathbb{E}[G_\ell(\omega)-G_{\ell-1}(\omega)]=\sum_{\ell=0}^L\mathbb{E}[\Delta G_\ell(\omega)]"/>
+<img src="https://latex.codecogs.com/svg.latex?\Large&space;\mathbb{E}[G_L(\omega)]"/>
 </center>
 
 Note that <img src="https://latex.codecogs.com/svg.latex?\Large&space;\ell=0"/> is the least accurate model. Hence, instead of approximating the expected value of the quantity of interest on the finest mesh, the MLMC method approximates differences <img src="https://latex.codecogs.com/svg.latex?\Large&space;\Delta G_\ell"/> at different levels <img src="https://latex.codecogs.com/svg.latex?\Large&space;\ell"/>. If the variance of these differences goes sufficiently fast to zero as <img src="https://latex.codecogs.com/svg.latex?\Large&space;\ell"/> increases, most samples are taken at models with low accuracy, hence low cost. Typically, only very few samples are needed at the finest mesh.
@@ -82,7 +82,7 @@ h = run(estimator,1e-3)
 
 The output of this simulation is
 
-```
+```julia
 --------------------------------------------------------------------------------
 *** MultilevelEstimators.jl @2018-07-09T15:19:33.006
 *** This is a Multilevel Monte Carlo estimator
