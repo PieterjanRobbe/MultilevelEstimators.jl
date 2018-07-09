@@ -29,7 +29,7 @@ In most mathematical models, parameters or coefficients are unknown or subject t
 <img src="https://latex.codecogs.com/svg.latex?\Large&space;\mathbb{E}[G_L(\omega)]=\mathbb{E}[G_0(\omega)]+\sum_{\ell=1}^L\mathbb{E}[G_\ell(\omega)-G_{\ell-1}(\omega)]"/>
 </center>
 
-Note that <img src="https://latex.codecogs.com/svg.latex?\Large&space;\ell=0"/> is the least accurate model. Hence, instead of approximating the expected value of the quantity of interest on the finest mesh, the MLMC method approximates differences <img src="https://latex.codecogs.com/svg.latex?\Large&space;\Delta\;G_\ell"/> at different levels <img src="https://latex.codecogs.com/svg.latex?\Large&space;\ell"/>. If the variance of these differences goes sufficiently fast to zero as <img src="https://latex.codecogs.com/svg.latex?\Large&space;\ell"/> increases, most samples are taken at models with low accuracy, hence low cost. Typically, only very few samples are needed at the finest mesh.
+Note that <img src="https://latex.codecogs.com/svg.latex?\Large&space;\ell=0"/> is the least accurate model. Hence, instead of approximating the expected value of the quantity of interest on the finest mesh, the MLMC method approximates differences <img src="https://latex.codecogs.com/svg.latex?\Large&space;\Delta\,G_\ell"/> at different levels <img src="https://latex.codecogs.com/svg.latex?\Large&space;\ell"/>. If the variance of these differences goes sufficiently fast to zero as <img src="https://latex.codecogs.com/svg.latex?\Large&space;\ell"/> increases, most samples are taken at models with low accuracy, hence low cost. Typically, only very few samples are needed at the finest mesh.
 
 
 ### A First Simple MLMC Example
