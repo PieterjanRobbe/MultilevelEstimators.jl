@@ -20,8 +20,13 @@ function sample_mg(sampler::Sampler, nb_of_samples::N, index::Index{1,Vector{N}}
 	stop = state[index]+nb_of_samples::N
 	#
 	myf(i) = single_sample_mg(index,start:stop,i,sampler)
+	myf2(i) = single_sample_mg2(index,start:stop,i,sampler)
 	println(desc)
-	t = @elapsed r = pmap(myf, 1:nb_of_shifts)
+	if sampler.reuse
+		t = @elapsed r = pmap(myf, 1:nb_of_shifts)
+	else
+		t = @elapsed r = pmap(myf2, 1:nb_of_shifts)
+	end
 	#
 	#pmap((i)->svd(randn(i)),1:10)
 	#t = @elapsed r = pmap(single_sample_mg, fill(index,stop-start+1), start:stop, fill(sampler,stop-start+1) )
@@ -32,9 +37,13 @@ function sample_mg(sampler::Sampler, nb_of_samples::N, index::Index{1,Vector{N}}
 	samples_ell = reshape(the_samples[end,:,:]',(size(the_samples,3,2)...,1))
 	# check if entry at level ell already exists
 	if haskey(sampler.samples, index) # append samples
+		#@everywhere gc()
 		sampler.samples[index] = vcat(sampler.samples[index], samples_ell)
+		#@everywhere gc()
 	else # make new entry
+		#@everywhere gc()
 		sampler.samples[index] = samples_ell
+		#@everywhere gc()
 	end
 
 	if haskey(sampler.nb_of_orig_samples, index) # append samples
@@ -85,7 +94,6 @@ function single_sample_mg(index::Index{1,Vector{N}}, sample_nos, shift_no::N, sa
 
 	# loop over all shifts
 	
-
 	for q in 1:length(sample_nos)#1:nb_of_shifts
 		xi = getPoint(sampler.numberGenerator[index], sample_nos[q])[:,shift_no]
 		#xi = xi_mat[:,q]::Vector{Float64}
@@ -95,6 +103,33 @@ function single_sample_mg(index::Index{1,Vector{N}}, sample_nos, shift_no::N, sa
 		shifted_sample[1,q] = samples[1]
 		if ell > 0
 			shifted_sample[2:end,q] = diff(samples)
+		end
+	end
+	
+	shifted_sample::Matrix{Float64}
+end
+
+function single_sample_mg2(index::Index{1,Vector{N}}, sample_nos, shift_no::N, sampler::Sampler) where {N}
+	
+	ell = index[1]
+	nb_of_shifts = nshifts(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))])
+
+	# preallocate room for the sample
+	shifted_sample = zeros(1,length(sample_nos))#nb_of_shifts)
+
+	# loop over all shifts
+	
+
+	for q in 1:length(sample_nos)#1:nb_of_shifts
+		xi = getPoint(sampler.numberGenerator[index], sample_nos[q])[:,shift_no]
+		#xi = xi_mat[:,q]::Vector{Float64}
+		# compute sample at finest grid using multigrid
+		samples = sampler.sampleFunction(xi, index, sampler)
+		# compute differences and store into shifted sample
+		shifted_sample[1,q] = samples[1]
+		if ell > 0
+			samples = sampler.sampleFunction(xi, Index(index[1]-1), sampler)
+			shifted_sample[1,q] -= samples
 		end
 	end
 	

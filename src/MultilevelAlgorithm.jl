@@ -19,7 +19,7 @@ simulate{T<:AbstractFloat}(sampler::Sampler, absTol::T, failProb::T, folder::Abs
 
 # simulate(sampler, tol, failProb=..., is_relative=..., folder=...)
 # simulate takes a vector tol as input that contains the tolerances that must be solved for
-function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}; failProb::T=0.1, is_relative::Bool=false, folder::AbstractString=".", max_time::N=typemax(Int64))
+function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}; failProb::T=1/3, is_relative::Bool=false, folder::AbstractString=".", max_time::N=typemax(Int64))
 
 	# checks on inputs
 	if any(tol .< 0) || any(isinf.(tol))
@@ -65,8 +65,9 @@ function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}; failProb
 	#####
 	#####
 	#####
-	
+
 	# run mimc 
+	i = 0
 	for i in 1:length(tol)
 		# make dir
 		printdir = @sprintf("%0.4e",tol[i])
@@ -99,20 +100,37 @@ function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}; failProb
 			print("writing tolerances into $(folder)/data/"*printdir*"/tolerances.txt... ")
 			writedlm(folder*"/data/"*printdir*"/tolerances.txt",tol)
 			println("done")
+			
+
+
+#			if isdefined(:gwModBac) 
+println("===========================")
+println("=         WARNING         =")
+println("===========================")
+println("ALL SAMPLES WILL BE SAVED")
+println("THIS WILL POTENTIALLY CREATE A LOT OF DATA!!!!!")
+println("===========================")
+println("=      END WARNING        =")
+println("===========================")
 			# save all samples
-			#      		dir_name = folder*"/data/"*printdir*"/samples"
-			#      		isdir(dir_name) ? nothing : mkdir(dir_name)
-			#      		for idx in keys(sampler.samples)
-			#        		dir_name2 = @sprintf("%s",idx.indices)
-			#        		isdir(dir_name*"/"*dir_name2) ? nothing : mkdir(dir_name*"/"*dir_name2)
-			#        		for z in 1:sampler.Z
-			#        			writedlm(dir_name*"/"*dir_name2*"/Z$(z).txt",sampler.samples[idx][:,:,z])
-			#        		end
-			#      		end
+			      		dir_name = folder*"/data/"*printdir*"/samples"
+			      		isdir(dir_name) ? nothing : mkdir(dir_name)
+			      		for idx in keys(sampler.samples)
+			        		dir_name2 = @sprintf("%s",idx.indices)
+			        		isdir(dir_name*"/"*dir_name2) ? nothing : mkdir(dir_name*"/"*dir_name2)
+			        		for z in 1:sampler.Z
+			        			writedlm(dir_name*"/"*dir_name2*"/Z$(z).txt",sampler.samples[idx][:,:,z])
+			        		end
+			      		end
+#			end
+
+
+
+
 			# save number of orignal samples
-						nb_of_orig_samples = [sampler.nb_of_orig_samples[ell] for ell in sort(Set(keys(sampler.nb_of_orig_samples)))]
-						print("writing nb_of_orig_samples into $(folder)/data/"*printdir*"/nb_of_orig_samples.txt... ")
-						writedlm(folder*"/data/"*printdir*"/nb_of_orig_samples.txt",nb_of_orig_samples)
+			nb_of_orig_samples = [sampler.nb_of_orig_samples[ell] for ell in sort(Set(keys(sampler.nb_of_orig_samples)))]
+			print("writing nb_of_orig_samples into $(folder)/data/"*printdir*"/nb_of_orig_samples.txt... ")
+			writedlm(folder*"/data/"*printdir*"/nb_of_orig_samples.txt",nb_of_orig_samples)
 			println("done")
 			# save tol x bias x std x total error
 			errorz[i,1] = tol[i]
@@ -122,6 +140,29 @@ function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}; failProb
 			print("writing errorz into $(folder)/data/"*printdir*"/errorz.txt... ")
 			writedlm(folder*"/data/"*printdir*"/errorz.txt",errorz)
 			println("done")
+##############
+##############
+## SAVE E dE V dV
+if isa(sampler.indexSet,ML) && !isa(sampler.numberGenerator[Index(zeros(Int64,ndims(sampler)))],QMCgenerator)
+			E = isempty(sampler.samples0) ? NaN : [maximum(squeeze(mean(sampler.samples0[index],(1,2)),(1,2))) for index in sort(Set(keys(sampler.samples0)))]
+			print("writing E into $(folder)/data/"*printdir*"/E.txt... ")
+			writedlm(folder*"/data/"*printdir*"/E.txt",E)
+			println("done")
+			dE = isempty(sampler.samples) ? NaN : [maximum(squeeze(mean(sampler.samples[index],(1,2)),(1,2))) for index in sort(Set(keys(sampler.samples)))]
+			print("writing dE into $(folder)/data/"*printdir*"/dE.txt... ")
+			writedlm(folder*"/data/"*printdir*"/dE.txt",dE)
+			println("done")
+			V = isempty(sampler.samples0) ? NaN : [maximum(squeeze(var(mean(sampler.samples0[index],1),2),(1,2))) for index in sort(Set(keys(sampler.samples0)))] 
+			print("writing V into $(folder)/data/"*printdir*"/V.txt... ")
+			writedlm(folder*"/data/"*printdir*"/V.txt",V)
+			println("done")
+			dV = isempty(sampler.samples) ? NaN : [maximum(squeeze(var(mean(sampler.samples[index],1),2),(1,2))) for index in sort(Set(keys(sampler.samples)))] 
+			print("writing dV into $(folder)/data/"*printdir*"/dV.txt... ")
+			writedlm(folder*"/data/"*printdir*"/dV.txt",dV)
+			println("done")
+		end
+##############
+##############
 		end # begin
 		# save means
 		#		for index in keys(sampler.samples)
@@ -131,13 +172,13 @@ function simulate{T<:AbstractFloat,N}(sampler::Sampler, tol::Vector{T}; failProb
 		#		writedlm(folder*"/data/"*printdir*"/means.txt",means)
 		#		println("done")
 		# end save means
-				if cumsum(wctime)[end] > max_time
-					print_with_color(:red,"wall clock time exceeded maximum time of $(max_time) secondes, aborting...\n")
-					break
-				end # if
+		if cumsum(wctime)[end] > max_time
+			print_with_color(:red,"wall clock time exceeded maximum time of $(max_time) secondes, aborting...\n")
+			break
+		end # if
 	end # for
 
-	return cumsum(wctime),cumsum(stcost),means
+	return tol[i]#cumsum(wctime),cumsum(stcost),means
 end # function
 
 # actual mimc simulation
@@ -244,7 +285,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 		##################
 		##################
 		##################
-#=
+		#=
 		myset = Set{Index{2,Vector{Int64}}}()
 		for i = 0:5
 			push!(myset,Index(i,1))
@@ -252,7 +293,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 		end
 
 		newindexset = typeof(sampler.indexSet) <: ML ? getIndexSet(ML(),5) : myset
-=#
+		=#
 		##################
 		##################
 		##################
@@ -335,7 +376,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 			for index::Index{d,Vector{N}} in indicesToAdd
 				if !haskey(sampler.samples,index) # when running repeatedly, might already have samples available
 					@show sampler.ml_sample_fun
-					sampler.ml_sample_fun(sampler, sampler.Nstar::N, index::Index{1,Vector{N}})
+					sampler.ml_sample_fun(sampler, sampler.Nstar::N, index)#::Index{1,Vector{N}})
 				end
 			end
 			@debug println("done taking warm-up samples!")
@@ -424,8 +465,13 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 					#end
 					@debug println("the index with maximum ratio Vest/W is $(maxindex.indices)")
 					n = size(sampler.samples[maxindex],dir)
-					@debug println("currently $(n) samples have been taken at index $(maxindex.indices), taking an additional $(nextpow2(n+1)-n)")
-					sampler.ml_sample_fun(sampler, nextpow2(n+1)-n, maxindex ) # round to nearest power of two
+					#				if !sampler.reuse
+#										@debug println("currently $(n) samples have been taken at index $(maxindex.indices), taking an additional $(nextpow2(n+1)-n)")
+#										sampler.ml_sample_fun(sampler, nextpow2(n+1)-n, maxindex ) # round to nearest power of two
+					#				else
+					@debug println("currently $(n) samples have been taken at index $(maxindex.indices), taking an additional 1")
+					sampler.ml_sample_fun(sampler, 1, maxindex ) # round to nearest power of two
+					#				end
 					@debug inspect(sampler)
 
 					# reevaluate optimal number of samples
@@ -459,7 +505,7 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 							sampler.ml_sample_fun(sampler, samplesToTake, index )
 						end
 					end
-					@debug inspect(sampler)
+					#					@debug inspect(sampler)
 
 					B = maximum(compute_bias(sampler,boundary))
 					splitting = ( B < realTOL/2 ) ? 1 - B/realTOL : 0.5
@@ -486,15 +532,15 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 				@debug println("we have error $(error)")
 				# print some info to the screen
 				!sampler.showInfo || print_with_color(:magenta, sampler.ioStream, 
-													  @sprintf("*** estimate for the bias is %0.6e \n", B ) )
+										  @sprintf("*** estimate for the bias is %0.6e \n", B ) )
 				!sampler.showInfo || print_with_color(:magenta, sampler.ioStream, 
-													  @sprintf("*** estimate for the stochastic error is %0.6e \n", A ) )
+										  @sprintf("*** estimate for the stochastic error is %0.6e \n", A ) )
 				!sampler.showInfo || print_with_color(:magenta, sampler.ioStream, 
-													  @sprintf("*** estimate for the total error is %0.6e \n", error ) )
+										  @sprintf("*** estimate for the total error is %0.6e \n", error ) )
 				μ = mean(sampler, newindexset)
 				σ = std(sampler, newindexset)
 				!sampler.showInfo || ( !converged || print_with_color(:magenta, sampler.ioStream, 
-																	  @sprintf("*** result is %0.6e ±(%0.6e, %0.6e, %0.6e) \n", μ, σ, 2*σ, 3*σ ) ) )
+														  @sprintf("*** result is %0.6e ±(%0.6e, %0.6e, %0.6e) \n", μ, σ, 2*σ, 3*σ ) ) )
 			else
 				@debug println("not checking convergence... ")
 			end
@@ -503,13 +549,13 @@ function mimc{d,T<:AbstractFloat}(sampler::Sampler{d}, TOL::T, is_relative::Bool
 			###########################3
 			###########################3
 
-		#converged = true	
-		@show converged = L == sampler.maxL
-			
+			#converged = true	
+			#@show converged = L == sampler.maxL
+
 			###########################3
 			###########################3
 			###########################3
-			
+
 			# when debugging, update Lcollection
 			@debug Lcollection = vcat(Lcollection,[B A sqrt(A^2+B^2)])
 			@debug writedlm(folder*"/data/"*printdir*"/indexset_errors.txt",Lcollection)

@@ -31,11 +31,11 @@ nshifts{s}(generator::UniformMCgenerator{s}) = 1
 reset{s}(generator::UniformMCgenerator{s}) = Void
 
 # methods
-isValid{s}(U::UniformMCgenerator{s}) = G.λ == 0.5 && length(lb) == s && length(ub) == s
+isValid{s}(U::UniformMCgenerator{s}) = U.λ == 0.5 && length(U.lb) == s && length(U.ub) == s
 
 function show{s}(io::IO,U::UniformMCgenerator{s})
   @assert isValid(U)
-  str = "$(ndims(G))-dimensional uniform Monte Carlo sampler with λ= $(U.λ) and \n"
+  str = "$(ndims(U))-dimensional uniform Monte Carlo sampler with λ= $(U.λ) and \n"
   str *= " - lower bound = $(U.lb)\n"
   str *= " - upper bound = $(U.lb)\n"
   print(io,str)

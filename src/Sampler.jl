@@ -143,6 +143,11 @@ function setup{S<:AbstractString}(dict::Dict{S,Any})
 	end
         ml_sample_fun = isMultigrid ? ( isPrashant ? prashant_sample_mg : ( giles_multigrid ? sample_gmg : sample_mg ) ) : sample
 
+		if haskey(settings,"ml_sample_fun")
+			ml_sample_fun = settings["ml_sample_fun"]
+			delete!(settings,"ml_sample_fun")
+		end
+
 	if haskey(settings,"reuseSamples")
 		reuseSamples = settings["reuseSamples"]
 		if !(typeof(reuseSamples) <: Bool)
@@ -554,6 +559,7 @@ function compute_stochastic_error{d,N}(sampler, failProb, indexset::Set{Index{d,
 			end
 		end
 	end
+	@show M
 	println("SAMPLER MEANS")
 	println("^^^^^^^^^^^^^")
 	show(IOContext(STDOUT, limit=true), "text/plain", sum(M,1))
@@ -677,7 +683,7 @@ function update_dicts(sampler::Sampler, index)
   n = size(sampler.samples[index],dir) # number of samples taken
   sampler.Vest[index] = sampler.V[index]/n
   sampler.Wst[index] =  sampler.costModel(index)
-  sampler.W[index] =  sampler.useTime ? sampler.T[index]/n : sampler.Wst[index]
+  sampler.W[index] =  sampler.useTime ? haskey(sampler.T,index) ? sampler.T[index]/n : sampler.T[Index(3)]/n : sampler.Wst[index]
   sampler.P[index] = maximum(abs.(sampler.E[index])./sqrt.(sampler.Vf[index].*sampler.W[index]))
 end
 
@@ -784,6 +790,7 @@ function take_a_sample{N<:Integer,I<:Index}(index::I, i::N, sampler::Sampler)
     mySample[1,q,:,1] = Qtot
     mySample[1,q,:,2] = Q0
   end
+  
   return mySample
 	
 end
