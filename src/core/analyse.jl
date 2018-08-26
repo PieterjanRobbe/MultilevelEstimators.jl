@@ -30,7 +30,7 @@ function _analyse(estimator::Estimator)
     # first run: take 1 sample at each level/index
     if isempty(estimator.nsamples)
         for level in get_index_set(estimator.method,estimator.max_level)
-            sample!(estimator,level,1)
+            sample!(estimator,level,nworkers())
             push!(estimator,level)
         end
 
@@ -38,6 +38,7 @@ function _analyse(estimator::Estimator)
     else
         for level in keys(estimator)
             n = round(Int,1/cost(estimator,level)*cost(estimator,keys(estimator)[indmax([cost(estimator,level) for level in keys(estimator)])]))
+            n = max(n,nworkers())
             sample!(estimator,level,n)
         end
     end
