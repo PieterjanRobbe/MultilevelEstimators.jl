@@ -96,6 +96,17 @@ struct AD{d} <: IndexSet{d} end
 
 AD(d::Integer) = d <= 1 ? throw(BoundsError("to use AD, dimension must be greater than 1, got $(d)")) : AD{d}()
 
+"""
+    MGML()
+
+A multigrid multi-level index set.
+"""
+struct MGML{d} <: IndexSet{d} end
+
+MGML() = MGML{1}()
+
+filter(::MGML,sz) = itr -> sum(itr) <= sz
+
 # utilities
 ndims(::IndexSet{d}) where {d} = d
 
@@ -131,7 +142,7 @@ function is_admissable(idxset::Set{Index{d}}, index::Index{d})  where {d}
 end
 
 # output formatting
-for i in ["SL" "ML" "TD" "HC" "FT" "AD"]
+for i in ["SL" "ML" "TD" "HC" "FT" "AD" "MGML"]
     ex = :( show(io::IO, ::$(Symbol(i))) = print(io, $(i)) )
     eval(ex)
 end
