@@ -50,42 +50,18 @@ function _run(estimator::MultiGridMultiLevelMonteCarloEstimator, ϵ::T where {T<
             # take additional samples
             r = 1/2*(β(estimator) + γ(estimator))
             r = isnan(r) ? 1.5 : r
-            N = floor.(Int,randexpr(r,n_opt))
-
-            n_due = n_opt - estimator.nsamples[max_level]
-            n_due > 0 && sample!(estimator,max_level,n_due)
+            N = min.(floor.(Int,randexpr(r,n_opt)),level[1])
+            N_sum = Int64[sum(N.==ℓ) for ℓ = 0:maximum(N)]
+            for tau in keys(estimator)
+                n_due = N_sum[tau[1]] - estimator.nsamples[tau]
+                n_due > 0 && sample!(estimator,tau,n_due)
+            end
 
             # recompute splitting parameter
             θ = estimator.do_splitting ? compute_splitting(estimator,ϵ) : 1/2
 
             # check next iteration
             estimator.verbose && print_qmc_convergence(estimator,ϵ,θ)
-        end
-
-
-
-
-
-
-
-
-
-        # evaluate optimal number of samples
-        n = ceil.(Int,2/ϵ^2 * var(estimator,level))
-
-        n_opt = Dict{Index,Int}()
-        all_sum = sum(sqrt.([var(estimator,level)*cost(estimator,level) for level in keys(estimator)])) 
-        for tau in keys(estimator)
-            n_opt[tau] = ceil.(Int,1/(θ*ϵ^2) * sqrt(var(estimator,tau)/cost(estimator,tau)) * all_sum)
-        end
-
-        # print optimal number of samples
-        estimator.verbose && print_number_of_samples(estimator,n_opt)
-
-        # take additional samples
-        for tau in keys(estimator)
-            n_due = n_opt[tau] - estimator.nsamples[tau]
-            n_due > 0 && sample!(estimator,tau,n_due)
         end
 
         # show status
