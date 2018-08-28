@@ -18,7 +18,7 @@ long to write down, so with a slight abuse of notation, this module is called "S
 module SPDE
 
 ## dependencies ##
-using Interpolations, Reexport, SimpleMultigrid
+using Interpolations, Reexport, SimpleMultigrid, PaddedViews
 @reexport using MultilevelEstimators, GaussianRandomFields
 
 ## include statements ##

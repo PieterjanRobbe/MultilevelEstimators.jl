@@ -12,7 +12,7 @@ import QMC: ndims, nshifts, RandWrapper
 # export statements
 export Level, Index, diff # from index.jl
 
-export IndexSet, SL, ML, FT, TD, HC, AD, get_index_set # from index_set.jl
+export IndexSet, SL, ML, FT, TD, HC, AD, MGML, get_index_set # from index_set.jl
 
 export UniformMCGenerator, NormalMCGenerator, TruncatedNormalMCGenerator, UniformQMCGenerator, NormalQMCGenerator, TruncatedNormalQMCGenerator, get_point # from number_generator.jl
 

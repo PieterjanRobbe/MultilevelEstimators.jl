@@ -56,7 +56,8 @@ function init_SPDE(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_ana
 
     # level 0
     m = coarse_dof*2^(max_level-nlevels+1)
-    v = 1/2/m:1/2/m:1-1/2/m
+    #v = 1/2/m:1/2/m:1-1/2/m
+	v = linspace(0,1,m+1)
     grf = GaussianRandomField(cov_fun,KarhunenLoeve(nterms),v,v)
 
     # for AD index set, pick all fields in TD manner
@@ -74,8 +75,10 @@ function init_SPDE(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_ana
             j = length(idx) > 1 ? idx[2] : i
             m = coarse_dof*2^i
             n = coarse_dof*2^j
-            vx = 1/2/m:1/2/m:1-1/2/m
-            vy = 1/2/n:1/2/n:1-1/2/n
+            #vx = 1/2/m:1/2/m:1-1/2/m
+			vx = linspace(0,1,m+1)
+            #vy = 1/2/n:1/2/n:1-1/2/n
+			vy = linspace(0,1,n+1)
             grf = GaussianRandomField(cov_fun,KarhunenLoeve(nterms),vx,vy)
             fields[idx] = grf
         end
@@ -102,7 +105,7 @@ function init_SPDE(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_ana
     name = is_multiple_qoi ? string(name," (multiple)") : name
 
     # sample function
-    sample_function = "SPDE"
+    sample_function = "SPDE_sample"
     sample_function = is_multigrid ? string(sample_function,"_mg") : sample_function
     sample_function = is_multiple_qoi ? string(sample_function,"_multiple") : string(sample_function,"_single")
     sample_function = eval(:($(Symbol(sample_function))))
