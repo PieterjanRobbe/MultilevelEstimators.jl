@@ -49,16 +49,16 @@ function _run(estimator::MultiGridMultiLevelMonteCarloEstimator, ϵ::T where {T<
             end
 
             # print optimal number of samples
-            estimator.verbose && print_number_of_samples(estimator,n_opt)
+			estimator.verbose && print_number_of_samples(estimator,Dict(Level(0)=>n_opt))
 
             # take additional samples
             r = 1/2*(β(estimator) + γ(estimator))
             r = isnan(r) ? 1.5 : r
-            N = min.(floor.(Int,randexpr(r,n_opt)),level[1])
-            N_sum = Int64[sum(N.==ℓ) for ℓ = 0:maximum(N)]
+            N_add = min.(floor.(Int,randexpr(r,n_opt-N)),level[1])
+            N_sum = Int64[sum(N_add.==ℓ) for ℓ = 0:maximum(N)]
             N_diff = append!(-diff(N_sum),1) # subtract samples on finer levels
             for tau in keys(estimator)
-                n_due = N_sum[tau[1]] - estimator.nsamples[tau]
+                n_due = N_sum[tau[1]+1]
                 n_due > 0 && sample!(estimator,tau,n_due)
             end
 
@@ -118,17 +118,17 @@ end
 ## inspector functions ##
 function get_Ys(estimator::MultiGridMultiLevelMonteCarloEstimator)
     idx = point_with_max_var(estimator)
-    Ys = zeros(length(samples[idx][Level(0)]))
+    Ys = zeros(length(estimator.samples[idx][Level(0)]))
     for index in keys(estimator)
-        ns = length(samples[idx][index])
-        Ys[1:ns] .+= samples[idx][index]
+        ns = length(estimator.samples[idx][index])
+        Ys[1:ns] .+= estimator.samples[idx][index]
     end
     return Ys # these are independent
 end
 
-varest(estimator::MultiGridMultiLevelMonteCarloEstimator) = var(Ys)
+varest(estimator::MultiGridMultiLevelMonteCarloEstimator) = var(get_Ys(estimator))/length(estimator.samples[1][Level(0)])
 
-moment(estimator::MultiGridMultiLevelMonteCarloEstimator) = moment(Ys,k)
+moment(estimator::MultiGridMultiLevelMonteCarloEstimator) = moment(get_Ys(estimator),k)
 
 # regression of optimal number of samples at unknown level
 #=

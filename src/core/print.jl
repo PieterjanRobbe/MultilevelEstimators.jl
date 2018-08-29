@@ -83,7 +83,7 @@ function print_mse_analysis(estimator::Estimator,ϵ::T where {T<:Real},θ::T whe
 end
 
 # print QMC convergence
-function print_qmc_convergence(estimator::QuasiMonteCarloTypeEstimator,ϵ::T where {T<:Real},θ::T where {T<:Real})
+function print_qmc_convergence(estimator::Estimator,ϵ::T where {T<:Real},θ::T where {T<:Real})
     println(string("Checking if variance of estimator is larger than θ*ϵ^2..."))
     converged = !(varest(estimator) > θ*ϵ^2)
     println(string("  ==> ",@sprintf("%11.5e",varest(estimator)),"$(converged ? " <" : " >")",@sprintf("%12.5e",θ*ϵ^2),": $(converged ? "yes!" : "no" )"))

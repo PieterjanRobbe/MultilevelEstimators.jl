@@ -4,15 +4,15 @@ push!(LOAD_PATH,joinpath(Pkg.dir("MultilevelEstimators"),"applications","SPDE"))
 
 using QMC, MultilevelEstimators, SPDE, Suppressor, Base.Test, JLD
 
-estimator = init_SPDE_mgmlmc(continuate=true)
+estimator = init_SPDE_mlmc_multiple(continuate=true)
 
-@show isa(estimator, MultilevelEstimators.MultiGridMultiLevelMonteCarloEstimator)
-@show isa(estimator, MultilevelEstimators.MultiLevelTypeEstimator)
-@show isa(estimator, MultilevelEstimators.MultiGridTypeEstimator)
+#@show isa(estimator, MultilevelEstimators.MultiGridMultiLevelMonteCarloEstimator)
+#@show isa(estimator, MultilevelEstimators.MultiLevelTypeEstimator)
+#@show isa(estimator, MultilevelEstimators.MultiGridTypeEstimator)
 
-@show estimator
+#@show estimator
 
-@show SPDE.SPDE_sample_mg_single(Level(0), randn(100_000), estimator.user_data)
+#@show SPDE.SPDE_sample_mg_single(Level(0), randn(100_000), estimator.user_data)
 #@show SPDE.SPDE_sample_mg_single(Level(5), randn(100_000), estimator.user_data)
 #@show SPDE.SPDE_sample_mg_single(Level(5), randn(100_000), estimator.user_data)
 #@show SPDE.SPDE_sample_mg_single(Level(5), randn(100_000), estimator.user_data)
