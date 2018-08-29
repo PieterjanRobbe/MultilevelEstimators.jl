@@ -4,21 +4,30 @@ push!(LOAD_PATH,joinpath(Pkg.dir("MultilevelEstimators"),"applications","SPDE"))
 
 using QMC, MultilevelEstimators, SPDE, Suppressor, Base.Test, JLD
 
-estimator = init_SPDE_mlmc(continuate=true)
+estimator = init_SPDE_mgmlmc(continuate=true)
 
-#@show SPDE.SPDE_sample_mg_single(Level(5), randn(100_000), estimator.user_data)
-#@show SPDE.SPDE_sample_mg_single(Level(5), randn(100_000), estimator.user_data)
-#@show SPDE.SPDE_sample_mg_single(Level(5), randn(100_000), estimator.user_data)
-#@show SPDE.SPDE_sample_mg_single(Level(5), randn(100_000), estimator.user_data)
-@show SPDE.SPDE_sample_single(Level(5), randn(100_000), estimator.user_data)
-SPDE.SPDE_sample_multiple(Level(5), randn(100_000), estimator.user_data)
+@show isa(estimator, MultilevelEstimators.MultiGridMultiLevelMonteCarloEstimator)
+@show isa(estimator, MultilevelEstimators.MultiLevelTypeEstimator)
+@show isa(estimator, MultilevelEstimators.MultiGridTypeEstimator)
 
-#=
-wp = CachingPool(workers())
-f(i) = estimator.sample_function(Level(5),randn(100_000),estimator.user_data)
-t = @elapsed all_samples = pmap(wp,f,1:10)
-@show typeof(all_samples)
-=#
+@show estimator
+
+@show SPDE.SPDE_sample_mg_single(Level(0), randn(100_000), estimator.user_data)
+#@show SPDE.SPDE_sample_mg_single(Level(5), randn(100_000), estimator.user_data)
+#@show SPDE.SPDE_sample_mg_single(Level(5), randn(100_000), estimator.user_data)
+#@show SPDE.SPDE_sample_mg_single(Level(5), randn(100_000), estimator.user_data)
+#@show SPDE.SPDE_sample_mg_single(Level(5), randn(100_000), estimator.user_data)
+#SPDE.SPDE_sample_mg_multiple(Level(5), randn(100_000), estimator.user_data)
+
+run(estimator,0.001)
+
+
+
+#wp = CachingPool(workers())
+#f(i) = estimator.sample_function(Level(5),randn(100_000),estimator.user_data)
+#t = @elapsed all_samples = pmap(wp,f,1:10)
+#@show typeof(all_samples)
+#@show all_samples
 
 #=
 # basic tests

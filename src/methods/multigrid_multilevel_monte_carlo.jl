@@ -23,6 +23,9 @@ function _run(estimator::MultiGridMultiLevelMonteCarloEstimator, ϵ::T where {T<
         #    N0_ = ( level > (2,) && estimator.do_regression ) ? regress(estimator,level,ϵ,θ) : N0 # regression
         #    sample!(estimator,level,N0_)
         #end
+        # TODO : at least 2 samples ==> var(est, index)
+        # maar! enkel bias en varest (= 1 sample) nodig ==> 1 sample
+        sample!(estimator,level,1)
 
         # add new level to the index set
         push!(estimator,level)
@@ -36,12 +39,13 @@ function _run(estimator::MultiGridMultiLevelMonteCarloEstimator, ϵ::T where {T<
         while varest(estimator) > θ*ϵ^2 # doubling algorithm
 
             # increase the number of samples already taken
+            N = length(estimator.samples[1][Level(0)])
             if estimator.sample_multiplication_factor == 2 # (round to nearest power of two)
-                n_opt = nextpow2(estimator.nsamples[(0,)]+1) # + 1 to increase amount
+                n_opt = nextpow2(N+1) # + 1 to increase amount
             elseif estimator.sample_multiplication_factor <= 1
-                n_opt = estimator.nsamples[(0,)] + 1 # add 1 sample
+                n_opt = N + 1 # add 1 sample
             else
-                n_opt = ceil(Int,estimator.nsamples[(0,)]*estimator.sample_multiplication_factor)
+                n_opt = ceil(Int,N*estimator.sample_multiplication_factor)
             end
 
             # print optimal number of samples
@@ -52,7 +56,7 @@ function _run(estimator::MultiGridMultiLevelMonteCarloEstimator, ϵ::T where {T<
             r = isnan(r) ? 1.5 : r
             N = min.(floor.(Int,randexpr(r,n_opt)),level[1])
             N_sum = Int64[sum(N.==ℓ) for ℓ = 0:maximum(N)]
-			# TODO I think I must subtract these ...
+            N_diff = append!(-diff(N_sum),1) # subtract samples on finer levels
             for tau in keys(estimator)
                 n_due = N_sum[tau[1]] - estimator.nsamples[tau]
                 n_due > 0 && sample!(estimator,tau,n_due)
@@ -89,7 +93,7 @@ end
 randexpr(r::Number,kwargs...) = randexp(kwargs...)/r
 
 ## Multilevel Monte Carlo parallel sampling ##
-function parallel_sample!(estimator::MonteCarloTypeEstimator,index::Index,istart::N,iend::N) where {N<:Integer}
+function parallel_sample!(estimator::MultiGridTypeEstimator,index::Index,istart::N,iend::N) where {N<:Integer}
 
     # parallel sampling
     wp = CachingPool(workers())
@@ -97,138 +101,37 @@ function parallel_sample!(estimator::MonteCarloTypeEstimator,index::Index,istart
     t = @elapsed all_samples = pmap(wp,f,istart:iend)
 
     # extract samples
-    samples = last.(all_samples)
+    samples = last.(all_samples) # array of arrays
     dsamples = first.(all_samples)
 
     # append samples
-    for n_qoi in 1:estimator.nb_of_qoi
-        append!(estimator.samples[n_qoi][index],getindex.(dsamples,n_qoi))
-        append!(estimator.samples0[n_qoi][index],getindex.(samples,n_qoi))
+    for idx in 0:index[1]
+        for n_qoi in 1:estimator.nb_of_qoi
+            append!(estimator.samples[n_qoi][Index(idx)],getindex.(getindex.(dsamples,idx+1),n_qoi))
+            append!(estimator.samples0[n_qoi][Index(idx)],getindex.(getindex.(dsamples,idx+1),n_qoi))
+        end
     end
     estimator.nsamples[index] += iend-istart+1
     estimator.total_work[index] += estimator.use_cost_model ? (iend-istart+1)*estimator.cost_model(index) : t
 end
 
 ## inspector functions ##
-cost(estimator::MonteCarloTypeEstimator,index::Index) = estimator.total_work[index]/estimator.nsamples[index]
-
-point_with_max_var(estimator::MonteCarloTypeEstimator) = indmax([ sum([var(estimator.samples[i][idx]) for idx in keys(estimator)]) for i in 1:estimator.nb_of_qoi ])
-
-for f in [:mean :var :skewness]
-    ex = :(
-           function $(f)(estimator::MonteCarloTypeEstimator,index::Index)
-               idx = point_with_max_var(estimator)
-               $(f)(estimator.samples[idx][index])
-           end
-          )
-    eval(ex)
-end
-
-for f in [:mean :var] # for samples0
-    ex = :(
-           function $(Symbol(f,0))(estimator::MonteCarloTypeEstimator,index::Index)
-               idx = point_with_max_var(estimator)
-               $(f)(estimator.samples0[idx][index])
-           end
-          )
-    eval(ex)
-end
-
-for f in [:mean :var :skewness]
-    ex = :(
-           function $(f)(estimator::MonteCarloTypeEstimator)
-               idx = point_with_max_var(estimator)
-               sum(Float64[$(f)(estimator.samples[idx][index]) for index in keys(estimator)])
-           end
-          )
-    eval(ex)
-end
-
-function varest(estimator::MonteCarloTypeEstimator,index::Index)
-    n = estimator.nsamples[index]
-    var(estimator,index)/n 
-end
-
-function varest(estimator::MonteCarloTypeEstimator)
+function get_Ys(estimator::MultiGridMultiLevelMonteCarloEstimator)
     idx = point_with_max_var(estimator)
-    sum([var(estimator.samples[idx][index])/estimator.nsamples[index] for index in keys(estimator)])
-end
-
-function moment(estimator::MonteCarloTypeEstimator,k::N where {N<:Integer},index::Index)
-    idx = point_with_max_var(estimator)
-    moment(estimator.samples[idx][index],k)
-end
-
-function moment(estimator::MonteCarloTypeEstimator,k::N where {N<:Integer})
-    idx = point_with_max_var(estimator)
-    sum([moment(estimator.samples[idx][index],k) for index in keys(estimator)])
-end
-
-function bias(estimator::MultiLevelTypeEstimator; use_maximum=false::Bool)
-    max_idx = use_maximum ? maximum(keys(estimator.samples[1])) : maximum(keys(estimator))
-    θ = α(estimator,both=true,conservative=estimator.conservative_bias_estimate,max_idx=max_idx)
-    2^(θ[1]+(max_idx[1]+1)*θ[2])
-end
-
-mse(estimator::Estimator) = varest(estimator) + bias(estimator)^2
-
-rmse(estimator::Estimator) = sqrt(mse(estimator))
-
-## rates ##
-function α(estimator::MultiLevelTypeEstimator; both=false, conservative=true, max_idx=maximum(keys(estimator))::Level) # optional arguments account for regression, MSE splitting etc.
-    if max_idx < (2,)
-        return both ? [NaN, NaN] : NaN
-    else
-        x_start = conservative ? 1 : max_idx[1]-1
-        x = x_start:max_idx[1]
-        y = [mean(estimator,(i,)) for i in x]
-        θ = straight_line_fit(x,log2.(abs.(y)))
-        return both ? θ : -θ[2]
+    Ys = zeros(length(samples[idx][Level(0)]))
+    for index in keys(estimator)
+        ns = length(samples[idx][index])
+        Ys[1:ns] .+= samples[idx][index]
     end
+    return Ys # these are independent
 end
 
-function β(estimator::MultiLevelTypeEstimator; both=false)
-    max_idx = maximum(keys(estimator))
-    if max_idx < (2,)
-        return both ? [NaN, NaN] : NaN
-    else
-        x = 1:max_idx[1]
-        y = Float64[]
-        for i in x
-            v = var(estimator,(i,))
-            if !isnan(v)
-                push!(y,v)
-            end
-        end
-        x = x[1:length(y)]
-        θ = straight_line_fit(x,log2.(y))
-        if length(x) < 2
-            return both ? [NaN, NaN] : NaN
-        else
-            return both ? θ : -θ[2]
-        end
-    end
-end
+varest(estimator::MultiGridMultiLevelMonteCarloEstimator) = var(Ys)
 
-function γ(estimator::MultiLevelTypeEstimator; both=false)
-    max_idx = maximum(keys(estimator))
-    if max_idx < (2,)
-        return both ? [NaN, NaN] : NaN
-    else
-        x = 1:max_idx[1]
-        y = [cost(estimator,(i,)) for i in x]
-        θ = straight_line_fit(x,log2.(y))
-        return both ? θ : θ[2]
-    end
-end
-
-function straight_line_fit(x::AbstractVector,y::AbstractVector)
-    X = ones(length(x),2)
-    X[:,2] = x
-    X\y
-end
+moment(estimator::MultiGridMultiLevelMonteCarloEstimator) = moment(Ys,k)
 
 # regression of optimal number of samples at unknown level
+#=
 function regress(estimator::MultiLevelMonteCarloEstimator,level::Level,ϵ::T,θ::T) where {T<:Real}
     p = β(estimator,both=true)
     var_est = 2^(p[1]+level[1]*p[2])
@@ -239,10 +142,4 @@ function regress(estimator::MultiLevelMonteCarloEstimator,level::Level,ϵ::T,θ:
     n_opt = ceil.(Int,1/(θ*ϵ^2) * sqrt(var_est/cost_est) * all_sum)
     max(2,min(n_opt,estimator.nb_of_warm_up_samples))
 end
-
-# compute optimal value of MSE splitting parameter
-function compute_splitting(estimator::Estimator,ϵ::T where {T<:Real})
-    bias_est = bias(estimator,use_maximum=true)
-    isnan(bias_est) ? 0.5 : min(0.99, max(1/2,1-bias_est^2/ϵ^2))
-end
-
+=#

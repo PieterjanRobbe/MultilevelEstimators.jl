@@ -9,9 +9,9 @@ function SPDE_mg_solve(Z::Matrix{T}) where {T<:Real}
     mg = V_cycle(A,size(Z).-1) # mg structure
     mg.grids[1].b .= b # copy rhs
 
-	sol = FMG(mg.grids,2,2,1,1,GaussSeidel())
-	#@show SimpleMultigrid.norm_of_residu(mg.grids[1]) < 1/prod(mg.grids[1].sz)
-	sol, reverse!(getfield.(mg.grids,:sz))
+    sol = FMG(mg.grids,2,2,1,1,GaussSeidel())
+    #@show SimpleMultigrid.norm_of_residu(mg.grids[1]) < 1/prod(mg.grids[1].sz)
+    sol, reverse!(getfield.(mg.grids,:sz))
 end
 
 # custom FMG routine that returns coarse solutions
@@ -41,7 +41,7 @@ for mode in ["single" "multiple"]
 
                # solve
                Zf = sample(grf,xi=ξ[1:randdim(grf)]) # compute GRF
-			   Qf = $(Symbol("SPDE_single_sample_mg_",mode))(Zf)
+	       Qf = $(Symbol("SPDE_single_sample_mg_",mode))(Zf)
 
                # compute difference
 			   dQ = deepcopy(Qf)
@@ -59,7 +59,7 @@ for mode in ["single" "multiple"]
     ex = :(
            function $(Symbol("SPDE_single_sample_mg_",mode))(Z::Matrix{T}) where {T<:Real}
                (sol,szs) = $(Symbol("SPDE_mg_solve"))(Z)
-			   $(Symbol("SPDE_",mode,"_qoi")).(sol,szs)
+	       $(Symbol("SPDE_",mode,"_qoi")).(sol,szs)
            end
           )
     eval(ex)

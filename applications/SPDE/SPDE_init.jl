@@ -41,8 +41,8 @@ init_SPDE_amimc(;kwargs...) = init_SPDE(AD(2),false,false,false,false;kwargs...)
 init_SPDE_amimc_multiple(;kwargs...) = init_SPDE(AD(2),false,true,false,false;kwargs...)
 init_SPDE_amiqmc(;kwargs...) = init_SPDE(AD(2),true,false,false,false;kwargs...)
 init_SPDE_amiqmc_multiple(;kwargs...) = init_SPDE(AD(2),true,true,false,false;kwargs...)
-init_SPDE_mgmlmc(;kwargs...) = init_SPDE(MGML(),false,false,false,true;kwargs...)
-init_SPDE_mgmlmc_multiple(;kwargs...) = init_SPDE(MGML(),false,true,false,true;kwargs...)
+init_SPDE_mgmlmc(;kwargs...) = init_SPDE(MG(ML()),false,false,false,true;kwargs...)
+init_SPDE_mgmlmc_multiple(;kwargs...) = init_SPDE(MG(ML()),false,true,false,true;kwargs...)
 
 ## main function ##
 function init_SPDE(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_analyse::Bool, is_multigrid::Bool; corr_len::T=0.5, smoothness::T=1.5, nterms::N=500, max_level::N=5, continuate::Bool=false, nshifts::N=20, verbose::Bool=true, sample_multiplication_factor::T=1.1) where {T<:AbstractFloat,N<:Integer}
@@ -98,8 +98,8 @@ function init_SPDE(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_ana
     name = "SPDE "
     name = is_analyse ? string(name,"analyse ") : name
     name = isa(method,AD) ? string(name,"A") : name
-    name = isa(method,MGML) ? string(name,"MG-") : name
-    name = isa(method,ML) || isa(method,MGML) ? string(name,"ML") : MultilevelEstimators.ndims(method) > 1 ? string(name,"MI") : name
+    name = isa(method,MG) ? string(name,"MG-") : name
+    name = isa(method,ML) || isa(method,ML) ? string(name,"ML") : MultilevelEstimators.ndims(method) > 1 ? string(name,"MI") : name
     name = is_qmc ? string(name,"Q") : name
     name = string(name,"MC")
     name = is_multiple_qoi ? string(name," (multiple)") : name

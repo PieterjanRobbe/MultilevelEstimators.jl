@@ -89,7 +89,7 @@ function parallel_sample!(estimator::MonteCarloTypeEstimator,index::Index,istart
 end
 
 ## inspector functions ##
-cost(estimator::MonteCarloTypeEstimator,index::Index) = estimator.total_work[index]/estimator.nsamples[index]
+cost(estimator::Estimator,index::Index) = estimator.total_work[index]/estimator.nsamples[index]
 
 point_with_max_var(estimator::MonteCarloTypeEstimator) = indmax([ sum([var(estimator.samples[i][idx]) for idx in keys(estimator)]) for i in 1:estimator.nb_of_qoi ])
 
@@ -224,4 +224,3 @@ function compute_splitting(estimator::Estimator,ϵ::T where {T<:Real})
     bias_est = bias(estimator,use_maximum=true)
     isnan(bias_est) ? 0.5 : min(0.99, max(1/2,1-bias_est^2/ϵ^2))
 end
-

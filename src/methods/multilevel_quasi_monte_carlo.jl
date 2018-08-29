@@ -104,11 +104,7 @@ function parallel_sample!(estimator::QuasiMonteCarloTypeEstimator,index::Index,i
 end
 
 ## inspector functions ##
-cost(estimator::QuasiMonteCarloTypeEstimator,index::Index) = estimator.total_work[index]/estimator.nsamples[index]
-
-function point_with_max_var_est(estimator::QuasiMonteCarloTypeEstimator)
-    indmax([var(sum([mean.([estimator.samples[q,s][idx] for s in 1:estimator.nb_of_shifts]) for idx in keys(estimator)])) for q in 1:estimator.nb_of_qoi])
-end
+point_with_max_var_est(estimator::QuasiMonteCarloTypeEstimator) = indmax([var(sum([mean.([estimator.samples[q,s][idx] for s in 1:estimator.nb_of_shifts]) for idx in keys(estimator)])) for q in 1:estimator.nb_of_qoi])
 
 for f in [:mean :var :skewness]
     ex = :(
@@ -126,7 +122,7 @@ for f in [:mean :var] # for samples0
                idx = point_with_max_var_est(estimator)
                mean(Float64[$(f)(estimator.samples0[idx,s][index]) for s in 1:estimator.nb_of_shifts])
            end
-          )
+         )
     eval(ex)
 end
 

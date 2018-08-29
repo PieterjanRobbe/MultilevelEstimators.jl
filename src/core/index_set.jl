@@ -96,16 +96,12 @@ struct AD{d} <: IndexSet{d} end
 
 AD(d::Integer) = d <= 1 ? throw(BoundsError("to use AD, dimension must be greater than 1, got $(d)")) : AD{d}()
 
-"""
-    MGML()
+# Multigrid wrapper type
+struct MG{d,I} <: IndexSet{d}
+    idxset::I
+end
 
-A multigrid multi-level index set.
-"""
-struct MGML{d} <: IndexSet{d} end
-
-MGML() = MGML{1}()
-
-filter(::MGML,sz) = itr -> sum(itr) <= sz
+MG(idxset::I) where {I<:IndexSet} = MG{ndims(idxset),I}(idxset)
 
 # utilities
 ndims(::IndexSet{d}) where {d} = d
@@ -116,6 +112,8 @@ function get_index_set(idxset::IndexSet{d},sz::N) where {d,N<:Integer}
     filtered_grid = Base.Iterators.filter(filter(idxset,sz),tensor_grid)
     collect(filtered_grid)
 end
+
+get_index_set(idxset::MG,sz::N) where {N<:Integer} = get_index_set(idxset.idxset,sz)
 
 function is_valid_index_set(idxset::Vector{T} where {T<:Index{d}}) where {d}
     for idx in idxset
@@ -142,7 +140,9 @@ function is_admissable(idxset::Set{Index{d}}, index::Index{d})  where {d}
 end
 
 # output formatting
-for i in ["SL" "ML" "TD" "HC" "FT" "AD" "MGML"]
+for i in ["SL" "ML" "TD" "HC" "FT" "AD"]
     ex = :( show(io::IO, ::$(Symbol(i))) = print(io, $(i)) )
     eval(ex)
 end
+
+show(io::IO, idxset::MG) = print(io, string("multigrid ", idxset.idxset))
