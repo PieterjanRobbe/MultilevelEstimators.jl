@@ -99,7 +99,8 @@ function init_SPDE(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_ana
     name = is_analyse ? string(name,"analyse ") : name
     name = isa(method,AD) ? string(name,"A") : name
     name = isa(method,MG) ? string(name,"MG-") : name
-    name = isa(method,ML) || isa(method,ML) ? string(name,"ML") : MultilevelEstimators.ndims(method) > 1 ? string(name,"MI") : name
+	nmethod = isa(method,MG) ? method.idxset : method
+    name = isa(nmethod,ML) ? string(name,"ML") : MultilevelEstimators.ndims(nmethod) > 1 ? string(name,"MI") : name
     name = is_qmc ? string(name,"Q") : name
     name = string(name,"MC")
     name = is_multiple_qoi ? string(name," (multiple)") : name

@@ -6,8 +6,12 @@ function _run(estimator::MultiGridMultiLevelMonteCarloEstimator, ϵ::T where {T<
     # print status
     estimator.verbose && print_header(estimator,ϵ)
 
-    # start level is 0
-    level = Level(0)
+    # start level is maximum level already taken
+	# TODO: tidy up ==>
+	level = isempty(estimator.samples[1]) ? Level(0) : Level(maximum(getindex.(collect(keys(estimator.samples[1])),1)))
+	for ell in 0:level[1]
+		push!(estimator,Level(ell))
+	end
 
     # loop variables
     converged = false
@@ -16,19 +20,10 @@ function _run(estimator::MultiGridMultiLevelMonteCarloEstimator, ϵ::T where {T<
     while !converged
 
         # obtain initial variance estimate
-        #N0 = estimator.nb_of_warm_up_samples
-        # TODO: To determine N, I need to compute the variance ==> regress expected value 
-        # TODO: NO! I think you can avooid this, but you need to regress the total variance of the estimator to compute splitting/varest
-        #if !haskey(estimator.samples[1],level)
-        #    N0_ = ( level > (2,) && estimator.do_regression ) ? regress(estimator,level,ϵ,θ) : N0 # regression
-        #    sample!(estimator,level,N0_)
-        #end
-        # TODO : at least 2 samples ==> var(est, index)
-        # maar! enkel bias en varest (= 1 sample) nodig ==> 1 sample
-        sample!(estimator,level,1)
-
-        # add new level to the index set
-        push!(estimator,level)
+		if !haskey(estimator.samples[1],level)
+        	sample!(estimator,level,1)
+        	push!(estimator,level)
+		end
 
         # print status
         estimator.verbose && print_status(estimator)
@@ -54,10 +49,10 @@ function _run(estimator::MultiGridMultiLevelMonteCarloEstimator, ϵ::T where {T<
             # take additional samples
             r = 1/2*(β(estimator) + γ(estimator))
             r = isnan(r) ? 1.5 : r
-            N_add = min.(floor.(Int,randexpr(r,n_opt-N)),level[1])
-            N_sum = Int64[sum(N_add.==ℓ) for ℓ = 0:maximum(N)]
-            N_diff = append!(-diff(N_sum),1) # subtract samples on finer levels
-            for tau in keys(estimator)
+			N_add = min.(floor.(Int,randexpr(log(2)*r,n_opt-N)),level[1])
+			N_sum = Int64[sum(N_add.==ℓ) for ℓ = 0:level[1]]
+			N_diff = append!(-diff(N_sum),N_sum[end]) # subtract samples on finer levels
+			for tau in sort(collect(keys(estimator.samples[1])))
                 n_due = N_sum[tau[1]+1]
                 n_due > 0 && sample!(estimator,tau,n_due)
             end
@@ -108,7 +103,7 @@ function parallel_sample!(estimator::MultiGridTypeEstimator,index::Index,istart:
     for idx in 0:index[1]
         for n_qoi in 1:estimator.nb_of_qoi
             append!(estimator.samples[n_qoi][Index(idx)],getindex.(getindex.(dsamples,idx+1),n_qoi))
-            append!(estimator.samples0[n_qoi][Index(idx)],getindex.(getindex.(dsamples,idx+1),n_qoi))
+            append!(estimator.samples0[n_qoi][Index(idx)],getindex.(getindex.(samples,idx+1),n_qoi))
         end
     end
     estimator.nsamples[index] += iend-istart+1
@@ -129,17 +124,3 @@ end
 varest(estimator::MultiGridMultiLevelMonteCarloEstimator) = var(get_Ys(estimator))/length(estimator.samples[1][Level(0)])
 
 moment(estimator::MultiGridMultiLevelMonteCarloEstimator) = moment(get_Ys(estimator),k)
-
-# regression of optimal number of samples at unknown level
-#=
-function regress(estimator::MultiLevelMonteCarloEstimator,level::Level,ϵ::T,θ::T) where {T<:Real}
-    p = β(estimator,both=true)
-    var_est = 2^(p[1]+level[1]*p[2])
-    p = γ(estimator,both=true)
-    cost_est = 2^(p[1]+level[1]*p[2])
-    all_sum = sum(sqrt.([var(estimator,level)*cost(estimator,level) for level in setdiff(keys(estimator),level)])) 
-    all_sum += sqrt(var_est*cost_est)
-    n_opt = ceil.(Int,1/(θ*ϵ^2) * sqrt(var_est/cost_est) * all_sum)
-    max(2,min(n_opt,estimator.nb_of_warm_up_samples))
-end
-=#

@@ -3,10 +3,10 @@
 const LINESTYLES = ["dashed","dotted","dashdotted"]
 const PGFPLOTSMARKERS = ["*","square*","triangle*","diamond*","pentagon*","x"]
 
-tikz_header(x_label,y_label,optional,name) = "%!TEX root = ../$(name)\n
-\\begin{tikzpicture}[trim axis left,trim axis right]
+tikz_header(x_label,y_label,optional,name,scale_factor,trim) = "%!TEX root = ../$(name)\n
+\\begin{tikzpicture}$(trim ? "[trim axis left,trim axis right]" : "")
 \\begin{axis}[
-width=\\figurewidth,
+width=$(scale_factor)\\figurewidth,
 height=\\figureheight,
 scale only axis,
 xlabel={\\small $(x_label)},
@@ -30,6 +30,11 @@ table[$(table_options)]{data/$(name).txt};
 $(isempty(legend_name) ? "" : "\\addlegendentry{$(legend_name)};")
 "
 
+tikz_add_bar_plot(name,color,legend) = "
+\\addplot[area legend,draw opacity=0,ybar,bar width=0.6,draw=none,fill=$(color)] plot table[] {data/$(name).txt};
+$(isempty(legend) ? "" : "\\addlegendentry{$(legend)};")
+"
+
 figure_header() = "
 \\begin{figure}[h]
 \\centering
@@ -43,7 +48,7 @@ figure_footer() = "
 
 preamble(d) = "$(d == 2 ? square() : d == 3 ? cube() : "\n\n")"
 
-square() = "\n\\usepackage{booktabs}\n\n\\newcommand{\\drawsquare}[3]{
+square() = "\n\n\\newcommand{\\drawsquare}[3]{
 \\edef\\temp{
 \\noexpand\\addplot[line width=3pt,white,fill=#3,forget plot,shift={(#1,#2)}]
 }
@@ -57,7 +62,7 @@ x	y\\\\
 }--cycle;
 }\n"
 
-cube() = "\n\\usepackage{booktabs}\n\n\\newcommand{\\drawcube}[4]{
+cube() = "\n\n\\newcommand{\\drawcube}[4]{
 {	
 \\edef\\temp{
 \\noexpand\\addplot3[area legend,solid,fill=#4,draw=black,rounded corners=0.2pt,forget plot,shift={(#1,#2,#3)}]
@@ -96,7 +101,7 @@ x	y	z\\\\
 }--cycle;
 }\n"
 
-file_contents(title,d,is_adaptive) = "\\documentclass[11pt, oneside]{article}
+file_contents(title,d,is_adaptive,is_multigrid) = "\\documentclass[11pt, oneside]{article}
 
 \\usepackage[margin=2cm]{geometry}
 \\usepackage{graphicx}
@@ -104,7 +109,8 @@ file_contents(title,d,is_adaptive) = "\\documentclass[11pt, oneside]{article}
     \\pgfplotsset{compat=newest}
     \\newlength\\figureheight
     \\newlength\\figurewidth
-\\usepackage{tikz}"*
+\\usepackage{tikz}\n"*
+"$((is_multigrid && d ==1) || d > 1 ? "\\usepackage{booktabs}\n\\usepackage{pgfplotstable}\n" : "") "*
 preamble(d)*"
 \\title{Report: $(title)}
 \\date{}
@@ -125,6 +131,7 @@ figure_footer()*"\n"*
 figure_header()*
 "\\input{figures/cost.tex}\n \\caption{\\label{fig:cost}Total simulation standard cost.}"*
 figure_footer()*
+"$(is_multigrid && d == 1 ? "\n\\input{figures/sample_reuse.tex}\n\n" : "")"*
 "\\end{document}"
 
 tikz_index_set_2d(name,i,max_level,is_adaptive,has_active,has_old,has_maximum,scaling,mode) = "%!TEX root = ../$(name)\n"*
@@ -228,11 +235,13 @@ axis line style={ultra thin, draw opacity=0}
 \\end{tikzpicture}
 "
 
-tikz_index_set_table(name,tols) = tikz_index_set_table_internal(name,tols,"\$\\epsilon = \\pgfmathprintnumber[/pgf/number format/sci,precision=3,sci zerofill]",false) 
+tikz_samples_table(name,tols) = tikz_index_set_table_internal(name,"sample_reuse_",tols,"\$\\epsilon = \\pgfmathprintnumber[/pgf/number format/sci,precision=3,sci zerofill]",false,"\\label{fig:samples_reused}Total number of samples and percentage of reused samples for different tolerances on the RMSE") 
 
-tikz_adaptive_index_set_table(name,levels) = tikz_index_set_table_internal(name,levels,"\$L = \\pgfmathprintnumber[/pgf/number format/fixed]",true) 
+tikz_index_set_table(name,tols) = tikz_index_set_table_internal(name,"index_set_",tols,"\$\\epsilon = \\pgfmathprintnumber[/pgf/number format/sci,precision=3,sci zerofill]",false,"\\label{fig:index_set}Shape of the index set for different tolerances on the RMSE") 
 
-function tikz_index_set_table_internal(name,iters,headerstring,is_adaptive)
+tikz_adaptive_index_set_table(name,levels) = tikz_index_set_table_internal(name,"adaptive_index_set_",levels,"\$L = \\pgfmathprintnumber[/pgf/number format/fixed]",true,"\\label{fig:adaptive_index_set}Shape of the index set for different level parameters in the adaptive algorithm") 
+
+function tikz_index_set_table_internal(name,fname,iters,headerstring,is_adaptive,legend)
     str = "%!TEX root = ../$(name)\n"
     for tabnum = 1:div(length(iters)-1,9)+1
         str = string(str,figure_header())
@@ -250,10 +259,10 @@ function tikz_index_set_table_internal(name,iters,headerstring,is_adaptive)
             str = string(str," \&")
             str = length(iters) > (tabnum-1)*9+(col-1)*3+2 ? string(str," ",headerstring,"\{", @sprintf("%7.3e",iters[(tabnum-1)*9+(col-1)*3+3]), "\}\$") : str
             str = string(str,"\\\\ \\midrule \n")
-			str = string(str," \\input\{figures/"*"$(is_adaptive ? "adaptive_" : "")"*"index_set_",(tabnum-1)*9+(col-1)*3+1, ".tex\} \&")
-            str = length(iters) > (tabnum-1)*9+(col-1)*3+1 ? string(str," \\input\{figures/"*"$(is_adaptive ? "adaptive_" : "")"*"index_set_",(tabnum-1)*9+(col-1)*3+2, ".tex\}") : str
+			str = string(str," \\input\{figures/$(fname)",(tabnum-1)*9+(col-1)*3+1, ".tex\} \&")
+			str = length(iters) > (tabnum-1)*9+(col-1)*3+1 ? string(str," \\input\{figures/$(fname)",(tabnum-1)*9+(col-1)*3+2, ".tex\}") : str
             str = string(str," \&")
-            str = length(iters) > (tabnum-1)*9+(col-1)*3+2 ? string(str," \\input\{figures/"*"$(is_adaptive ? "adaptive_" : "")"*"index_set_",(tabnum-1)*9+(col-1)*3+3, ".tex\}") : str
+			str = length(iters) > (tabnum-1)*9+(col-1)*3+2 ? string(str," \\input\{figures/$(fname)",(tabnum-1)*9+(col-1)*3+3, ".tex\}") : str
             str = string(str,"\\\\ \n")
         end
         str = string(str,"\n\\end{tabular}\\\\\n\n")
@@ -266,3 +275,23 @@ function tikz_index_set_table_internal(name,iters,headerstring,is_adaptive)
     end
     str
 end
+
+tikz_add_fractions(i) = "
+\% read fractions
+\\pgfplotstableread[header=false]{data/fractions_$(i).txt}\\fractions
+\\pgfplotstablegetrowsof{\\fractions}
+\\pgfmathsetmacro{\\rows}{\\pgfplotsretval-1}
+
+\\pgfplotsset{
+    after end axis/.code={
+    	\\foreach \\j in {0,...,\\rows} {
+			\\pgfplotstablegetelem{\\j}{0}\\of\\fractions
+   		\\pgfmathsetmacro{\\a}{\\pgfplotsretval}
+			\\pgfplotstablegetelem{\\j}{1}\\of\\fractions
+   		\\pgfmathsetmacro{\\b}{\\pgfplotsretval}
+        	\\node[right, align=left, text=black, anchor=south]
+			at (axis cs:\\j,\\a) {\\tiny \\b\\%};
+		}
+    }
+}
+"

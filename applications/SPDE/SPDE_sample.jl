@@ -44,6 +44,19 @@ for mode in ["single" "multiple"]
                    dQ += value*Qc
                end
 
+			   # safety
+			   while !is_valid_sample(Qf)
+			   	   	 ξ₂ = randn(size(ξ))
+               		 Zf = sample(grf,xi=ξ₂[1:randdim(grf)]) # compute GRF
+               		 Qf = $(Symbol("SPDE_single_sample_",mode))(Zf)
+					 dQ = Qf
+                	 for (key,value) in diff(index)
+                   		 Zc = interpolate_field(data[index].pts,data[key].pts,Zf) # interpolation of fine grid GRF
+                   		 Qc = $(Symbol("SPDE_single_sample_",mode))(Zc)
+                   		 dQ += value*Qc
+               		 end
+			   end
+
                return (dQ,Qf)
            end
           )
@@ -51,3 +64,5 @@ for mode in ["single" "multiple"]
     ex = :( $(Symbol("SPDE_single_sample_",mode))(Z::Matrix{T}) where {T<:Real} = $(Symbol("SPDE_",mode,"_qoi"))(SPDE_solve(Z),size(Z).-1) )
     eval(ex)
 end
+
+is_valid_sample(Qf) = !(any(j->j>1||j<0,Qf))
