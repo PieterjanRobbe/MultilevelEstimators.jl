@@ -29,4 +29,6 @@ include("SPDE_sample.jl")
 
 include("SPDE_multigrid_sample.jl")
 
+include("FMG.jl")
+
 end # module SPDE

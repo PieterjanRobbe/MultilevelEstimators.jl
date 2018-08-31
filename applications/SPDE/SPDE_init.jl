@@ -43,6 +43,8 @@ init_SPDE_amiqmc(;kwargs...) = init_SPDE(AD(2),true,false,false,false;kwargs...)
 init_SPDE_amiqmc_multiple(;kwargs...) = init_SPDE(AD(2),true,true,false,false;kwargs...)
 init_SPDE_mgmlmc(;kwargs...) = init_SPDE(MG(ML()),false,false,false,true;kwargs...)
 init_SPDE_mgmlmc_multiple(;kwargs...) = init_SPDE(MG(ML()),false,true,false,true;kwargs...)
+init_SPDE_msgmimc(;kwargs...) = init_SPDE(MG(TD(2)),false,false,false,true;kwargs...)
+init_SPDE_msgmimc_multiple(;kwargs...) = init_SPDE(MG(TD(2)),false,true,false,true;kwargs...)
 
 ## main function ##
 function init_SPDE(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_analyse::Bool, is_multigrid::Bool; corr_len::T=0.5, smoothness::T=1.5, nterms::N=500, max_level::N=5, continuate::Bool=false, nshifts::N=20, verbose::Bool=true, sample_multiplication_factor::T=1.1) where {T<:AbstractFloat,N<:Integer}
@@ -95,7 +97,7 @@ function init_SPDE(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_ana
     name = "SPDE "
     name = is_analyse ? string(name,"analyse ") : name
     name = isa(method,AD) ? string(name,"A") : name
-    name = isa(method,MG) ? string(name,"MG-") : name
+    name = isa(method,MG) ? MultilevelEstimators.ndims(method) > 1 ? string(name,"MSG-") : string(name,"MG-") : name
     nmethod = isa(method,MG) ? method.idxset : method
     name = isa(nmethod,ML) ? string(name,"ML") : MultilevelEstimators.ndims(nmethod) > 1 ? string(name,"MI") : name
     name = is_qmc ? string(name,"Q") : name
@@ -121,6 +123,6 @@ function init_SPDE(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_ana
                      continuate = continuate, # continuate on larger tolerances
                      nb_of_qoi = is_multiple_qoi ? 20^2 : 1, # number of qoi
                      cost_model = (index) -> geometric_cost_model(4,1.5,index), # cost model
-    sample_multiplication_factor = sample_multiplication_factor # qmc multiplication factor
-   )
+                     sample_multiplication_factor = sample_multiplication_factor # qmc multiplication factor
+                    )
 end

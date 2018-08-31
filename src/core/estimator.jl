@@ -77,13 +77,14 @@ const MultiLevelQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:ML,
 const MultiIndexMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:Union{TD,FT,HC,AD}, G<:MonteCarloNumberGenerator,T,N}
 const MultiIndexQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:Union{TD,FT,HC,AD}, G<:QuasiMonteCarloNumberGenerator,T,N}
 const MultiGridMultiLevelMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:MG{d,J} where {d,J<:ML}, G<:MonteCarloNumberGenerator,T,N}
+const MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:MG{d,J} where {d,J<:Union{TD,FT,HC,AD}}, G<:MonteCarloNumberGenerator,T,N}
 
 # type aliases
 const MonteCarloTypeEstimator = Estimator{I,G,T,N} where {I,G<:MonteCarloNumberGenerator,T,N}
 const QuasiMonteCarloTypeEstimator = Estimator{I,G,T,N} where {I,G<:QuasiMonteCarloNumberGenerator,T,N}
 const SingleLevelTypeEstimator = Estimator{I} where {I<:SL}
 const MultiLevelTypeEstimator = Estimator{I} where {I<:Union{ML,MG{d,J} where {d,J<:ML}}}
-const MultiIndexTypeEstimator = Estimator{I} where {I<:Union{TD,FT,HC,AD}}
+const MultiIndexTypeEstimator = Estimator{I} where {I<:Union{TD,FT,HC,AD,MG{d,J} where {d,J<:Union{TD,FT,HC,AD}}}}
 const AdaptiveMultiIndexTypeEstimator = Estimator{I} where {I<:AD}
 const MultiGridTypeEstimator = Estimator{I} where {I<:MG}
 
@@ -205,6 +206,7 @@ print_name(estimator::QuasiMonteCarloEstimator) = "Quasi-Monte Carlo estimator"
 print_name(estimator::MultiLevelQuasiMonteCarloEstimator) = "Multilevel Quasi-Monte Carlo estimator"
 print_name(estimator::MultiIndexMonteCarloEstimator) = "Multi-Index Monte Carlo estimator ($(estimator.method) index set)"
 print_name(estimator::MultiIndexQuasiMonteCarloEstimator) = "Multi-Index Quasi-Monte Carlo estimator ($(estimator.method) index set)"
-print_name(estimator::MultiGridMultiLevelMonteCarloEstimator) = "Multigrid Multilevel Monte Carlo estimator"
+print_name(estimator::MultiGridMultiLevelMonteCarloEstimator) = "MG Multilevel Monte Carlo estimator"
+print_name(estimator::MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstimator) = "MSG Multi-Index Monte Carlo estimator"
 
 show(io::IO, estimator::Estimator) = print(io, print_name(estimator))

@@ -1,7 +1,7 @@
 ## multigrid_multilevel_monte_carlo.jl : run Multigrid Multilevel Monte Carlo estimator
 
 ## main routine ##
-function _run(estimator::MultiGridMultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
+function _run(estimator::MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstimator, ϵ::T where {T<:Real})
 
     # print status
     estimator.verbose && print_header(estimator,ϵ)
@@ -83,44 +83,3 @@ function _run(estimator::MultiGridMultiLevelMonteCarloEstimator, ϵ::T where {T<
     # print convergence status
     estimator.verbose && print_convergence(estimator,converged)
 end
-
-# sample from exponential distribution with rate r
-randexpr(r::Number,kwargs...) = randexp(kwargs...)/r
-
-## Multilevel Monte Carlo parallel sampling ##
-function parallel_sample!(estimator::MultiGridTypeEstimator,index::Index,istart::N,iend::N) where {N<:Integer}
-
-    # parallel sampling
-    wp = CachingPool(workers())
-    f(i) = estimator.sample_function(index,get_point(estimator.number_generators[index],i),estimator.user_data)
-    t = @elapsed all_samples = pmap(wp,f,istart:iend)
-
-    # extract samples
-    samples = last.(all_samples) # array of arrays
-    dsamples = first.(all_samples)
-
-    # append samples
-    for idx in 0:index[1]
-        for n_qoi in 1:estimator.nb_of_qoi
-            append!(estimator.samples[n_qoi][Index(idx)],getindex.(getindex.(dsamples,idx+1),n_qoi))
-            append!(estimator.samples0[n_qoi][Index(idx)],getindex.(getindex.(samples,idx+1),n_qoi))
-        end
-    end
-    estimator.nsamples[index] += iend-istart+1
-    estimator.total_work[index] += estimator.use_cost_model ? (iend-istart+1)*estimator.cost_model(index) : t
-end
-
-## inspector functions ##
-function get_Ys(estimator::MultiGridTypeEstimator)
-    idx = point_with_max_var(estimator)
-    Ys = zeros(length(estimator.samples[idx][Level(0)]))
-    for index in keys(estimator)
-        ns = length(estimator.samples[idx][index])
-        Ys[1:ns] .+= estimator.samples[idx][index]
-    end
-    return Ys # these are independent
-end
-
-varest(estimator::MultiGridTypeEstimator) = var(get_Ys(estimator))/length(estimator.samples[1][Level(0)])
-
-moment(estimator::MultiGridTypeEstimator) = moment(get_Ys(estimator),k)
