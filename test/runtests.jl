@@ -4,6 +4,9 @@ push!(LOAD_PATH,joinpath(Pkg.dir("MultilevelEstimators"),"applications","SPDE"))
 
 using SPDE, MultilevelEstimators, QMC, Suppressor, Base.Test, JLD
 
+
+using GaussianRandomFields
+
 # basic tests
 include("test_index.jl")
 include("test_index_set.jl")

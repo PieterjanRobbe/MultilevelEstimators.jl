@@ -2,7 +2,7 @@
 
 ## solver ##
 function SPDE_solve(Z::Matrix{T}) where {T<:Real}
-	A = elliptic2d(exp.(Z))
+    A = elliptic2d(exp.(Z))
     b = ones(size(A,1))
     A\b
 end
@@ -12,7 +12,7 @@ SPDE_single_qoi(x::Vector{T},sz::Tuple{Int,Int}) where {T<:Real} = x[round(Int,(
 
 function SPDE_multiple_qoi(x::Vector{T},sz::Tuple{Int,Int}) where {T<:Real}
     x_reshaped = reshape(x,sz.-1)
-	x_padded = PaddedView(0, x_reshaped, sz.+1, (2,2))
+    x_padded = PaddedView(0, x_reshaped, sz.+1, (2,2))
     itp = interpolate(linspace.(0,1,sz.+1), x_padded, Gridded(Linear()))
     pts = linspace(0,1,20)
     return itp[pts,pts][:]
@@ -44,18 +44,18 @@ for mode in ["single" "multiple"]
                    dQ += value*Qc
                end
 
-			   # safety
-			   while !is_valid_sample(Qf)
-			   	   	 ξ₂ = randn(size(ξ))
-               		 Zf = sample(grf,xi=ξ₂[1:randdim(grf)]) # compute GRF
-               		 Qf = $(Symbol("SPDE_single_sample_",mode))(Zf)
-					 dQ = Qf
-                	 for (key,value) in diff(index)
-                   		 Zc = interpolate_field(data[index].pts,data[key].pts,Zf) # interpolation of fine grid GRF
-                   		 Qc = $(Symbol("SPDE_single_sample_",mode))(Zc)
-                   		 dQ += value*Qc
-               		 end
-			   end
+               # safety
+               while !is_valid_sample(Qf)
+                   ξ₂ = randn(size(ξ))
+                   Zf = sample(grf,xi=ξ₂[1:randdim(grf)]) # compute GRF
+                   Qf = $(Symbol("SPDE_single_sample_",mode))(Zf)
+                   dQ = Qf
+                   for (key,value) in diff(index)
+                       Zc = interpolate_field(data[index].pts,data[key].pts,Zf) # interpolation of fine grid GRF
+                       Qc = $(Symbol("SPDE_single_sample_",mode))(Zc)
+                       dQ += value*Qc
+                   end
+               end
 
                return (dQ,Qf)
            end

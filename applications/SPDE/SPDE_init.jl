@@ -56,8 +56,7 @@ function init_SPDE(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_ana
 
     # level 0
     m = coarse_dof*2^(max_level-nlevels+1)
-    #v = 1/2/m:1/2/m:1-1/2/m
-	v = linspace(0,1,m+1)
+    v = linspace(0,1,m+1)
     grf = GaussianRandomField(cov_fun,KarhunenLoeve(nterms),v,v)
 
     # for AD index set, pick all fields in TD manner
@@ -75,10 +74,8 @@ function init_SPDE(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_ana
             j = length(idx) > 1 ? idx[2] : i
             m = coarse_dof*2^i
             n = coarse_dof*2^j
-            #vx = 1/2/m:1/2/m:1-1/2/m
-			vx = linspace(0,1,m+1)
-            #vy = 1/2/n:1/2/n:1-1/2/n
-			vy = linspace(0,1,n+1)
+            vx = linspace(0,1,m+1)
+            vy = linspace(0,1,n+1)
             grf = GaussianRandomField(cov_fun,KarhunenLoeve(nterms),vx,vy)
             fields[idx] = grf
         end
@@ -99,7 +96,7 @@ function init_SPDE(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_ana
     name = is_analyse ? string(name,"analyse ") : name
     name = isa(method,AD) ? string(name,"A") : name
     name = isa(method,MG) ? string(name,"MG-") : name
-	nmethod = isa(method,MG) ? method.idxset : method
+    nmethod = isa(method,MG) ? method.idxset : method
     name = isa(nmethod,ML) ? string(name,"ML") : MultilevelEstimators.ndims(nmethod) > 1 ? string(name,"MI") : name
     name = is_qmc ? string(name,"Q") : name
     name = string(name,"MC")
@@ -113,17 +110,17 @@ function init_SPDE(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_ana
 
     ## Estimator ##
     create_estimator(
-        name = name, # estimator name
-        folder = string(joinpath(Pkg.dir("MultilevelEstimators"),"applications","SPDE","data",name)), # for report
-        method = method, # method: ML, SL, TD...
-        number_generator = number_generator, # number generator
-        sample_function = sample_function, # qoi
-        user_data = user_data, # GRF's
-        verbose = true, # display information
-        max_level = nlevels-1, # maximum number of levels
-        continuate = continuate, # continuate on larger tolerances
-        nb_of_qoi = is_multiple_qoi ? 20^2 : 1, # number of qoi
-        cost_model = (index) -> geometric_cost_model(4,1.5,index), # cost model
-        sample_multiplication_factor = sample_multiplication_factor # qmc multiplication factor
-    )
+                     name = name, # estimator name
+                     folder = string(joinpath(Pkg.dir("MultilevelEstimators"),"applications","SPDE","data",name)), # for report
+                     method = method, # method: ML, SL, TD...
+                     number_generator = number_generator, # number generator
+                     sample_function = sample_function, # qoi
+                     user_data = user_data, # GRF's
+                     verbose = true, # display information
+                     max_level = nlevels-1, # maximum number of levels
+                     continuate = continuate, # continuate on larger tolerances
+                     nb_of_qoi = is_multiple_qoi ? 20^2 : 1, # number of qoi
+                     cost_model = (index) -> geometric_cost_model(4,1.5,index), # cost model
+    sample_multiplication_factor = sample_multiplication_factor # qmc multiplication factor
+   )
 end

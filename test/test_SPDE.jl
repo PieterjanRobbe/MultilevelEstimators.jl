@@ -3,6 +3,7 @@
 ϵ₁= 0.1
 ϵ₂= 0.005
 
+#=
 ## Monte Carlo, single qoi
 @testset "MC, single qoi               " begin
     @suppress begin
@@ -66,8 +67,8 @@ end
         run(estimator,ϵ₂)
     end
 end
+=#
 
-#=
 # Multi-Index Monte Carlo, single qoi
 @testset "MIMC, single qoi             " begin
     @suppress begin
@@ -131,7 +132,6 @@ end
         run(estimator,ϵ₂)
     end
 end
-=#
 
 ## Multigrid Multilevel Monte Carlo, single qoi
 @testset "MG-MLMC, single qoi          " begin
