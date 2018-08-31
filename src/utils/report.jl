@@ -379,7 +379,7 @@ for d in ["2" "3"]
 				   open(joinpath(folder,"figures","index_set_legend_$(mode).tex"), "w") do f
 					   max_level = maximum(maximum.(keys(dicts[end])))
 					   scaling = (max_level+1.2)/1.2
-					   write(f, $(Symbol("tikz_index_set_",d,"d"))(fname,"legend",0,false,false,false,false,scaling,mode))
+					   write(f, $(Symbol("tikz_index_set_",d,"d"))(fname,"legend",0,true,false,false,false,scaling,mode))
 				   end
 			   end
 		   end
