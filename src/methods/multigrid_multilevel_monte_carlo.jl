@@ -6,13 +6,7 @@ function _run(estimator::MultiGridMultiLevelMonteCarloEstimator, ϵ::T where {T<
     # print status
     estimator.verbose && print_header(estimator,ϵ)
 
-    # start level is maximum level already taken
-    levels = collect(keys(estimator.samples[1]))
-    level = isempty(levels) ? Level(0) :  maximum(levels)
-
-    for ℓ in levels
-        push!(estimator,ℓ)
-    end
+	level = isempty(keys(estimator)) ? Level(0) : maximum(keys(estimator))
 
     # loop variables
     converged = false
@@ -49,7 +43,7 @@ function _run(estimator::MultiGridMultiLevelMonteCarloEstimator, ϵ::T where {T<
 
             # take additional samples
             r = 1/2*(β(estimator) + γ(estimator))
-            r = isnan(r) ? 1.5 : r
+			r = isnan(r) || r <= 0 ? 1.5 : r
             N_add = min.(floor.(Int,randexpr(log(2)*r,n_opt-N)),level[1])
             N_sum = Int64[sum(N_add.==ℓ) for ℓ = 0:level[1]]
             N_diff = append!(-diff(N_sum),N_sum[end]) # subtract samples on finer levels

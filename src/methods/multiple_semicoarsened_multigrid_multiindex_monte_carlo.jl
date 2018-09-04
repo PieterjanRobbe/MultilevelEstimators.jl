@@ -6,30 +6,23 @@ function _run(estimator::MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstim
     # print status
     estimator.verbose && print_header(estimator,ϵ)
 
-    # start level is maximum level already taken
-    indices = collect(keys(estimator.samples[1]))
-
-    level = 0
-    while isempty(setdiff(get_index_set(estimator.method,level),indices))
-        level += 1
-    end
-    level = max(0, level-1)
-
-    for ℓ in indices
-        push!(estimator,ℓ)
-    end
+	# determine level parameter
+	if estimator isa AdaptiveMultiIndexTypeEstimator
+		level = length(estimator.old_index_set)
+	else
+		level = 0
+		while isempty(setdiff(get_index_set(estimator.method,level),collect(keys(estimator.samples[1]))))
+			level += 1
+		end
+		level = max(0, level-1)
+	end
+	index_set = level == 0 ? collect(new_index_set(estimator, 0)) : collect(keys(estimator))
 
     # loop variables
     converged = false
 
     # main loop
     while !converged
-
-        # update index set
-        # TODO make sure that this is not level + 1
-        # is collect necessary???
-        @show index_set = collect(new_index_set(estimator,level))
-
 
         # obtain initial variance estimate
         for index in index_set
@@ -62,43 +55,31 @@ function _run(estimator::MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstim
 
             # take additional samples
             r = 1/2*(β(estimator) + γ(estimator))
-            @show r[isnan.(r)] = 1.5 # replace NaN's
-
+			r[broadcast(|,isnan.(r),r.<=0)] = 1.5 # replace NaN's
             N_sum = fill(0,1.+maximum.(collect(getindex.(index_set,j) for j in 1:ndims(estimator)))...)
             while sum(N_sum) < n_opt-N
                 idx = Index(floor.(Int,randexpr.(log(2)*r))...)
                 if idx ∈ index_set
                     N_sum[idx.+1...] += 1
                 else
-                    # TODO: test dit ???
-                    i_nearest = indmin(abs.([sum(i.-idx) for i in index_set]))
+					i_nearest = indmin([sum(abs.(i.-idx)) for i in index_set])
                     idx_nearest = index_set[i_nearest]
                     N_sum[idx_nearest.+1...] += 1
                 end
             end
-            @show N_sum
+
             # difference
-
-           ####### TODO fix this and done :  @show N_diff
-
-
-
-            # TODO: formula for N ?
-            # TODO: assume product structure 
-            # TODO: ∏ᵢ₌₁ᵈ 2ᵅ⁽ⁱ⁾ˡ⁽ⁱ⁾ ... uitschrijven ...
-            #@show r = 1/2*(β(estimator) + γ(estimator))
-            #r[isnan.(r)] = 1.5 # replace NaN's
-            # TODO: maybe do this adaptively? add more level samples to N_add if they are in the index set
-            # until we reach n_opt-N
-            # TODO BUT these samples are indices??? how to generate??? 
-            #N_add = min.(floor.(Int,randexpr(log(2)*r,n_opt-N)),level[1])
-            #N_sum = Int64[sum(N_add.==ℓ) for τ in estimator.current_index_set]
-            # TODO should be Multi-Index difference...
-            #N_diff = append!(-diff(N_sum),N_sum[end]) # subtract samples on finer levels
-            # END TODO:
+			N_diff = N_sum
+			for idx in Iterators.product(range.(1,size(N_sum))...)
+				for i in Iterators.product(range.(1,idx)...)
+					if i != idx
+						N_diff[i...] -= N_sum[idx...]
+					end
+				end
+			end
 
             for tau in sort(index_set)
-                n_due = N_sum[tau.+1...]
+                n_due = N_diff[tau.+1...]
                 n_due > 0 && sample!(estimator,tau,n_due)
             end
 
@@ -123,6 +104,10 @@ function _run(estimator::MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstim
             estimator.verbose && warn_max_level(estimator)
             break
         end
+
+        # update index set
+        index_set = converged ? index_set : collect(new_index_set(estimator,level))
+
     end
 
     # update maximum active set

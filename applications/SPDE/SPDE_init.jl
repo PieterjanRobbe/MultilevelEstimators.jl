@@ -68,7 +68,7 @@ function init_SPDE(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_ana
     grf = GaussianRandomField(cov_fun,KarhunenLoeve(nterms),v,v)
 
     # for AD index set, pick all fields in TD manner
-    nmethod = isa(method,AD) ? TD(2) : method
+	nmethod = method isa AD || method isa MG{d,<:AD} where {d} ? TD(2) : method
 
     # create fields
     zero_idx = get_index_set(nmethod,0)[1]

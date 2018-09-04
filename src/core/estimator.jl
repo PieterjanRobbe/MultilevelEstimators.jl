@@ -85,7 +85,7 @@ const QuasiMonteCarloTypeEstimator = Estimator{I,G,T,N} where {I,G<:QuasiMonteCa
 const SingleLevelTypeEstimator = Estimator{I} where {I<:SL}
 const MultiLevelTypeEstimator = Estimator{I} where {I<:Union{ML,MG{d,J} where {d,J<:ML}}}
 const MultiIndexTypeEstimator = Estimator{I} where {I<:Union{TD,FT,HC,AD,MG{d,J} where {d,J<:Union{TD,FT,HC,AD}}}}
-const AdaptiveMultiIndexTypeEstimator = Estimator{I} where {I<:AD}
+const AdaptiveMultiIndexTypeEstimator = Estimator{I} where {I<:Union{AD,MG{d,<:AD} where {d}}}
 const MultiGridTypeEstimator = Estimator{I} where {I<:MG}
 
 function create_estimator(;kwargs...)
@@ -176,7 +176,7 @@ get_default_settings(method, number_generator) = Dict{Symbol,Any}(
     :parallel_sample_function => parallel_sample!,
     :name => "",
     :sample_multiplication_factor => 2,
-    :max_search_space => isa(method, AD) ? TD(ndims(method)) : method
+	:max_search_space => method isa AD || method isa MG{d,<:AD} where {d} ? TD(ndims(method)) : method
 )
 
 # convenience functions
@@ -189,12 +189,14 @@ active_set(estimator::AdaptiveMultiIndexTypeEstimator) = setdiff(estimator.curre
 push!(estimator::Estimator,index::Index) = push!(estimator.current_index_set,index)
 
 clear(estimator::Estimator) = begin
-    for index in keys(estimator)
-        delete!(estimator.current_index_set,index)
-        delete!(estimator.old_index_set,index)
-        delete!(estimator.spill_index_set,index)
-    end
-    empty!(estimator.adaptive_index_set)
+	if !(estimator.method isa MG)
+		for index in keys(estimator)
+			delete!(estimator.current_index_set,index)
+			delete!(estimator.old_index_set,index)
+			delete!(estimator.spill_index_set,index)
+		end
+		empty!(estimator.adaptive_index_set)
+	end
 end
 
 ndims(estimator::Estimator) = ndims(estimator.method)

@@ -12,15 +12,7 @@ function SPDE_mg_solve(Z::Matrix{T},index::Index) where {T<:Real}
     end
     mg.grids[1].b .= b # copy rhs
 
-	#sol = FMG(mg.grids,2,2,1,1,GaussSeidel())
-	for grid in mg.grids
-		grid.b .= ones(size(grid.b))
-		grid.x .= grid.A\grid.b
-	end
-	sol = [grid.x for grid in mg.grids]
-	sol = sol[end:-1:1,end:-1:1]
-	
-	sol, getfield.(mg.grids,:sz)[range.(size(mg.grids),-1,size(mg.grids))...]
+	FMG(mg.grids,2,2,1,1,GaussSeidel()), getfield.(mg.grids,:sz)[range.(size(mg.grids),-1,size(mg.grids))...]
 end
 
 ## sample functions ##
@@ -43,8 +35,8 @@ for mode in ["single" "multiple"]
 
                # compute difference
                dQ = deepcopy(Qf)
-               for ℓ in 0:length(dQ)-1
-                   index_ = Index(ℓ)
+			   for ℓ in Iterators.product(colon.(0,size(dQ).-1)...)
+                   index_ = Index(ℓ...)
                    for (key,value) in diff(index_)
                        dQ[(index_.+1)...] += value*Qf[(key.+1)...]
                    end

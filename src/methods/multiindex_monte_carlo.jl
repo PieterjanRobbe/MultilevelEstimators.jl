@@ -62,7 +62,7 @@ function _run(estimator::MultiIndexMonteCarloEstimator, ϵ::T where {T<:Real})
         converged = ( level >= 2 ) && ( bias(estimator)^2 <= (1-θ)*ϵ^2 || mse(estimator) <= ϵ^2 )
 
         # increase level
-        level = level + 1
+        level += 1
 
         # check if the new level exceeds the maximum level
         if max_level_exceeded(estimator,level,converged)

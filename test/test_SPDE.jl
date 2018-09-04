@@ -146,3 +146,35 @@ end
         run(estimator,ϵ₂)
     end
 end
+
+## Multiple Semi-Coarsened Multigrid Multi-Index Monte Carlo, single qoi
+@testset "MSG-MIMC, single qoi         " begin
+    @suppress begin
+        estimator = init_SPDE_msgmimc(continuate=true)
+        run(estimator,ϵ₂)
+    end
+end
+
+## Multiple Semi-Coarsened Multigrid Multi-Index Monte Carlo, multiple qoi
+@testset "MSG-MIMC, multiple qoi       " begin
+    @suppress begin
+        estimator = init_SPDE_msgmimc_multiple(continuate=true)
+        run(estimator,ϵ₂)
+    end
+end
+
+## Multiple Semi-Coarsened Multigrid Adaptive Multi-Index Monte Carlo, single qoi
+@testset "MSG-MIMC, single qoi         " begin
+    @suppress begin
+        estimator = init_SPDE_msgamimc(continuate=true)
+        run(estimator,ϵ₂)
+    end
+end
+
+## Multiple Semi-Coarsened Multigrid Adaptive Multi-Index Monte Carlo, multiple qoi
+@testset "MSG-MIMC, multiple qoi       " begin
+    @suppress begin
+        estimator = init_SPDE_msgamimc_multiple(continuate=true)
+        run(estimator,ϵ₂)
+    end
+end

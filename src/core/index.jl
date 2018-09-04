@@ -16,7 +16,7 @@ See also: [`Level`](@ref)
 """
 const Index{d} = NTuple{d,N} where {N<:Integer}
 
-Index(i::N...) where {N<:Integer} = all(i .>= 0) ? ntuple(idx -> i[idx], length(i)) : throw(ArgumentError("in Index(i...), arguments i must be larger then or equal to 0"))
+Index(i::N...) where {N<:Integer} = all(i .>= 0) ? ntuple(idx -> i[idx], length(i)) : throw(ArgumentError("in Index(i...), arguments i must be larger than or equal to 0"))
 
 ## Level ##
 """
