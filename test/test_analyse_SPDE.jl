@@ -8,7 +8,6 @@
     end
 end
 
-#=
 ## Analyse SPDE, multi-index case
 @testset "analyse SPDE, MI case        " begin
     @suppress begin
@@ -16,4 +15,3 @@ end
         analyse(estimator, nsamples=100)
     end
 end
-=#
