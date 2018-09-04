@@ -7,12 +7,12 @@ using SPDE, MultilevelEstimators, QMC, Suppressor, Base.Test, JLD
 estimator = init_SPDE_msgmimc()
 #estimator = init_SPDE_mgmlmc()
 
-samples = [estimator.sample_function(Index(2,2),randn(500),estimator.user_data) for i in 1:1000]
+samples = [estimator.sample_function(Index(1,0),randn(500),estimator.user_data) for i in 1:1000]
 
 @show mean(first.(samples))
 @show mean(last.(samples))
 
-#run(estimator,0.001)
+run(estimator,0.001)
 
 #=
 # basic tests
