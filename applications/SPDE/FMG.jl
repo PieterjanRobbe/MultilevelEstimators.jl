@@ -36,7 +36,7 @@ function FMG(grids::Array{G} where {G<:SimpleMultigrid.Grid}, ν₀::Int, ν₁:
         end
         sol = FMG(grids,ν₀,ν₁,ν₂,grid_ptr+1,smoother)
         for idx in NotSoSimpleMultigrid.grids_at_level(size(grids),grid_ptr)
-            parent_iter = Base.Iterators.filter(i->all(i[2].<=size(grids)),enumerate([idx.+δ(i,NotSoSimpleMultigrid.d) for i in 1:d]))
+            parent_iter = Base.Iterators.filter(i->all(i[2].<=size(grids)),enumerate([idx.+NotSoSimpleMultigrid.δ(i,d) for i in 1:d]))
             # matrix-dependent prolongation
             λ = map(i->grids[idx...].A*NotSoSimpleMultigrid.high_freq_mode(first(i),grids[idx...].sz),parent_iter)
             λ² = broadcast(i->broadcast(j->j^2,i),λ)

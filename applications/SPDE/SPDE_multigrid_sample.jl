@@ -1,31 +1,18 @@
 ## SPDE_multigrid_sample.jl : sample functions for lognormal diffusion problem, with multigrid
 
 ## solver ##
-for (mode,method) in zip(["level" "index"],["" "NotSo"])
-    ex = :(
-           function SPDE_mg_solve(Z::Matrix{T},$(Symbol(mode))::$(Symbol(string(uppercase(mode[1]),mode[2:end])))) where {T<:Real} # MG
-
-               A = elliptic2d(exp.(Z))
-
-               b = ones(size(A,1)) # rhs
-               mg = $(Symbol(method,"SimpleMultigrid.V_cycle"))(A,size(Z).-1) # mg structure
-               mg.grids[1].b .= b # copy rhs
-
-               FMG(mg.grids,2,2,1,1,GaussSeidel()), reverse!(getfield.(mg.grids,:sz))
-           end
-          )
-    eval(ex)
-end
-
-function SPDE_mg_solve(Z::Matrix{T},index::Index) where {T<:Real} # MSG
-
+function SPDE_mg_solve(Z::Matrix{T},index::Index) where {T<:Real}
     A = elliptic2d(exp.(Z))
 
     b = ones(size(A,1)) # rhs
-    msg = NotSoSimpleMultigrid.V_cycle(A,size(Z).-1) # msg structure
-    msg.grids[1].b .= b # copy rhs
+    if length(index) > 1
+        mg = NotSoSimpleMultigrid.V_cycle(A,size(Z).-1) # mg structure
+    else
+        mg = SimpleMultigrid.V_cycle(A,size(Z).-1) # mg structure
+    end
+    mg.grids[1].b .= b # copy rhs
 
-    FMG(msg.grids,2,2,1,1,GaussSeidel()), reverse!(getfield.(msg.grids,:sz))
+    FMG(mg.grids,2,2,1,1,GaussSeidel()), getfield.(mg.grids,:sz)[range.(size(mg.grids),-1,size(mg.grids))...]
 end
 
 ## sample functions ##

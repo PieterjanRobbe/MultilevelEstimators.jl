@@ -29,7 +29,15 @@ function check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:nb_of_qoi}}
 end
 
 # continuate
-check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:continuate}}) where {V} = isa(val,Bool) || throw(ArgumentError("continuate must be of type Bool, got $(V)"))
+function check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:continuate}}) where {V}
+    isa(val,Bool) || throw(ArgumentError("continuate must be of type Bool, got $(V)"))
+    if settings[:method] isa MG
+        if !val
+            warn("to use a Multigrid-type estimator, set 'continuate=true'. Proceeding with 'continuate=true'...")
+            settings[:continuate] = true
+        end
+    end
+end
 
 # ntols
 function check(settings::Dict{Symbol,T} where{T},val::V,::Type{Val{:ntols}}) where {V}

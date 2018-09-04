@@ -232,7 +232,7 @@ function new_index_set(estimator::AdaptiveMultiIndexTypeEstimator, level::N wher
             end
         end
     end
-	log_adaptive_index_set(estimator,keys(estimator) ∪ index_set,max_index)
+    log_adaptive_index_set(estimator,keys(estimator) ∪ index_set,max_index)
     return index_set
 end
 

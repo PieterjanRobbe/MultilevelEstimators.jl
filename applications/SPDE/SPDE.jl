@@ -12,13 +12,15 @@ Currently implemented:
     - AMIMC     : Adaptive Multi-Index Monte Carlo
     - AMIQMC    : Adaptive Multi-Index Quasi-Monte Carlo
     - MGMLMC    : Multigrid Multilevel Monte Carlo
+    - MSGMIMC   : Multiple Semi-coarsened Multigrid Multi-Index Monte Carlo
+    - MSGAMIMC  : Multiple Semi-coarsened Multigrid Adaptive Multi-Index Monte Carlo
 NOTE: Technically, we are simulating a PDE with random coefficients, but this is too
 long to write down, so with a slight abuse of notation, this module is called "SPDE".
 =#
 module SPDE
 
 ## dependencies ##
-using Interpolations, SimpleMultigrid, PaddedViews, GaussianRandomFields, MultilevelEstimators
+using Interpolations, SimpleMultigrid, NotSoSimpleMultigrid, PaddedViews, GaussianRandomFields, MultilevelEstimators
 
 ## include statements ##
 include("SPDE_init.jl")

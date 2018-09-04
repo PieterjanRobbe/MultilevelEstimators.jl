@@ -7,11 +7,12 @@ function _run(estimator::MultiGridMultiLevelMonteCarloEstimator, ϵ::T where {T<
     estimator.verbose && print_header(estimator,ϵ)
 
     # start level is maximum level already taken
-	# TODO: tidy up ==>
-	level = isempty(estimator.samples[1]) ? Level(0) : Level(maximum(getindex.(collect(keys(estimator.samples[1])),1)))
-	for ell in 0:level[1]
-		push!(estimator,Level(ell))
-	end
+    levels = collect(keys(estimator.samples[1]))
+    level = isempty(levels) ? Level(0) :  maximum(levels)
+
+    for ℓ in levels
+        push!(estimator,ℓ)
+    end
 
     # loop variables
     converged = false
@@ -20,10 +21,10 @@ function _run(estimator::MultiGridMultiLevelMonteCarloEstimator, ϵ::T where {T<
     while !converged
 
         # obtain initial variance estimate
-		if !haskey(estimator.samples[1],level)
-        	sample!(estimator,level,1)
-        	push!(estimator,level)
-		end
+        if !haskey(estimator.samples[1],level)
+            sample!(estimator,level,1)
+            push!(estimator,level)
+        end
 
         # print status
         estimator.verbose && print_status(estimator)
@@ -44,16 +45,16 @@ function _run(estimator::MultiGridMultiLevelMonteCarloEstimator, ϵ::T where {T<
             end
 
             # print optimal number of samples
-			estimator.verbose && print_number_of_samples(estimator,Dict(Level(0)=>n_opt))
+            estimator.verbose && print_number_of_samples(estimator,Dict(Level(0)=>n_opt))
 
             # take additional samples
             r = 1/2*(β(estimator) + γ(estimator))
             r = isnan(r) ? 1.5 : r
-			N_add = min.(floor.(Int,randexpr(log(2)*r,n_opt-N)),level[1])
-			N_sum = Int64[sum(N_add.==ℓ) for ℓ = 0:level[1]]
-			N_diff = append!(-diff(N_sum),N_sum[end]) # subtract samples on finer levels
-			for tau in sort(collect(keys(estimator.samples[1])))
-                n_due = N_sum[tau[1]+1]
+            N_add = min.(floor.(Int,randexpr(log(2)*r,n_opt-N)),level[1])
+            N_sum = Int64[sum(N_add.==ℓ) for ℓ = 0:level[1]]
+            N_diff = append!(-diff(N_sum),N_sum[end]) # subtract samples on finer levels
+            for tau in sort(collect(keys(estimator.samples[1])))
+                n_due = N_diff[tau[1]+1]
                 n_due > 0 && sample!(estimator,tau,n_due)
             end
 
@@ -86,6 +87,7 @@ end
 
 # sample from exponential distribution with rate r
 randexpr(r::Number,kwargs...) = randexp(kwargs...)/r
+zero_idx(estimator) = Index(fill(0,ndims(estimator))...)
 
 ## Multilevel Monte Carlo parallel sampling ##
 function parallel_sample!(estimator::MultiGridTypeEstimator,index::Index,istart::N,iend::N) where {N<:Integer}
@@ -100,10 +102,10 @@ function parallel_sample!(estimator::MultiGridTypeEstimator,index::Index,istart:
     dsamples = first.(all_samples)
 
     # append samples
-    for idx in 0:index[1]
+    for idx in Iterators.product(range.(0,index.+1)...)
         for n_qoi in 1:estimator.nb_of_qoi
-            append!(estimator.samples[n_qoi][Index(idx)],getindex.(getindex.(dsamples,idx+1),n_qoi))
-            append!(estimator.samples0[n_qoi][Index(idx)],getindex.(getindex.(samples,idx+1),n_qoi))
+            append!(estimator.samples[n_qoi][idx],getindex.(getindex.(dsamples,(idx.+1)...),n_qoi))
+            append!(estimator.samples0[n_qoi][idx],getindex.(getindex.(samples,(idx.+1)...),n_qoi))
         end
     end
     estimator.nsamples[index] += iend-istart+1
@@ -113,7 +115,7 @@ end
 ## inspector functions ##
 function get_Ys(estimator::MultiGridTypeEstimator)
     idx = point_with_max_var(estimator)
-    Ys = zeros(length(estimator.samples[idx][Level(0)]))
+    Ys = zeros(length(estimator.samples[idx][zero_idx(estimator)]))
     for index in keys(estimator)
         ns = length(estimator.samples[idx][index])
         Ys[1:ns] .+= estimator.samples[idx][index]
@@ -121,6 +123,9 @@ function get_Ys(estimator::MultiGridTypeEstimator)
     return Ys # these are independent
 end
 
-varest(estimator::MultiGridTypeEstimator) = var(get_Ys(estimator))/length(estimator.samples[1][Level(0)])
+function varest(estimator::MultiGridTypeEstimator)
+    Ys = get_Ys(estimator)
+    length(Ys) == 1 ? Inf : var(Ys)/length(estimator.samples[1][zero_idx(estimator)])
+end
 
 moment(estimator::MultiGridTypeEstimator) = moment(get_Ys(estimator),k)

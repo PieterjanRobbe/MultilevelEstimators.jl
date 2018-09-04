@@ -165,4 +165,3 @@ function print_index_set(old_set::Vector{Index{d}}, active_set::Vector{Index{d}}
         print(str)
     end
 end
-

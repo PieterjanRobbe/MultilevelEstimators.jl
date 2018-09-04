@@ -35,7 +35,7 @@ struct Estimator{I<:IndexSet,G<:NumberGenerator,T<:AbstractFloat,N<:Integer,S,U,
     current_index_set::C # indices currently in use
     old_index_set::C # "old" index set in adaptive algorithm
     spill_index_set::C # "spill" indices that exceed the maximum allowed level
-    max_active_set::C # maximum "active" index set to usa for bias estimate
+    max_active_set::C # maximum "active" index set to use for bias estimate
     adaptive_index_set::D # a vector with a Dict that contains all indices in the set, and their type (for plotting)
     number_generators::H # stores shifted number generator at each index
 
@@ -206,7 +206,7 @@ print_name(estimator::QuasiMonteCarloEstimator) = "Quasi-Monte Carlo estimator"
 print_name(estimator::MultiLevelQuasiMonteCarloEstimator) = "Multilevel Quasi-Monte Carlo estimator"
 print_name(estimator::MultiIndexMonteCarloEstimator) = "Multi-Index Monte Carlo estimator ($(estimator.method) index set)"
 print_name(estimator::MultiIndexQuasiMonteCarloEstimator) = "Multi-Index Quasi-Monte Carlo estimator ($(estimator.method) index set)"
-print_name(estimator::MultiGridMultiLevelMonteCarloEstimator) = "MG Multilevel Monte Carlo estimator"
-print_name(estimator::MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstimator) = "MSG Multi-Index Monte Carlo estimator"
+print_name(estimator::MultiGridMultiLevelMonteCarloEstimator) = "MG-Multilevel Monte Carlo estimator"
+print_name(estimator::MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstimator) = "MSG-Multi-Index Monte Carlo estimator ($(estimator.method) index set)"
 
 show(io::IO, estimator::Estimator) = print(io, print_name(estimator))
