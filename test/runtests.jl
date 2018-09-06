@@ -13,4 +13,4 @@ include("test_estimator.jl")
 ## SPDE test
 include("test_SPDE.jl")
 include("test_analyse_SPDE.jl")
-include("generate_reports.jl")
+#include("generate_reports.jl")
