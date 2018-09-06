@@ -57,26 +57,21 @@ function _run(estimator::MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstim
             r = 1/2*(β(estimator) + γ(estimator))
 			r[broadcast(|,isnan.(r),r.<=0)] = 1.5 # replace NaN's
             N_sum = fill(0,1.+maximum.(collect(getindex.(index_set,j) for j in 1:ndims(estimator)))...)
-            while sum(N_sum) < n_opt-N
+			N_diff = copy(N_sum)
+			while sum(N_diff) < n_opt-N
                 idx = Index(floor.(Int,randexpr.(log(2)*r))...)
-                if idx ∈ index_set
-                    N_sum[idx.+1...] += 1
-                else
+				if !(idx ∈ index_set)
 					i_nearest = indmin([sum(abs.(i.-idx)) for i in index_set])
-                    idx_nearest = index_set[i_nearest]
-                    N_sum[idx_nearest.+1...] += 1
+                    idx = index_set[i_nearest]
                 end
-            end
-
-            # difference
-			N_diff = N_sum
-			for idx in Iterators.product(range.(1,size(N_sum))...)
+                N_sum[idx.+1...] += 1
+				N_diff[idx.+1...] += 1
 				for i in Iterators.product(range.(1,idx)...)
-					if i != idx
-						N_diff[i...] -= N_sum[idx...]
+					if i != idx && N_diff[i...] != 0
+						N_diff[i...] -= 1
 					end
 				end
-			end
+            end
 
             for tau in sort(index_set)
                 n_due = N_diff[tau.+1...]
@@ -115,4 +110,5 @@ function _run(estimator::MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstim
 
     # print convergence status
     estimator.verbose && print_convergence(estimator,converged)
+
 end

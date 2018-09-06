@@ -35,6 +35,8 @@ tikz_add_bar_plot(name,color,legend) = "
 $(isempty(legend) ? "" : "\\addlegendentry{$(legend)};")
 "
 
+tikz_add_cuboid(x,y,z,z_height,color) = string("\\cuboid{",@sprintf("%2.1f",x-0.5),"}{",@sprintf("%2.1f",y-0.5),"}{",@sprintf("%7.5f",z),"}{",color,"}{0.8}{",@sprintf("%7.5f",z_height),"}\n")
+
 figure_header() = "
 \\begin{figure}[h]
 \\centering
@@ -46,7 +48,7 @@ figure_footer() = "
 \\end{figure}
 "
 
-preamble(d) = "$(d == 2 ? square() : d == 3 ? cube() : "\n\n")"
+preamble(d,is_multigrid) = "$(d == 2 ? square()*(is_multigrid && d < 3? cuboid() : "") : d == 3 ? cube() : "\n\n")"
 
 square() = "\n\n\\newcommand{\\drawsquare}[3]{
 \\edef\\temp{
@@ -101,6 +103,33 @@ x	y	z\\\\
 }--cycle;
 }\n"
 
+cuboid() = "\n\n\\newcommand{\\cuboid}[6]{
+\\addplot3[area legend,solid,fill=#4,draw=black,rounded corners=0.2pt,forget plot,shift={(#1,#2,#3)}]
+table[row sep=crcr] {%
+x  y  z\\\\
+#5 0  0 \\\\
+#5 0  #6\\\\
+#5 #5 #6\\\\
+#5 #5 0 \\\\
+}--cycle;
+\\addplot3[area legend,solid,fill=#4,draw=black,rounded corners=0.2pt,forget plot,shift={(#1,#2,#3)}]
+table[row sep=crcr] {%
+x  y  z\\\\
+0  #5 0\\\\
+#5 #5 0\\\\
+#5 #5 #6\\\\
+0  #5 #6\\\\
+}--cycle;
+\\addplot3[area legend,solid,fill=#4,draw=black,rounded corners=0.2pt,forget plot,shift={(#1,#2,#3)}]
+table[row sep=crcr] {%
+x  y  z\\\\
+0  0  #6\\\\
+#5 0  #6\\\\
+#5 #5 #6\\\\
+0  #5 #6\\\\
+}--cycle;
+}\n"
+
 file_contents(title,d,is_adaptive,is_multigrid) = "\\documentclass[11pt, oneside]{article}
 
 \\usepackage[margin=2cm]{geometry}
@@ -111,7 +140,7 @@ file_contents(title,d,is_adaptive,is_multigrid) = "\\documentclass[11pt, oneside
     \\newlength\\figurewidth
 \\usepackage{tikz}\n"*
 "$((is_multigrid && d ==1) || d > 1 ? "\\usepackage{booktabs}\n\\usepackage{pgfplotstable}\n" : "") "*
-preamble(d)*"
+preamble(d,is_multigrid)*"
 \\title{Report: $(title)}
 \\date{}
 
@@ -131,7 +160,7 @@ figure_footer()*"\n"*
 figure_header()*
 "\\input{figures/cost.tex}\n \\caption{\\label{fig:cost}Total simulation standard cost.}"*
 figure_footer()*
-"$(is_multigrid && d == 1 ? "\n\\input{figures/sample_reuse.tex}\n\n" : "")"*
+"$(is_multigrid && d < 3 ? "\n\\input{figures/sample_reuse.tex}\n\n" : "")"*
 "\\end{document}"
 
 tikz_index_set_2d(name,i,max_level,is_adaptive,has_active,has_old,has_maximum,scaling,mode) = "%!TEX root = ../$(name)\n"*
@@ -266,32 +295,91 @@ function tikz_index_set_table_internal(name,fname,iters,headerstring,is_adaptive
             str = string(str,"\\\\ \n")
         end
         str = string(str,"\n\\end{tabular}\\\\\n\n")
-		if is_adaptive
-        	str = string(str,"\\caption{\\label{fig:adaptive_index_set}Shape of the index set for different level parameters in the adaptive algorithm ($(tabnum)/$(div(length(iters)-1,9)+1)).}")
-		else
-        	str = string(str,"\\caption{\\label{fig:index_set}Shape of the index set for different tolerances on the RMSE ($(tabnum)/$(div(length(iters)-1,9)+1)).}")
-		end
+		str = string(str,"\\caption{$(legend) ($(tabnum)/$(div(length(iters)-1,9)+1)).}")
         str = string(str,figure_footer())
     end
     str
 end
 
-tikz_add_fractions(i) = "
-\% read fractions
+tikz_read_fractions(i) = "
 \\pgfplotstableread[header=false]{data/fractions_$(i).txt}\\fractions
 \\pgfplotstablegetrowsof{\\fractions}
 \\pgfmathsetmacro{\\rows}{\\pgfplotsretval-1}
+"
 
+tikz_add_fractions_1d(i) = tikz_read_fractions(i)*"
 \\pgfplotsset{
     after end axis/.code={
     	\\foreach \\j in {0,...,\\rows} {
-			\\pgfplotstablegetelem{\\j}{0}\\of\\fractions
+		\\pgfplotstablegetelem{\\j}{0}\\of\\fractions
    		\\pgfmathsetmacro{\\a}{\\pgfplotsretval}
-			\\pgfplotstablegetelem{\\j}{1}\\of\\fractions
+		\\pgfplotstablegetelem{\\j}{1}\\of\\fractions
    		\\pgfmathsetmacro{\\b}{\\pgfplotsretval}
-        	\\node[right, align=left, text=black, anchor=south]
-			at (axis cs:\\j,\\a) {\\tiny \\b\\%};
+		\\pgfplotstablegetelem{\\j}{2}\\of\\fractions
+   		\\pgfmathsetmacro{\\c}{\\pgfplotsretval}
+        \\node[right, align=left, text=black, anchor=south] at (axis cs:\\a,\\b) {\\tiny \\c\\%};
 		}
     }
 }
+"
+
+tikz_bar_plot_1d_header(L,M,fname) = tikz_header("level \$\\ell\$","number of samples \$N_\\ell\$",
+												 string("ymode=log,\n",
+														"xmin=-.3,\n",
+														"xmax=",@sprintf("%2.1f",L+0.3),",\n",
+														"ymin=1,\n",
+														"ymax=10^",@sprintf("%i",ceil(log10(M))),",\n",
+														"xtick={0,1,...,$(L)},\n",
+														"axis x line*=left,\n",
+														"x axis line style={draw opacity=0},\n",
+														"xtick style={draw=none},\n",
+														"axis y line*=left,\n",
+														"y axis line style={draw opacity=0},\n",
+														"ytick style={draw=none},\n",
+														"ymajorgrids,\n",
+														"grid style={line width=1pt,white},\n",
+														"axis on top,\n",
+														"legend style={legend cell align=left,align=left,font=\\tiny,",
+														"draw=none,at={(1.03,1.03)},anchor=north east}\n"),
+												 fname,
+												 @sprintf("%2.1f",0.8), 
+												 false
+												 )
+
+tikz_bar_plot_2d_header(L,M,fname) = tikz_header("\$\\ell_x\$","\$\\ell_y\$",
+												 string("view={120}{17},\n",
+														"every x tick/.append style={draw=none},\n",
+														"xmin=-.3,\n",
+														"xmax=",@sprintf("%2.1f",L+1+0.3),",\n",
+														"xtick={0,1,...,",@sprintf("%i",L),"},",
+														"every y tick/.append style={draw=none},\n",
+														"ymin=-.3,\n",
+														"ymax=",@sprintf("%2.1f",L+1),",\n",
+														"ytick={0,1,...,",@sprintf("%i",L),"},\n",
+														"every z tick label/.append style=",
+														"{font=\\color{white!15!black}\\scriptsize},\n",
+														"every z label/.append style=",
+														"{font=\\color{white!15!black}\\scriptsize},\n",
+														"zmin=0,\n",
+														"zmax=",@sprintf("%i",ceil(M)),",\n",
+														"every z tick/.append style={draw=none},\n",
+														"ztick={0,1,...,",@sprintf("%i",ceil(M)),"},\n",
+														"zticklabels={",
+														string(join([@sprintf("\$10^%i\$",i) for i in 0:ceil(M)],",")),
+														"},\n",
+														"zmajorgrids=true,\n",
+														"set layers,\n",
+														"zlabel=number of samples \$N_\\ell\$,\n",
+														"legend style={legend cell align=left,align=left,font=\\tiny,",
+														"draw=none,at={(1.03,0.9)},anchor=north east}"),
+												 fname, 
+												 @sprintf("%2.1f",0.8), 
+												 false
+												 )
+
+tikz_3d_bar_plot_legend() = "
+\\addlegendimage{area legend,solid,fill=red,draw opacity=0}
+\\addlegendentry{original}
+\\addlegendimage{area legend,solid,fill=blue,draw opacity=0}
+\\addlegendentry{reused}
 "

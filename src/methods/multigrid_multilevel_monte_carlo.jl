@@ -44,9 +44,21 @@ function _run(estimator::MultiGridMultiLevelMonteCarloEstimator, ϵ::T where {T<
             # take additional samples
             r = 1/2*(β(estimator) + γ(estimator))
 			r = isnan(r) || r <= 0 ? 1.5 : r
-            N_add = min.(floor.(Int,randexpr(log(2)*r,n_opt-N)),level[1])
-            N_sum = Int64[sum(N_add.==ℓ) for ℓ = 0:level[1]]
-            N_diff = append!(-diff(N_sum),N_sum[end]) # subtract samples on finer levels
+            #N_add = min.(floor.(Int,randexpr(log(2)*r,n_opt-N)),level[1])
+            #N_sum = Int64[sum(N_add.==ℓ) for ℓ = 0:level[1]]
+            #N_diff = append!(-diff(N_sum),N_sum[end]) # subtract samples on finer levels
+
+			N_sum = fill(0,level[1]+1)
+			N_diff = copy(N_sum)
+			while sum(N_diff) < n_opt-N
+				lvl = min(floor(Int,randexpr(log(2)*r)),level[1])
+				N_sum[lvl+1] += 1
+				N_diff[lvl+1] += 1
+				N_diff[1:lvl] -= 1
+				N_diff = max.(0,N_diff)
+			end
+
+
             for tau in sort(collect(keys(estimator.samples[1])))
                 n_due = N_diff[tau[1]+1]
                 n_due > 0 && sample!(estimator,tau,n_due)

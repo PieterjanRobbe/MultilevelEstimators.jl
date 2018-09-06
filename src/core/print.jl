@@ -86,7 +86,7 @@ end
 function print_qmc_convergence(estimator::Estimator,ϵ::T where {T<:Real},θ::T where {T<:Real})
     println(string("Checking if variance of estimator is larger than θ*ϵ^2..."))
     converged = !(varest(estimator) > θ*ϵ^2)
-    println(string("  ==> ",@sprintf("%11.5e",varest(estimator)),"$(converged ? " <" : " >")",@sprintf("%12.5e",θ*ϵ^2),": $(converged ? "yes!" : "no" )"))
+    println(string("  ==> ",@sprintf("%11.5e",varest(estimator)),"$(converged ? " <" : " >")",@sprintf("%12.5e",θ*ϵ^2),": $(converged ? "no!" : "yes" )"))
 end
 
 # print header

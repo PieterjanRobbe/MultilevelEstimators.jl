@@ -67,25 +67,41 @@ for (name,start) in zip(["E","dE","V","dV","W"],[1,2,1,2,1])
 end
 
 function get_samples(h::History)
-	m = maximum(h[:index_set])[1] + 1
+	d = h[:ndims]
+	idx_set = h[:index_set]
+	m = maximum.([getindex.(idx_set,i) for i in 1:d]) .+ 1
 	n = h.iter
-	S = zeros(Int,m,n)
+	S_ = zeros(Int,m...,n)
+	h[:index_set]
+	h[:nsamples]
 	for j = 1:n
 		s = h[j][:nsamples]
-		S[1:length(s),j] = s
+		for (i,idx) in enumerate(h[j][:index_set])
+			S_[idx.+1...,j] = s[i]
+		end
 	end
-	return S
+	S = copy(S_)
+	for idx in Iterators.product(colon.(1,m)...)
+		for i in Iterators.product(colon.(1,idx)...)
+			if i != idx
+				for j in 1:size(S_,d+1)
+					S[i...,j] += S_[idx...,j]
+				end
+			end
+		end
+	end
+	return S,S_
 end
 
 function write_samples(h::History, folder::AbstractString)
     d = h[:ndims]
     if d == 1
-		S = get_samples(h)
+		S,S_ = get_samples(h)
         open(joinpath(folder,"data","samples.txt"), "w") do f
-			for i in 1:size(S,1)
+			for i in 1:size(S_,1)
                 str = @sprintf("%i",i-1)
-				for j in 1:size(S,2)
-                    str = string(str,@sprintf(" %i",S[i,j]))
+				for j in 1:size(S_,2)
+                    str = string(str,@sprintf(" %i",S_[i,j]))
                 end
                 write(f,string(str,"\n"))
             end
@@ -95,37 +111,45 @@ end
 
 function write_sample_reuse(h::History, folder::AbstractString)
 	d = h[:ndims]
-	if ( d == 1 ) && ( isa(h[:method],MG) )
-		S_ = get_samples(h)
-		S = flipdim(cumsum(flipdim(S_,1),1),1)
+	if h[:method] isa MG
+		S,S_ = get_samples(h)
 		for j in 1:h.iter
 			open(joinpath(folder,"data","samples_total_$(j).txt"), "w") do f
-				for i in 1:size(S,1)
-                	write(f,@sprintf("%i %i\n",i-1,S[i,j]))
-            	end
+				for idx in Iterators.product(colon.(1,map(i->size(S,i),1:d))...)
+					if S[idx...,j] > 0
+						for i in 1:d
+							write(f,@sprintf("%i ",idx[i]-1))
+						end
+						write(f,@sprintf("%i\n",S[idx...,j]))
+					end
+				end
 			end
 			open(joinpath(folder,"data","samples_reused_$(j).txt"), "w") do f
-				for i in 1:size(S,1)-1
-                	write(f,@sprintf("%i %i\n",i-1,S[i+1,j]))
-            	end
-				write(f,@sprintf("%i %i\n",size(S,1)-1,0))
+				for idx in Iterators.product(colon.(1,map(i->size(S,i),1:d))...)
+					if S[idx...,j] > 0
+						for i in 1:d
+							write(f,@sprintf("%i ",idx[i]-1))
+						end
+						write(f,@sprintf("%i\n",S[idx...,j]-S_[idx...,j]))
+					end
+				end
 			end
-        end
+		end
 		write_fractions(h, folder)
 	end
 end
 
 function write_fractions(h::History, folder::AbstractString)
-	S_ = get_samples(h)
-	S = flipdim(cumsum(flipdim(S_,1),1),1)
+	S,S_ = get_samples(h)
 	F = (S.-S_)./S*100
 	for j in 1:h.iter
 		open(joinpath(folder,"data","fractions_$(j).txt"), "w") do f
-			for i in 1:size(S,1)
-				if S[i,j] == 0
-					break
-				else
-					write(f,@sprintf("%i %i\n",S[i,j],ceil(F[i,j])))
+			for idx in Iterators.product(colon.(1,map(i->size(S,i),1:h[:ndims]))...)
+				if S[idx...,j] > 0
+					for i in 1:h[:ndims]
+						write(f,@sprintf("%i ",idx[i]-1))
+					end
+					write(f,@sprintf("%i %i\n",S[idx...,j],ceil(F[idx...,j])))
 				end
 			end
 		end
@@ -271,46 +295,68 @@ function write_figure_samples(h::History, folder::AbstractString, fname::Abstrac
 end
 
 function write_figure_sample_reuse(h::History, folder::AbstractString, fname::AbstractString)
-    d = h[:ndims]
-	if ( d == 1 ) && ( isa(h[:method],MG) )
-		for i in 1:h.iter
-			open(joinpath(folder,"figures","sample_reuse_$(i).tex"), "w") do f
-            	L = maximum(maximum.(h[:index_set]))
-				S_ = get_samples(h)
-				S = flipdim(cumsum(flipdim(S_,1),1),1)
-				M = maximum(S)
-            	str = tikz_header("level \$\\ell\$","number of samples \$N_\\ell\$",
-                              	  string("ymode=log,\n",
-										 "xmin=-0.3,\n",
-										 "xmax=",@sprintf("%2.1f",L+0.3),",\n",
-										 "ymin=1,\n",
-										 "ymax=10^",@sprintf("%i",ceil(log10(M))),",\n",
-										 "xtick={0,1,...,$(L)},\n",
-										 "axis x line*=left,\n",
-										 "x axis line style={draw opacity=0},\n",
-										 "xtick style={draw=none},\n",
-										 "axis y line*=left,\n",
-										 "y axis line style={draw opacity=0},\n",
-										 "ytick style={draw=none},\n",
-										 "ymajorgrids,\n",
-										 "grid style={line width=1pt,white},\n",
-										 "axis on top,\n",
-										 "legend style={legend cell align=left,align=left,font=\\tiny,draw=none,",
-										 "at={(1.03,1.03)},anchor=north east}\n"),fname,@sprintf("%2.1f",0.8),false)
-				str = string(str,tikz_add_bar_plot("samples_total_$(i)","red","original"))
-				str = string(str,tikz_add_bar_plot("samples_reused_$(i)","blue","reused"))
-				str = string(str,tikz_add_fractions(i))
-            	str = string(str,tikz_footer())
-            	write(f, str)
-            end
-        end
-		open(joinpath(folder,"figures","sample_reuse.tex"), "w") do f
-			tols = [h[i][:tol] for i in 1:h.iter]
-			str = tikz_samples_table(fname,tols)
+	if h[:method] isa MG
+		d = h[:ndims]
+		if d == 1
+			write_figure_sample_reuse_1d(h, folder, fname)
+		elseif d == 2
+			write_figure_sample_reuse_2d(h, folder, fname)
+		end
+	end
+end
+
+function write_figure_sample_reuse_1d(h::History, folder::AbstractString, fname::AbstractString)
+	for i in 1:h.iter
+		open(joinpath(folder,"figures","sample_reuse_$(i).tex"), "w") do f
+			L = maximum(maximum.(h[:index_set]))
+			S,S_ = get_samples(h)
+			M = maximum(S)
+			str = tikz_bar_plot_1d_header(L,M,fname)
+			str = string(str,tikz_add_bar_plot("samples_total_$(i)","red","original"))
+			str = string(str,tikz_add_bar_plot("samples_reused_$(i)","blue","reused"))
+			str = string(str,tikz_add_fractions_1d(i))
+			str = string(str,tikz_footer())
 			write(f, str)
 		end
-    end
+	end
+	open(joinpath(folder,"figures","sample_reuse.tex"), "w") do f
+		tols = [h[i][:tol] for i in 1:h.iter]
+		str = tikz_samples_table(fname,tols)
+		write(f, str)
+	end
 end
+
+function write_figure_sample_reuse_2d(h::History, folder::AbstractString, fname::AbstractString)
+	for i in 1:h.iter
+		open(joinpath(folder,"figures","sample_reuse_$(i).tex"), "w") do f
+			L = maximum(maximum.(h[:index_set]))
+			S,S_ = get_samples(h)
+			M = maximum(log10.(S))
+			str = tikz_bar_plot_2d_header(L,M,fname)
+			for idx in Iterators.product(colon.(1,map(i->size(S,i),1:h[:ndims]))...)
+				if S[idx...,i] - S_[idx...,i] != 0
+					reused = log10(S[idx...,i] - S_[idx...,i])
+					str = string(str,tikz_add_cuboid(idx[1]-1,idx[2]-1,0,reused,"blue"))
+				else
+					reused = 0
+				end
+				if S_[idx...,i] != 0
+					original = log10(S[idx...,i]) - reused
+					str = string(str,tikz_add_cuboid(idx[1]-1,idx[2]-1,reused,original,"red"))
+				end
+			end
+			str = string(str,tikz_3d_bar_plot_legend())
+			str = string(str,tikz_footer())
+			write(f, str)
+		end
+	end
+	open(joinpath(folder,"figures","sample_reuse.tex"), "w") do f
+		tols = [h[i][:tol] for i in 1:h.iter]
+		str = tikz_samples_table(fname,tols)
+		write(f, str)
+	end
+end
+
 
 function write_figure_index_set(h::History, folder::AbstractString, fname::AbstractString)
     d = h[:ndims]
@@ -342,7 +388,7 @@ end
 
 function write_figure_adaptive_index_set(h::History, folder::AbstractString, fname::AbstractString)
     d = h[:ndims]
-	if isa(h[:method],AD)
+	if h[:method] isa AD || h[:method] isa MG{d,<:AD} where {d}
     	if d == 2
         	write_figure_adaptive_index_set_2(h, folder, fname)
     	elseif d == 3
@@ -356,7 +402,7 @@ for d in ["2" "3"]
 			   dicts = h[:adaptive_index_set]
 			   for i = 1:length(dicts)
 				   open(joinpath(folder,"figures","adaptive_index_set_$(i).tex"), "w") do f
-					   max_level = maximum(maximum.(keys(dicts[end])))
+					   max_level = maximum(maximum.(keys(dicts[end])))+1
 					   v = collect(values(dicts[i]))
 					   has_active = any(v.==1) || any(v.==2)
 					   has_old = any(v.==0)
@@ -377,9 +423,9 @@ for d in ["2" "3"]
 					   end
 				   end
 				   open(joinpath(folder,"figures","index_set_legend_$(mode).tex"), "w") do f
-					   max_level = maximum(maximum.(keys(dicts[end])))
+					   max_level = maximum(maximum.(keys(dicts[end])))+1
 					   scaling = (max_level+1.2)/1.2
-					   write(f, $(Symbol("tikz_index_set_",d,"d"))(fname,"legend",0,true,false,false,false,scaling,mode))
+					   write(f, $(Symbol("tikz_index_set_",d,"d"))(fname,string("legend_",mode),0,false,false,false,false,scaling,mode))
 				   end
 			   end
 		   end
@@ -403,6 +449,6 @@ end
 
 function write_main_file(h::History,folder::AbstractString,fname::AbstractString)
     open(joinpath(folder,fname), "w") do f
-		write(f, file_contents(h[:name],length(h[:index_set][1]),isa(h[:method],AD),isa(h[:method],MG)))
+		write(f, file_contents(h[:name],length(h[:index_set][1]),h[:method] isa AD || h[:method] isa MG{d,<:AD} where {d},isa(h[:method],MG)))
     end
 end
