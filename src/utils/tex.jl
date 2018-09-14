@@ -65,7 +65,6 @@ x	y\\\\
 }\n"
 
 cube() = "\n\n\\newcommand{\\drawcube}[4]{
-{	
 \\edef\\temp{
 \\noexpand\\addplot3[area legend,solid,fill=#4,draw=black,rounded corners=0.2pt,forget plot,shift={(#1,#2,#3)}]
 }
@@ -93,7 +92,7 @@ x	y	z\\\\
 \\edef\\temp{
 \\noexpand\\addplot3[area legend,solid,fill=#4,draw=black,rounded corners=0.2pt,forget plot,shift={(#1,#2,#3)}]
 }
-\temp
+\\temp
 table[row sep=crcr] {%
 x	y	z\\\\
 0	0	1\\\\
@@ -227,14 +226,12 @@ tikz_load_table(name,filename) = "\\pgfplotstableread[header=false]{data/$(filen
 \\pgfplotstablegetrowsof{\\$(name)}\%
 \\pgfmathsetmacro{\\$(name)rows}{\\pgfplotsretval-1}\%\n"
 
-tikz_index_set_3d(name,i,max_level,is_adaptive) = "%!TEX root = ../$(name)\n
-\\pgfplotstableread[header=false]{data/index_set_$(i).txt}\\indexset
-\\pgfplotstablegetrowsof{\\indexset}
-\\pgfmathsetmacro{\\rows}{\\pgfplotsretval-1}\n
-\\begin{tikzpicture}[trim axis left,trim axis right]
+tikz_index_set_3d(name,i,max_level,is_adaptive,has_active,has_old,has_maximum,scaling,mode) = "%!TEX root = ../$(name)\n"*
+tikz_load_index_set_tables(is_adaptive,i,has_active,has_old,has_maximum)*
+"\\begin{tikzpicture}[trim axis left,trim axis right]
 \\begin{axis}[
-width=\\figurewidth,
-height=\\figureheight,
+width=\\figurewidth$(scaling != 1 ? "/$(scaling)" : ""),
+height=\\figureheight$(scaling != 1 ? "/$(scaling)" : ""),
 scale only axis,
 view={120}{17},
 xmin=-0.1,
@@ -250,19 +247,39 @@ zmax=$(max_level+1).1,
 zticklabel={},
 zmajorticks=false,
 axis line style={ultra thin, draw opacity=0}
-]\n
-\\foreach \\j in {0,1,...,\\rows} {
-	\\pgfplotstablegetelem{\\j}{2}\\of\\indexset
-   \\pgfmathsetmacro{\\a}{\\pgfplotsretval}
-	\\pgfplotstablegetelem{\\j}{0}\\of\\indexset
-   \\pgfmathsetmacro{\\b}{\\pgfplotsretval}
-	\\pgfplotstablegetelem{\\j}{1}\\of\\indexset
-   \\pgfmathsetmacro{\\c}{\\pgfplotsretval}
-   \\drawcube{\\a}{\\b}{\\c}{white!90!black}
-}
-\\end{axis}\n
+]\n"*
+tikz_draw_index_sets_3d_from_table(is_adaptive,has_active,has_old,has_maximum,mode)*
+"\\end{axis}\n
 \\end{tikzpicture}
 "
+
+function tikz_draw_index_sets_3d_from_table(is_adaptive,has_active,has_old,has_maximum,mode)
+	if is_adaptive
+		str = ""
+		str = has_old ? string(str,tikz_draw_index_set_3d_from_table("oldset","white!90!black")) : str
+		str = has_active ? string(str,tikz_draw_index_set_3d_from_table("activeset","orange!50!white")) : str
+		str = has_maximum ? string(str,tikz_draw_index_set_3d_from_table("maximumindex","blue!50!white")) : str
+		return str
+	else
+		if mode == "active"
+			return tikz_draw_index_set_3d_from_table("indexset","orange!50!white")
+		elseif mode == "maximum"
+			return tikz_draw_index_set_3d_from_table("indexset","blue!50!white")
+		else
+			return tikz_draw_index_set_3d_from_table("indexset","white!90!black")
+		end
+	end
+end
+
+tikz_draw_index_set_3d_from_table(name,color) = 
+"\\foreach \\j in {0,...,\\$(name)rows} {
+\\pgfplotstablegetelem{\\j}{2}\\of\\$(name)
+\\pgfmathsetmacro{\\a}{\\pgfplotsretval}
+\\pgfplotstablegetelem{\\j}{0}\\of\\$(name)
+\\pgfmathsetmacro{\\b}{\\pgfplotsretval}
+\\pgfplotstablegetelem{\\j}{1}\\of\\$(name)
+\\pgfmathsetmacro{\\c}{\\pgfplotsretval}
+\\drawcube{\\a}{\\b}{\\c}{$(color)}\n}\n"
 
 tikz_samples_table(name,tols) = tikz_index_set_table_internal(name,"sample_reuse_",tols,"\$\\epsilon = \\pgfmathprintnumber[/pgf/number format/sci,precision=3,sci zerofill]",false,"\\label{fig:samples_reused}Total number of samples and percentage of reused samples for different tolerances on the RMSE") 
 
