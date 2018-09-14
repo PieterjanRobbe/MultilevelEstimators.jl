@@ -215,6 +215,16 @@ function new_index_set(estimator::AdaptiveMultiIndexTypeEstimator, level::N wher
         push!(index_set,max_index)
     else
         # find index with largest "profit" and add to old set; enlarge active set
+		println("="^80)
+		println("  INDEX         BIAS       PROFIT")
+		println("="^80)
+		for idx in active_set(estimator)
+			println(string(idx,@sprintf("  %10.5e   %10.5e  ",mean(estimator,idx),profit(estimator,idx))))
+		end
+		println("="^80)
+		println(@sprintf("SUM =  %10.5e      |SUM| = %10.5e",sum(mean.(estimator,collect(active_set(estimator)))),sum(abs.(mean.(estimator,collect(active_set(estimator)))))))
+		println("="^80)
+
         temp_active_set = collect(active_set(estimator))
         idx = indmax(profit.(estimator,temp_active_set))
         max_index = temp_active_set[idx]
@@ -268,7 +278,7 @@ end
 
 # TODO for AMIQM, realize that this is not the best approach to compute gains...
 function profit(estimator::AdaptiveMultiIndexTypeEstimator,index::Index)
-    mean(estimator,index)/sqrt(var(estimator,index)*cost(estimator,index))
+	abs(mean(estimator,index))#/sqrt(var(estimator,index)*cost(estimator,index))
 end
 
 function bias(estimator::AdaptiveMultiIndexTypeEstimator; use_maximum=false::Bool)
@@ -277,5 +287,5 @@ function bias(estimator::AdaptiveMultiIndexTypeEstimator; use_maximum=false::Boo
     else
         boundary = union(estimator.spill_index_set,active_set(estimator))
     end
-    return length(boundary) < 2 ? NaN : sum(mean.(estimator,collect(boundary)))
+	return length(boundary) < 2 ? NaN : sum(abs.(mean.(estimator,collect(boundary))))
 end
