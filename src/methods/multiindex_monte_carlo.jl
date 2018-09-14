@@ -278,7 +278,12 @@ end
 
 # TODO for AMIQM, realize that this is not the best approach to compute gains...
 function profit(estimator::AdaptiveMultiIndexTypeEstimator,index::Index)
-	abs(mean(estimator,index))#/sqrt(var(estimator,index)*cost(estimator,index))
+	abs(mean(estimator,index))/sqrt(var(estimator,index)*cost(estimator,index))
+end
+
+# TODO this seems to work better for Multigrid Adaptive MIMC...
+function profit(estimator::MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstimator,index::Index)
+	abs(mean(estimator,index))
 end
 
 function bias(estimator::AdaptiveMultiIndexTypeEstimator; use_maximum=false::Bool)

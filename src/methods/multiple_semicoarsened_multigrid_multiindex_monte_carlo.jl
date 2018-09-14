@@ -27,7 +27,7 @@ function _run(estimator::MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstim
         # obtain initial variance estimate
         for index in index_set
             if !haskey(estimator.samples[1],index)
-                sample!(estimator,index,3) ##### CHANGED 1 >> 3 ON 14/09 
+                sample!(estimator,index,2) ##### CHANGED 1 >> 2 ON 14/09 
                 push!(estimator,index)
             end
         end
@@ -54,25 +54,11 @@ function _run(estimator::MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstim
             estimator.verbose && print_number_of_samples(estimator,Dict(zero_idx(estimator)=>n_opt))
 
             # take additional samples
-            @show r = 1/2*(β(estimator) + γ(estimator))
-			@show β(estimator)
-			@show γ(estimator)
-			@show r[1]
-			@show r[2]
-			@show r[3]
-			@show broadcast(isnan,r)
-			@show typeof(r)
-			@show isnan.(r)
-			@show isfinite.(r)
-			r[isnan.(r)] = 1.5
-			@show r
-			r[r.<=0] = 1.5
-			@show r
+            r = 1/2*(β(estimator) + γ(estimator))
+			r[broadcast(|,isnan.(r),r.<=0)] = 1.5 # replace NaN's
             N_sum = fill(0,1.+maximum.(collect(getindex.(index_set,j) for j in 1:ndims(estimator)))...)
 			N_diff = copy(N_sum)
 			while sum(N_diff) < n_opt-N
-				@show r
-				@show randexpr.(log(2)*r)
                 idx = Index(floor.(Int,randexpr.(log(2)*r))...)
 				if !(idx ∈ index_set)
 					i_nearest = indmin([sum(abs.(i.-idx)) for i in index_set])
