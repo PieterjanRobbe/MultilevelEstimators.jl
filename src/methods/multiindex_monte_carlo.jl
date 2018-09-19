@@ -275,13 +275,11 @@ function profit(estimator::AdaptiveMultiIndexTypeEstimator,index::Index)
 	end
 end
 
-
-
 function bias(estimator::AdaptiveMultiIndexTypeEstimator; use_maximum=false::Bool)
     if use_maximum
         boundary = estimator.max_active_set
     else
         boundary = union(estimator.spill_index_set,active_set(estimator))
     end
-    return length(boundary) < 2 ? NaN : sum(mean.(estimator,collect(boundary)))
+	return length(boundary) < 2 ? NaN : sum(abs.(mean.(estimator,collect(boundary))))
 end

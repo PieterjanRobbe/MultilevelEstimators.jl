@@ -4,7 +4,7 @@
 spaces(n) = repeat(" ",n)
 
 # short formatting
-short(num) = @sprintf("%6.3f",num)
+short(num) = num < 1000 ? @sprintf("%6.3f",num) : "NaN" # fast-math option ???
 
 # print status of the estimator
 function print_status(estimator::Estimator)
