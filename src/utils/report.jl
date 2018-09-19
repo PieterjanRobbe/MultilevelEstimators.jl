@@ -57,7 +57,7 @@ for (name,start) in zip(["E","dE","V","dV","W"],[1,2,1,2,1])
                    end
                    open(joinpath(folder,"data",string($(name),join(string.(proto_idx)),".txt")), "w") do f
                        for i in $(start):length(x)
-                      write(f, @sprintf("%i %12.5f\n",x[i],y[i]))
+                      write(f, @sprintf("%i %12.5e\n",x[i],y[i]))
                   end
               end
           end
@@ -195,7 +195,7 @@ function write_runtime_vs_rmse(h::History, folder::AbstractString)
         x = [h[i][:rmse] for i in 1:h.iter]
         y = cumsum([h[i][:runtime] for i in 1:h.iter])
         for i in 1:length(x)
-            write(f, @sprintf("%12.5f %12.5e\n",x[i],y[i]))
+            write(f, @sprintf("%12.5e %12.5e\n",x[i],y[i]))
         end
     end
 end
@@ -205,7 +205,7 @@ function write_runtime(h::History, folder::AbstractString)
         x = [h[i][:tol] for i in 1:h.iter]
         y = cumsum([h[i][:runtime] for i in 1:h.iter])
         for i in 1:length(x)
-            write(f, @sprintf("%12.5f %12.5e\n",x[i],y[i]))
+            write(f, @sprintf("%12.5e %12.5e\n",x[i],y[i]))
         end
     end
 end
@@ -215,7 +215,7 @@ function write_cost(h::History, folder::AbstractString)
         x = [h[i][:tol] for i in 1:h.iter]
         y = [h[i][:cost] for i in 1:h.iter]
         for i in 1:length(x)
-            write(f, @sprintf("%12.5f %12.5e\n",x[i],y[i]))
+            write(f, @sprintf("%12.5e %12.5e\n",x[i],y[i]))
         end
     end
 end

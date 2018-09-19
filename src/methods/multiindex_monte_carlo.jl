@@ -268,8 +268,14 @@ end
 
 # TODO for AMIQM, realize that this is not the best approach to compute gains...
 function profit(estimator::AdaptiveMultiIndexTypeEstimator,index::Index)
-    mean(estimator,index)/sqrt(var(estimator,index)*cost(estimator,index))
+	if estimator.method isa MG
+		abs(mean(estimator,index))
+	else
+		abs(mean(estimator,index))/sqrt(var(estimator,index)*cost(estimator,index))
+	end
 end
+
+
 
 function bias(estimator::AdaptiveMultiIndexTypeEstimator; use_maximum=false::Bool)
     if use_maximum
