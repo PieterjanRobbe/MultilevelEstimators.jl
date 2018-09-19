@@ -91,14 +91,34 @@ function bias(estimator::MultiIndexTypeEstimator; use_maximum=false::Bool)
             max_reached = true
         else
             push!(x,level)
-            push!(y,sum(mean.(estimator,boundary)))
+			push!(y,abs(sum(mean.(estimator,boundary))))
             level += 1
-        end
-    end
+
+			#=
+
+	println("")
+		println("="^80)
+		println("  INDEX         BIAS       ")
+		println("="^80)
+		for idx in boundary
+			println(string(idx,@sprintf("  %10.5e ",mean(estimator,idx))))
+		end
+		println("="^80)
+		println(@sprintf("SUM =  %10.5e      |SUM| = %10.5e",sum(mean.(estimator,collect(boundary))),sum(abs.(mean.(estimator,collect(boundary))))))
+		println("="^80)
+	=#
+		end
+	end
+
+
     if length(x) > 1
+		if !estimator.conservative_bias_estimate
+			return y[end]
+		else
         start_level = estimator.conservative_bias_estimate ? 1 : length(x) - 1
         θ = straight_line_fit(x[start_level:end],log2.(abs.(y[start_level:end])))
         return 2^(θ[1]+(x[end]+1)*θ[2])
+		end
     else
         return NaN
     end
@@ -215,6 +235,7 @@ function new_index_set(estimator::AdaptiveMultiIndexTypeEstimator, level::N wher
         push!(index_set,max_index)
     else
         # find index with largest "profit" and add to old set; enlarge active set
+		#=
 		println("="^80)
 		println("  INDEX         BIAS       PROFIT")
 		println("="^80)
@@ -224,7 +245,7 @@ function new_index_set(estimator::AdaptiveMultiIndexTypeEstimator, level::N wher
 		println("="^80)
 		println(@sprintf("SUM =  %10.5e      |SUM| = %10.5e",sum(mean.(estimator,collect(active_set(estimator)))),sum(abs.(mean.(estimator,collect(active_set(estimator)))))))
 		println("="^80)
-
+=#
         temp_active_set = collect(active_set(estimator))
         idx = indmax(profit.(estimator,temp_active_set))
         max_index = temp_active_set[idx]
@@ -278,12 +299,11 @@ end
 
 # TODO for AMIQM, realize that this is not the best approach to compute gains...
 function profit(estimator::AdaptiveMultiIndexTypeEstimator,index::Index)
-	abs(mean(estimator,index))/sqrt(var(estimator,index)*cost(estimator,index))
-end
-
-# TODO this seems to work better for Multigrid Adaptive MIMC...
-function profit(estimator::MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstimator,index::Index)
-	abs(mean(estimator,index))
+	if estimator.method isa MG
+		abs(mean(estimator,index))
+	else
+		abs(mean(estimator,index))/sqrt(var(estimator,index)*cost(estimator,index))
+	end
 end
 
 function bias(estimator::AdaptiveMultiIndexTypeEstimator; use_maximum=false::Bool)
@@ -292,5 +312,6 @@ function bias(estimator::AdaptiveMultiIndexTypeEstimator; use_maximum=false::Boo
     else
         boundary = union(estimator.spill_index_set,active_set(estimator))
     end
-	return length(boundary) < 2 ? NaN : sum(abs.(mean.(estimator,collect(boundary))))
+	#return length(boundary) < 2 ? NaN : sum(abs.(mean.(estimator,collect(boundary))))
+	return length(boundary) < 2 ? NaN : abs.(sum(mean.(estimator,collect(boundary))))
 end

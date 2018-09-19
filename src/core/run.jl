@@ -13,6 +13,7 @@ function run(estimator::Estimator, tols::Vector{T} where {T<:AbstractFloat})
         _run(estimator,tol)
         push!(h,estimator,tol) # log the results in history
         clear(estimator) # prepare new run 
+		@everywhere gc(true) # added on 16/09
     end
 
     return h

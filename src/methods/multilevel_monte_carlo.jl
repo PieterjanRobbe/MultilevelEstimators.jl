@@ -73,7 +73,7 @@ function parallel_sample!(estimator::MonteCarloTypeEstimator,index::Index,istart
     # parallel sampling
     wp = CachingPool(workers())
     f(i) = estimator.sample_function(index,get_point(estimator.number_generators[index],i),estimator.user_data)
-    t = @elapsed all_samples = pmap(wp,f,istart:iend)
+	t = @elapsed all_samples = pmap(wp,f,istart:iend,batch_size=ceil(Int,(iend-istart+1)/nworkers()), retry_delays = ExponentialBackOff(n = 3))
 
     # extract samples
     samples = last.(all_samples)
