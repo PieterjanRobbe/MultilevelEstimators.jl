@@ -123,10 +123,25 @@ function get_Ys(estimator::MultiGridTypeEstimator)
     idx = point_with_max_var(estimator)
     Ys = zeros(length(estimator.samples[idx][zero_idx(estimator)]))
     for index in keys(estimator)
+		w = weight_factor(estimator,index)
         ns = length(estimator.samples[idx][index])
-        Ys[1:ns] .+= estimator.samples[idx][index]
+        Ys[1:ns] .+= w*estimator.samples[idx][index]
     end
     return Ys # these are independent
+end
+
+function weight_factor(estimator::Estimator,index::Index)
+	r = 1/2*(β(estimator) + γ(estimator))
+	r[broadcast(|,isnan.(r),r.<=0)] = 1.5 # replace NaN's
+	w = prod([exp(r[i]*index[i])*(1-exp(-r[i]))/r[i] for i in length(r)])
+	return w
+end
+
+function weight_factor(estimator::Estimator,level::Level)
+	r = 1/2*(β(estimator) + γ(estimator))
+	r = isnan(r) || r <= 0 ? 1.5 : r # replace NaN's
+	w = exp(r*level[1])*(1-exp(-r))/r
+	return w
 end
 
 function varest(estimator::MultiGridTypeEstimator)
