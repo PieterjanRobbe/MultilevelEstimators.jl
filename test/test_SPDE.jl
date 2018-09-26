@@ -178,3 +178,19 @@ end
         run(estimator,ϵ₂)
     end
 end
+
+## Multigrid Multilevel Quasi-Monte Carlo, single qoi
+@testset "MG-MLQMC, single qoi         " begin
+    @suppress begin
+        estimator = init_SPDE_mgmlqmc(continuate=true)
+        run(estimator,ϵ₂)
+    end
+end
+
+# Multigrid Multilevel Quasi-Monte Carlo, multiple qoi
+@testset "MG-MLQMC, multiple qoi       " begin
+    @suppress begin
+        estimator = init_SPDE_mgmlqmc_multiple(continuate=true)
+        run(estimator,ϵ₂)
+    end
+end

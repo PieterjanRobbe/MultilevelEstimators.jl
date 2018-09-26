@@ -96,7 +96,7 @@ randexpr(r::Number,kwargs...) = randexp(kwargs...)/r
 zero_idx(estimator) = Index(fill(0,ndims(estimator))...)
 
 ## Multilevel Monte Carlo parallel sampling ##
-function parallel_sample!(estimator::MultiGridTypeEstimator,index::Index,istart::N,iend::N) where {N<:Integer}
+function parallel_sample!(estimator::MultiGridMonteCarloTypeEstimator,index::Index,istart::N,iend::N) where {N<:Integer}
 
     # parallel sampling
     wp = CachingPool(workers())
@@ -119,7 +119,7 @@ function parallel_sample!(estimator::MultiGridTypeEstimator,index::Index,istart:
 end
 
 ## inspector functions ##
-function get_Ys(estimator::MultiGridTypeEstimator)
+function get_Ys(estimator::MultiGridMonteCarloTypeEstimator)
     idx = point_with_max_var(estimator)
     Ys = zeros(length(estimator.samples[idx][zero_idx(estimator)]))
     for index in keys(estimator)
@@ -144,9 +144,9 @@ function weight_factor(estimator::Estimator,level::Level)
 	return w
 end
 
-function varest(estimator::MultiGridTypeEstimator)
+function varest(estimator::MultiGridMonteCarloTypeEstimator)
     Ys = get_Ys(estimator)
     length(Ys) == 1 ? Inf : var(Ys)/length(estimator.samples[1][zero_idx(estimator)])
 end
 
-moment(estimator::MultiGridTypeEstimator) = moment(get_Ys(estimator),k)
+moment(estimator::MultiGridMonteCarloTypeEstimator) = moment(get_Ys(estimator),k)

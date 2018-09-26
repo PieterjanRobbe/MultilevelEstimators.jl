@@ -1,7 +1,7 @@
 ## multilevel_quasi_monte_carlo.jl : run Multilevel Quasi-Monte Carlo estimator
 
 ## main routine ##
-function _run(estimator::MultiLevelQuasiMonteCarloEstimator, ϵ::T where {T<:Real})
+function _run(estimator::Union{MultiLevelQuasiMonteCarloEstimator,MultiGridMultiLevelQuasiMonteCarloEstimator}, ϵ::T where {T<:Real})
 
     # print status
     estimator.verbose && print_header(estimator,ϵ)

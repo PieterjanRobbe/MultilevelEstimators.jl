@@ -1,4 +1,4 @@
-__precompile__()
+__precompile__(false)
 module MultilevelEstimators
 
 # load other modules
@@ -68,6 +68,8 @@ include("methods/multiindex_quasi_monte_carlo.jl")
 include("methods/multigrid_multilevel_monte_carlo.jl")
 
 include("methods/multiple_semicoarsened_multigrid_multiindex_monte_carlo.jl")
+
+include("methods/multigrid_multilevel_quasi_monte_carlo.jl")
 
 include("utils/plot.jl")
 

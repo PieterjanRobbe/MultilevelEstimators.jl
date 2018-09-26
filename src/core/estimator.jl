@@ -77,6 +77,7 @@ const MultiLevelQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:ML,
 const MultiIndexMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:Union{TD,FT,HC,AD}, G<:MonteCarloNumberGenerator,T,N}
 const MultiIndexQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:Union{TD,FT,HC,AD}, G<:QuasiMonteCarloNumberGenerator,T,N}
 const MultiGridMultiLevelMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:MG{d,J} where {d,J<:ML}, G<:MonteCarloNumberGenerator,T,N}
+const MultiGridMultiLevelQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:MG{d,J} where {d,J<:ML}, G<:QuasiMonteCarloNumberGenerator,T,N}
 const MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:MG{d,J} where {d,J<:Union{TD,FT,HC,AD}}, G<:MonteCarloNumberGenerator,T,N}
 
 # type aliases
@@ -86,7 +87,8 @@ const SingleLevelTypeEstimator = Estimator{I} where {I<:SL}
 const MultiLevelTypeEstimator = Estimator{I} where {I<:Union{ML,MG{d,J} where {d,J<:ML}}}
 const MultiIndexTypeEstimator = Estimator{I} where {I<:Union{TD,FT,HC,AD,MG{d,J} where {d,J<:Union{TD,FT,HC,AD}}}}
 const AdaptiveMultiIndexTypeEstimator = Estimator{I} where {I<:Union{AD,MG{d,<:AD} where {d}}}
-const MultiGridTypeEstimator = Estimator{I} where {I<:MG}
+const MultiGridMonteCarloTypeEstimator = Estimator{I,G} where {I<:MG,G<:MonteCarloNumberGenerator}
+const MultiGridQuasiMonteCarloTypeEstimator = Estimator{I,G} where {I<:MG,G<:QuasiMonteCarloNumberGenerator}
 
 function create_estimator(;kwargs...)
 
@@ -159,24 +161,24 @@ function create_estimator(;kwargs...)
 end
 
 get_default_settings(method, number_generator) = Dict{Symbol,Any}(
-    :nb_of_warm_up_samples => isa(number_generator,MonteCarloNumberGenerator) ? 20 : 1,
-    :nb_of_qoi => 1,
-    :continuate => false,
-    :ntols => 10,
-    :p0 => 1.5,
-    :folder => "./data/",
-    :user_data => nothing,
-    :verbose => false,
-    :cost_model => i->nothing,
-    :store_samples => false,
-    :conservative_bias_estimate => false,
-    :max_level => 100,
-    :do_regression => true,
-    :do_splitting => true,
-    :parallel_sample_function => parallel_sample!,
-    :name => "",
-    :sample_multiplication_factor => 2,
-	:max_search_space => method isa AD || method isa MG{d,<:AD} where {d} ? TD(ndims(method)) : method
+                                                                  :nb_of_warm_up_samples => isa(number_generator,MonteCarloNumberGenerator) ? 20 : 1,
+:nb_of_qoi => 1,
+:continuate => false,
+:ntols => 10,
+:p0 => 1.5,
+:folder => "./data/",
+:user_data => nothing,
+:verbose => false,
+:cost_model => i->nothing,
+:store_samples => false,
+:conservative_bias_estimate => false,
+:max_level => 100,
+:do_regression => true,
+:do_splitting => true,
+:parallel_sample_function => parallel_sample!,
+:name => "",
+:sample_multiplication_factor => 2,
+:max_search_space => method isa AD || method isa MG{d,<:AD} where {d} ? TD(ndims(method)) : method
 )
 
 # convenience functions
@@ -189,14 +191,14 @@ active_set(estimator::AdaptiveMultiIndexTypeEstimator) = setdiff(estimator.curre
 push!(estimator::Estimator,index::Index) = push!(estimator.current_index_set,index)
 
 clear(estimator::Estimator) = begin
-	if !(estimator.method isa MG)
-		for index in keys(estimator)
-			delete!(estimator.current_index_set,index)
-			delete!(estimator.old_index_set,index)
-			delete!(estimator.spill_index_set,index)
-		end
-		empty!(estimator.adaptive_index_set)
-	end
+    if !(estimator.method isa MG)
+        for index in keys(estimator)
+            delete!(estimator.current_index_set,index)
+            delete!(estimator.old_index_set,index)
+            delete!(estimator.spill_index_set,index)
+        end
+        empty!(estimator.adaptive_index_set)
+    end
 end
 
 ndims(estimator::Estimator) = ndims(estimator.method)
@@ -209,6 +211,7 @@ print_name(estimator::MultiLevelQuasiMonteCarloEstimator) = "Multilevel Quasi-Mo
 print_name(estimator::MultiIndexMonteCarloEstimator) = "Multi-Index Monte Carlo estimator ($(estimator.method) index set)"
 print_name(estimator::MultiIndexQuasiMonteCarloEstimator) = "Multi-Index Quasi-Monte Carlo estimator ($(estimator.method) index set)"
 print_name(estimator::MultiGridMultiLevelMonteCarloEstimator) = "MG-Multilevel Monte Carlo estimator"
+print_name(estimator::MultiGridMultiLevelQuasiMonteCarloEstimator) = "MG-Multilevel Quasi-Monte Carlo estimator"
 print_name(estimator::MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstimator) = "MSG-Multi-Index Monte Carlo estimator ($(estimator.method) index set)"
 
 show(io::IO, estimator::Estimator) = print(io, print_name(estimator))

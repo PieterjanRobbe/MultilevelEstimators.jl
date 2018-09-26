@@ -21,6 +21,8 @@ export init_SPDE_amiqmc
 export init_SPDE_amiqmc_multiple
 export init_SPDE_mgmlmc
 export init_SPDE_mgmlmc_multiple
+export init_SPDE_mgmlqmc
+export init_SPDE_mgmlqmc_multiple
 export init_SPDE_msgmimc
 export init_SPDE_msgmimc_multiple
 export init_SPDE_msgamimc
@@ -47,6 +49,8 @@ init_SPDE_amiqmc(;kwargs...) = init_SPDE(AD(2),true,false,false,false;kwargs...)
 init_SPDE_amiqmc_multiple(;kwargs...) = init_SPDE(AD(2),true,true,false,false;kwargs...)
 init_SPDE_mgmlmc(;kwargs...) = init_SPDE(MG(ML()),false,false,false,true;kwargs...)
 init_SPDE_mgmlmc_multiple(;kwargs...) = init_SPDE(MG(ML()),false,true,false,true;kwargs...)
+init_SPDE_mgmlqmc(;kwargs...) = init_SPDE(MG(ML()),true,false,false,true;kwargs...)
+init_SPDE_mgmlqmc_multiple(;kwargs...) = init_SPDE(MG(ML()),true,true,false,true;kwargs...)
 init_SPDE_msgmimc(;kwargs...) = init_SPDE(MG(TD(2)),false,false,false,true;kwargs...)
 init_SPDE_msgmimc_multiple(;kwargs...) = init_SPDE(MG(TD(2)),false,true,false,true;kwargs...)
 init_SPDE_msgamimc(;kwargs...) = init_SPDE(MG(AD(2)),false,false,false,true;kwargs...)
