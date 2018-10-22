@@ -86,7 +86,8 @@ function parallel_sample!(estimator::QuasiMonteCarloTypeEstimator,index::Index,i
     f(i) = estimator.sample_function(index,get_point(estimator.number_generators[index],i[2],i[1]),estimator.user_data)
     nshifts = estimator.nb_of_shifts
     nqoi = estimator.nb_of_qoi
-    t = @elapsed all_samples = pmap(wp,f,Base.Iterators.product(1:nshifts,istart:iend)) # first changes fastest
+    #t = @elapsed all_samples = pmap(wp,f,Base.Iterators.product(1:nshifts,istart:iend)) # first changes fastest
+    t = @elapsed all_samples = pmap(wp,f,Base.Iterators.product(1:nshifts,istart:iend),batch_size=ceil(Int,(iend-istart+1)/nworkers()), retry_delays = ExponentialBackOff(n = 3))
 
     # extract samples
     samples = last.(all_samples)

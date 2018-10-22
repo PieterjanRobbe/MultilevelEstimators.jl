@@ -1,8 +1,8 @@
-__precompile__(false)
+__precompile__()
 module MultilevelEstimators
 
 # load other modules
-using QMC, SpecialFunctions, JLD, PyPlot
+using QMC, SpecialFunctions, JLD#, PyPlot
 
 # import statements
 import Base: show, setindex!, run, haskey, mean, var, push!, getindex, keys, diff, γ

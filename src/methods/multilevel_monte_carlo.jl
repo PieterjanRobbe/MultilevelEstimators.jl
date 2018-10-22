@@ -31,6 +31,45 @@ function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
         # value of the MSE splitting parameter
         θ = estimator.do_splitting ? compute_splitting(estimator,ϵ) : 1/2
 
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+# >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>
+        while varest(estimator) > θ*ϵ^2 # doubling algorithm
+
+            # find level with maximum variance
+            max_level = (indmax([varest(estimator,tau)/cost(estimator,tau) for tau in keys(estimator)])-1,) # convert to level
+
+            # increase the number of samples already taken
+            if estimator.sample_multiplication_factor == 2 # (round to nearest power of two)
+                n_opt = nextpow2(estimator.nsamples[max_level]+1) # + 1 to increase amount
+            elseif estimator.sample_multiplication_factor <= 1
+                n_opt = estimator.nsamples[max_level] + 1 # add 1 sample
+            else
+                n_opt = ceil(Int,estimator.nsamples[max_level]*estimator.sample_multiplication_factor)
+            end
+
+            # print optimal number of samples
+            estimator.verbose && print_number_of_samples(estimator,Dict(max_level=>n_opt))
+
+            # take additional samples
+            n_due = n_opt - estimator.nsamples[max_level]
+            n_due > 0 && sample!(estimator,max_level,n_due)
+
+            # recompute splitting parameter
+            θ = estimator.do_splitting ? compute_splitting(estimator,ϵ) : 1/2
+
+            # check next iteration
+            estimator.verbose && print_qmc_convergence(estimator,ϵ,θ)
+        end
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+# <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+		
+#=
         # evaluate optimal number of samples
         n_opt = Dict{Index,Int}()
         all_sum = sum(sqrt.([var(estimator,level)*cost(estimator,level) for level in keys(estimator)])) 
@@ -46,7 +85,7 @@ function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
             n_due = n_opt[tau] - estimator.nsamples[tau]
             n_due > 0 && sample!(estimator,tau,n_due)
         end
-
+=#
         # show status
         estimator.verbose && print_mse_analysis(estimator,ϵ,θ)
 
