@@ -48,7 +48,7 @@ figure_footer() = "
 \\end{figure}
 "
 
-preamble(d,is_multigrid) = "$(d == 2 ? square()*(is_multigrid && d < 3? cuboid() : "") : d == 3 ? cube() : "\n\n")"
+preamble(d,is_multigrid) = "$(d == 2 ? square()*(is_multigrid && d < 3 ? cuboid() : "") : d == 3 ? cube() : "\n\n")"
 
 square() = "\n\n\\newcommand{\\drawsquare}[3]{
 \\edef\\temp{
