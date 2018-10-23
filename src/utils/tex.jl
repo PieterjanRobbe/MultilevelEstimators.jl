@@ -134,9 +134,9 @@ file_contents(title,d,is_adaptive,is_multigrid) = "\\documentclass[11pt, oneside
 \\usepackage[margin=2cm]{geometry}
 \\usepackage{graphicx}
 \\usepackage{pgfplots}
-    \\pgfplotsset{compat=newest}
-    \\newlength\\figureheight
-    \\newlength\\figurewidth
+\\pgfplotsset{compat=newest}
+\\newlength\\figureheight
+\\newlength\\figurewidth
 \\usepackage{tikz}\n"*
 "$((is_multigrid && d ==1) || d > 1 ? "\\usepackage{booktabs}\n\\usepackage{pgfplotstable}\n" : "") "*
 preamble(d,is_multigrid)*"
@@ -185,21 +185,21 @@ tikz_draw_index_sets_2d_from_table(is_adaptive,has_active,has_old,has_maximum,mo
 "
 
 function tikz_draw_index_sets_2d_from_table(is_adaptive,has_active,has_old,has_maximum,mode)
-	if is_adaptive
-		str = ""
-		str = has_old ? string(str,tikz_draw_index_set_2d_from_table("oldset","white!90!black")) : str
-		str = has_active ? string(str,tikz_draw_index_set_2d_from_table("activeset","orange!50!white")) : str
-		str = has_maximum ? string(str,tikz_draw_index_set_2d_from_table("maximumindex","blue!50!white")) : str
-		return str
-	else
-		if mode == "active"
-			return tikz_draw_index_set_2d_from_table("indexset","orange!50!white")
-		elseif mode == "maximum"
-			return tikz_draw_index_set_2d_from_table("indexset","blue!50!white")
-		else
-			return tikz_draw_index_set_2d_from_table("indexset","white!90!black")
-		end
-	end
+    if is_adaptive
+        str = ""
+        str = has_old ? string(str,tikz_draw_index_set_2d_from_table("oldset","white!90!black")) : str
+        str = has_active ? string(str,tikz_draw_index_set_2d_from_table("activeset","orange!50!white")) : str
+        str = has_maximum ? string(str,tikz_draw_index_set_2d_from_table("maximumindex","blue!50!white")) : str
+        return str
+    else
+        if mode == "active"
+            return tikz_draw_index_set_2d_from_table("indexset","orange!50!white")
+        elseif mode == "maximum"
+            return tikz_draw_index_set_2d_from_table("indexset","blue!50!white")
+        else
+            return tikz_draw_index_set_2d_from_table("indexset","white!90!black")
+        end
+    end
 end
 
 tikz_draw_index_set_2d_from_table(name,color) = 
@@ -211,20 +211,20 @@ tikz_draw_index_set_2d_from_table(name,color) =
 \\drawsquare{\\a}{\\b}{$(color)}\n}\n"
 
 function tikz_load_index_set_tables(is_adaptive,i,has_active,has_old,has_maximum)
-	if is_adaptive
-		str = ""
-		str = has_active ? string(str,tikz_load_table("activeset","level_$(i)_active.txt")) : str
-		str = has_old ? string(str,tikz_load_table("oldset","level_$(i)_old.txt")) : str
-		str = has_maximum ? string(str,tikz_load_table("maximumindex","level_$(i)_maximum.txt")) : str
-		return str
-	else
-		return tikz_load_table("indexset","index_set_$(i).txt")
-	end
+    if is_adaptive
+        str = ""
+        str = has_active ? string(str,tikz_load_table("activeset","level_$(i)_active.txt")) : str
+        str = has_old ? string(str,tikz_load_table("oldset","level_$(i)_old.txt")) : str
+        str = has_maximum ? string(str,tikz_load_table("maximumindex","level_$(i)_maximum.txt")) : str
+        return str
+    else
+        return tikz_load_table("indexset","index_set_$(i).txt")
+    end
 end
 
-tikz_load_table(name,filename) = "\\pgfplotstableread[header=false]{data/$(filename)}\\$(name)\%
-\\pgfplotstablegetrowsof{\\$(name)}\%
-\\pgfmathsetmacro{\\$(name)rows}{\\pgfplotsretval-1}\%\n"
+tikz_load_table(name,filename) = "\\pgfplotstableread[header=false]{data/$(filename)}\\$(name)%
+\\pgfplotstablegetrowsof{\\$(name)}%
+\\pgfmathsetmacro{\\$(name)rows}{\\pgfplotsretval-1}%\n"
 
 tikz_index_set_3d(name,i,max_level,is_adaptive,has_active,has_old,has_maximum,scaling,mode) = "%!TEX root = ../$(name)\n"*
 tikz_load_index_set_tables(is_adaptive,i,has_active,has_old,has_maximum)*
@@ -254,21 +254,21 @@ tikz_draw_index_sets_3d_from_table(is_adaptive,has_active,has_old,has_maximum,mo
 "
 
 function tikz_draw_index_sets_3d_from_table(is_adaptive,has_active,has_old,has_maximum,mode)
-	if is_adaptive
-		str = ""
-		str = has_old ? string(str,tikz_draw_index_set_3d_from_table("oldset","white!90!black")) : str
-		str = has_active ? string(str,tikz_draw_index_set_3d_from_table("activeset","orange!50!white")) : str
-		str = has_maximum ? string(str,tikz_draw_index_set_3d_from_table("maximumindex","blue!50!white")) : str
-		return str
-	else
-		if mode == "active"
-			return tikz_draw_index_set_3d_from_table("indexset","orange!50!white")
-		elseif mode == "maximum"
-			return tikz_draw_index_set_3d_from_table("indexset","blue!50!white")
-		else
-			return tikz_draw_index_set_3d_from_table("indexset","white!90!black")
-		end
-	end
+    if is_adaptive
+        str = ""
+        str = has_old ? string(str,tikz_draw_index_set_3d_from_table("oldset","white!90!black")) : str
+        str = has_active ? string(str,tikz_draw_index_set_3d_from_table("activeset","orange!50!white")) : str
+        str = has_maximum ? string(str,tikz_draw_index_set_3d_from_table("maximumindex","blue!50!white")) : str
+        return str
+    else
+        if mode == "active"
+            return tikz_draw_index_set_3d_from_table("indexset","orange!50!white")
+        elseif mode == "maximum"
+            return tikz_draw_index_set_3d_from_table("indexset","blue!50!white")
+        else
+            return tikz_draw_index_set_3d_from_table("indexset","white!90!black")
+        end
+    end
 end
 
 tikz_draw_index_set_3d_from_table(name,color) = 
@@ -291,28 +291,28 @@ function tikz_index_set_table_internal(name,fname,iters,headerstring,is_adaptive
     str = "%!TEX root = ../$(name)\n"
     for tabnum = 1:div(length(iters)-1,9)+1
         str = string(str,figure_header())
-		str = string(str,"\\begin{tabular}{ccc}")
-		# add adaptive legend
-		if is_adaptive
-			str = string(str,"\\multicolumn{1}{l}{\\raisebox{-0.025\\textwidth}{\\input{figures/index_set_legend_old.tex}} = old set} \&\n")
-			str = string(str,"\\multicolumn{1}{l}{\\raisebox{-0.025\\textwidth}{\\input{figures/index_set_legend_active.tex}} = active set} \&\n")
-			str = string(str,"\\multicolumn{1}{l}{\\raisebox{-0.025\\textwidth}{\\input{figures/index_set_legend_maximum.tex}} = maximum profit} \\\\\n")
-		end
-		for col in 1:min(3,div(length(iters)-(tabnum-1)*9-1,3)+1)
+        str = string(str,"\\begin{tabular}{ccc}")
+        # add adaptive legend
+        if is_adaptive
+            str = string(str,"\\multicolumn{1}{l}{\\raisebox{-0.025\\textwidth}{\\input{figures/index_set_legend_old.tex}} = old set} &\n")
+            str = string(str,"\\multicolumn{1}{l}{\\raisebox{-0.025\\textwidth}{\\input{figures/index_set_legend_active.tex}} = active set} &\n")
+            str = string(str,"\\multicolumn{1}{l}{\\raisebox{-0.025\\textwidth}{\\input{figures/index_set_legend_maximum.tex}} = maximum profit} \\\\\n")
+        end
+        for col in 1:min(3,div(length(iters)-(tabnum-1)*9-1,3)+1)
             # header
-            str = string(str," \\toprule\n",headerstring,"\{", @sprintf("%7.3e",iters[(tabnum-1)*9+(col-1)*3+1]), "\}\$ \&")
-            str = length(iters) > (tabnum-1)*9+(col-1)*3+1 ? string(str," ",headerstring,"\{", @sprintf("%7.3e",iters[(tabnum-1)*9+(col-1)*3+2]), "\}\$") : str
-            str = string(str," \&")
-            str = length(iters) > (tabnum-1)*9+(col-1)*3+2 ? string(str," ",headerstring,"\{", @sprintf("%7.3e",iters[(tabnum-1)*9+(col-1)*3+3]), "\}\$") : str
+            str = string(str," \\toprule\n",headerstring,"{", @sprintf("%7.3e",iters[(tabnum-1)*9+(col-1)*3+1]), "}\$ &")
+            str = length(iters) > (tabnum-1)*9+(col-1)*3+1 ? string(str," ",headerstring,"{", @sprintf("%7.3e",iters[(tabnum-1)*9+(col-1)*3+2]), "}\$") : str
+            str = string(str," &")
+            str = length(iters) > (tabnum-1)*9+(col-1)*3+2 ? string(str," ",headerstring,"{", @sprintf("%7.3e",iters[(tabnum-1)*9+(col-1)*3+3]), "}\$") : str
             str = string(str,"\\\\ \\midrule \n")
-			str = string(str," \\input\{figures/$(fname)",(tabnum-1)*9+(col-1)*3+1, ".tex\} \&")
-			str = length(iters) > (tabnum-1)*9+(col-1)*3+1 ? string(str," \\input\{figures/$(fname)",(tabnum-1)*9+(col-1)*3+2, ".tex\}") : str
-            str = string(str," \&")
-			str = length(iters) > (tabnum-1)*9+(col-1)*3+2 ? string(str," \\input\{figures/$(fname)",(tabnum-1)*9+(col-1)*3+3, ".tex\}") : str
+            str = string(str," \\input{figures/$(fname)",(tabnum-1)*9+(col-1)*3+1, ".tex} &")
+            str = length(iters) > (tabnum-1)*9+(col-1)*3+1 ? string(str," \\input{figures/$(fname)",(tabnum-1)*9+(col-1)*3+2, ".tex}") : str
+            str = string(str," &")
+            str = length(iters) > (tabnum-1)*9+(col-1)*3+2 ? string(str," \\input{figures/$(fname)",(tabnum-1)*9+(col-1)*3+3, ".tex}") : str
             str = string(str,"\\\\ \n")
         end
         str = string(str,"\n\\end{tabular}\\\\\n\n")
-		str = string(str,"\\caption{$(legend) ($(tabnum)/$(div(length(iters)-1,9)+1)).}")
+        str = string(str,"\\caption{$(legend) ($(tabnum)/$(div(length(iters)-1,9)+1)).}")
         str = string(str,figure_footer())
     end
     str
@@ -326,73 +326,73 @@ tikz_read_fractions(i) = "
 
 tikz_add_fractions_1d(i) = tikz_read_fractions(i)*"
 \\pgfplotsset{
-    after end axis/.code={
-    	\\foreach \\j in {0,...,\\rows} {
-		\\pgfplotstablegetelem{\\j}{0}\\of\\fractions
-   		\\pgfmathsetmacro{\\a}{\\pgfplotsretval}
-		\\pgfplotstablegetelem{\\j}{1}\\of\\fractions
-   		\\pgfmathsetmacro{\\b}{\\pgfplotsretval}
-		\\pgfplotstablegetelem{\\j}{2}\\of\\fractions
-   		\\pgfmathsetmacro{\\c}{\\pgfplotsretval}
-        \\node[right, align=left, text=black, anchor=south] at (axis cs:\\a,\\b) {\\tiny \\c\\%};
-		}
-    }
+after end axis/.code={
+\\foreach \\j in {0,...,\\rows} {
+\\pgfplotstablegetelem{\\j}{0}\\of\\fractions
+\\pgfmathsetmacro{\\a}{\\pgfplotsretval}
+\\pgfplotstablegetelem{\\j}{1}\\of\\fractions
+\\pgfmathsetmacro{\\b}{\\pgfplotsretval}
+\\pgfplotstablegetelem{\\j}{2}\\of\\fractions
+\\pgfmathsetmacro{\\c}{\\pgfplotsretval}
+\\node[right, align=left, text=black, anchor=south] at (axis cs:\\a,\\b) {\\tiny \\c\\%};
+}
+}
 }
 "
 
 tikz_bar_plot_1d_header(L,M,fname) = tikz_header("level \$\\ell\$","number of samples \$N_\\ell\$",
-												 string("ymode=log,\n",
-														"xmin=-.3,\n",
-														"xmax=",@sprintf("%2.1f",L+0.3),",\n",
-														"ymin=1,\n",
-														"ymax=10^",@sprintf("%i",ceil(log10(M))),",\n",
-														"xtick={0,1,...,$(L)},\n",
-														"axis x line*=left,\n",
-														"x axis line style={draw opacity=0},\n",
-														"xtick style={draw=none},\n",
-														"axis y line*=left,\n",
-														"y axis line style={draw opacity=0},\n",
-														"ytick style={draw=none},\n",
-														"ymajorgrids,\n",
-														"grid style={line width=1pt,white},\n",
-														"axis on top,\n",
-														"legend style={legend cell align=left,align=left,font=\\tiny,",
-														"draw=none,at={(1.03,1.03)},anchor=north east}\n"),
-												 fname,
-												 @sprintf("%2.1f",0.8), 
-												 false
-												 )
+                                                 string("ymode=log,\n",
+                                                        "xmin=-.3,\n",
+                                                        "xmax=",@sprintf("%2.1f",L+0.3),",\n",
+                                                        "ymin=1,\n",
+                                                        "ymax=10^",@sprintf("%i",ceil(log10(M))),",\n",
+                                                        "xtick={0,1,...,$(L)},\n",
+                                                        "axis x line*=left,\n",
+                                                        "x axis line style={draw opacity=0},\n",
+                                                        "xtick style={draw=none},\n",
+                                                        "axis y line*=left,\n",
+                                                        "y axis line style={draw opacity=0},\n",
+                                                        "ytick style={draw=none},\n",
+                                                        "ymajorgrids,\n",
+                                                        "grid style={line width=1pt,white},\n",
+                                                        "axis on top,\n",
+                                                        "legend style={legend cell align=left,align=left,font=\\tiny,",
+                                                        "draw=none,at={(1.03,1.03)},anchor=north east}\n"),
+                                                 fname,
+                                                 @sprintf("%2.1f",0.8), 
+                                                 false
+                                                 )
 
 tikz_bar_plot_2d_header(L,M,fname) = tikz_header("\$\\ell_x\$","\$\\ell_y\$",
-												 string("view={120}{17},\n",
-														"every x tick/.append style={draw=none},\n",
-														"xmin=-.3,\n",
-														"xmax=",@sprintf("%2.1f",L+1+0.3),",\n",
-														"xtick={0,1,...,",@sprintf("%i",L),"},",
-														"every y tick/.append style={draw=none},\n",
-														"ymin=-.3,\n",
-														"ymax=",@sprintf("%2.1f",L+1),",\n",
-														"ytick={0,1,...,",@sprintf("%i",L),"},\n",
-														"every z tick label/.append style=",
-														"{font=\\color{white!15!black}\\scriptsize},\n",
-														"every z label/.append style=",
-														"{font=\\color{white!15!black}\\scriptsize},\n",
-														"zmin=0,\n",
-														"zmax=",@sprintf("%i",ceil(M)),",\n",
-														"every z tick/.append style={draw=none},\n",
-														"ztick={0,1,...,",@sprintf("%i",ceil(M)),"},\n",
-														"zticklabels={",
-														string(join([@sprintf("\$10^%i\$",i) for i in 0:ceil(M)],",")),
-														"},\n",
-														"zmajorgrids=true,\n",
-														"set layers,\n",
-														"zlabel=number of samples \$N_\\ell\$,\n",
-														"legend style={legend cell align=left,align=left,font=\\tiny,",
-														"draw=none,at={(1.03,0.9)},anchor=north east}"),
-												 fname, 
-												 @sprintf("%2.1f",0.8), 
-												 false
-												 )
+                                                 string("view={120}{17},\n",
+                                                        "every x tick/.append style={draw=none},\n",
+                                                        "xmin=-.3,\n",
+                                                        "xmax=",@sprintf("%2.1f",L+1+0.3),",\n",
+                                                        "xtick={0,1,...,",@sprintf("%i",L),"},",
+                                                        "every y tick/.append style={draw=none},\n",
+                                                        "ymin=-.3,\n",
+                                                        "ymax=",@sprintf("%2.1f",L+1),",\n",
+                                                        "ytick={0,1,...,",@sprintf("%i",L),"},\n",
+                                                        "every z tick label/.append style=",
+                                                        "{font=\\color{white!15!black}\\scriptsize},\n",
+                                                        "every z label/.append style=",
+                                                        "{font=\\color{white!15!black}\\scriptsize},\n",
+                                                        "zmin=0,\n",
+                                                        "zmax=",@sprintf("%i",ceil(M)),",\n",
+                                                        "every z tick/.append style={draw=none},\n",
+                                                        "ztick={0,1,...,",@sprintf("%i",ceil(M)),"},\n",
+                                                        "zticklabels={",
+                                                        string(join([@sprintf("\$10^%i\$",i) for i in 0:ceil(M)],",")),
+                                                        "},\n",
+                                                        "zmajorgrids=true,\n",
+                                                        "set layers,\n",
+                                                        "zlabel=number of samples \$N_\\ell\$,\n",
+                                                        "legend style={legend cell align=left,align=left,font=\\tiny,",
+                                                        "draw=none,at={(1.03,0.9)},anchor=north east}"),
+                                                 fname, 
+                                                 @sprintf("%2.1f",0.8), 
+                                                 false
+                                                 )
 
 tikz_3d_bar_plot_legend() = "
 \\addlegendimage{area legend,solid,fill=red,draw opacity=0}

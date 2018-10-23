@@ -56,7 +56,7 @@ function _run(estimator::MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstim
             # take additional samples
             r = 1/2*(β(estimator) + γ(estimator))
 			r[broadcast(|,isnan.(r),r.<=0)] = 1.5 # replace NaN's
-            N_sum = fill(0,1.+maximum.(collect(getindex.(index_set,j) for j in 1:ndims(estimator)))...)
+            N_sum = fill(0,1 .+ maximum.(collect(getindex.(index_set,j) for j in 1:ndims(estimator)))...)
 			N_diff = copy(N_sum)
 			while sum(N_diff) < n_opt-N
                 idx = Index(floor.(Int,randexpr.(log(2)*r))...)

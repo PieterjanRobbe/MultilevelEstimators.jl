@@ -200,7 +200,7 @@ for i in zip(["var","cost"],["β","γ"])
                    X[1:m,2:n] = [getindex(idx_set[i],j) for i in 1:m, j in 1:n-1]
                    y = log2.([$(Symbol(i[1]))(estimator,index) for index in idx_set])
                    θ = X\y
-                   return 2.^(θ[1]+sum(θ[2:end].*index))
+                   return 2 .^(θ[1]+sum(θ[2:end].*index))
                else
                    return mean(value)
                end
