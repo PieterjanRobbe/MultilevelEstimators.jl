@@ -12,7 +12,7 @@ function SPDE_mg_solve(Z::Matrix{T},index::Index) where {T<:Real}
     end
     mg.grids[1].b .= b # copy rhs
 
-	FMG(mg.grids,2,2,1,1,GaussSeidel()), getfield.(mg.grids,:sz)[range.(size(mg.grids),-1,size(mg.grids))...]
+	FMG(mg.grids,2,2,1,1,GaussSeidel()), getfield.(mg.grids,:sz)[StepRange.(size(mg.grids),-1,size(mg.grids))...]
 end
 
 ## sample functions ##

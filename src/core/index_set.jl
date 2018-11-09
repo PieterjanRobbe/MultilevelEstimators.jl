@@ -108,7 +108,7 @@ ndims(::IndexSet{d}) where {d} = d
 
 function get_index_set(idxset::IndexSet{d},sz::N) where {d,N<:Integer}
     sz >= 0 || throw(ArgumentError("index set size parameter cannot be negative"))
-    tensor_grid = Base.product(range.(0,ntuple(i->sz+1,d))...)
+    tensor_grid = Base.product(UnitRange.(0,ntuple(i->sz+1,d))...)
     filtered_grid = Base.Iterators.filter(filter(idxset,sz),tensor_grid)
     collect(filtered_grid)
 end

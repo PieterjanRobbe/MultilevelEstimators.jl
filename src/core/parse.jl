@@ -33,7 +33,7 @@ function check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:continuate}
     isa(val,Bool) || throw(ArgumentError("continuate must be of type Bool, got $(V)"))
     if settings[:method] isa MG
         if !val
-            warn("to use a Multigrid-type estimator, set 'continuate=true'. Proceeding with 'continuate=true'...")
+            @warn "to use a Multigrid-type estimator, set 'continuate=true'. Proceeding with 'continuate=true'..."
             settings[:continuate] = true
         end
     end
@@ -55,7 +55,7 @@ end
 function check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:folder}}) where {V}
     isa(val,String) || throw(ArgumentError("folder must be of type String, got $(V)"))
     isdir(val) || mkpath(val)
-    isempty(readdir(val)) || warn("directory $(val) is not empty, results might be overwritten!")
+    isempty(readdir(val)) || @warn "directory $(val) is not empty, results might be overwritten!"
     settings[:folder] = val[end] == '/' ? val : val*"/"
 end
 

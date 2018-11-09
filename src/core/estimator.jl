@@ -134,8 +134,8 @@ function create_estimator(;kwargs...)
     # estimator internals
     m = settings[:nb_of_qoi]
     n = nb_of_shifts(settings[:number_generator])
-    samples = S(m,n)
-    samples0 = S(m,n)
+    samples = S(undef, m, n)
+    samples0 = S(undef, m, n)
     for j = 1:n
         for i = 1:m
             samples[i,j] = S_eltype()
@@ -146,8 +146,8 @@ function create_estimator(;kwargs...)
     settings[:samples0] = samples0
     settings[:nsamples] = P()
     settings[:total_work] = Q()
-    settings[:has_user_data] = isa(settings[:user_data],Void) ? false : true
-    settings[:use_cost_model] = isa(settings[:cost_model](zeros(N,ndims(settings[:method]))),Void) ? false : true
+    settings[:has_user_data] = isa(settings[:user_data],Nothing) ? false : true
+    settings[:use_cost_model] = isa(settings[:cost_model](zeros(N,ndims(settings[:method]))),Nothing) ? false : true
     settings[:current_index_set] = C()
     settings[:old_index_set] = C()
     settings[:spill_index_set] = C()

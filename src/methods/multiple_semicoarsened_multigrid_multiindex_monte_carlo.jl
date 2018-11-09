@@ -66,7 +66,7 @@ function _run(estimator::MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstim
                 end
                 N_sum[idx.+1...] += 1
 				N_diff[idx.+1...] += 1
-				for i in Iterators.product(range.(1,idx)...)
+				for i in Iterators.product(UnitRange.(1,idx)...)
 					if i != idx && N_diff[i...] != 0
 						N_diff[i...] -= 1
 					end

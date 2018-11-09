@@ -68,7 +68,7 @@ function init_SPDE(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_ana
 
     # level 0
     m = coarse_dof*2^(max_level-nlevels+1)
-    v = linspace(0,1,m+1)
+    v = range(0, stop=1, length=m+1)
     grf = GaussianRandomField(cov_fun,KarhunenLoeve(nterms),v,v)
 
     # for AD index set, pick all fields in TD manner
@@ -86,8 +86,8 @@ function init_SPDE(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_ana
             j = length(idx) > 1 ? idx[2] : i
             m = coarse_dof*2^i
             n = coarse_dof*2^j
-            vx = linspace(0,1,m+1)
-            vy = linspace(0,1,n+1)
+            vx = range(0, stop=1, length=m+1)
+            vy = range(0, stop=1, length=n+1)
             grf = GaussianRandomField(cov_fun,KarhunenLoeve(nterms),vx,vy)
             fields[idx] = grf
         end
@@ -126,7 +126,7 @@ function init_SPDE(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_ana
     ## Estimator ##
     create_estimator(
                      name = name, # estimator name
-                     folder = string(joinpath(Pkg.dir("MultilevelEstimators"),"applications","SPDE","data",name)), # for report
+                     folder = string(joinpath(dirname(pathof(MultilevelEstimators)),"..","applications","SPDE","data",name)), # for report
                      method = method, # method: ML, SL, TD...
                      number_generator = number_generator, # number generator
                      sample_function = sample_function, # qoi

@@ -15,7 +15,7 @@ function parallel_sample!(estimator::MultiGridMultiLevelQuasiMonteCarloEstimator
     dsamples = first.(all_samples)
 
     # append samples
-    for idx in Iterators.product(range.(0,index.+1)...)
+    for idx in Iterators.product(UnitRange.(0,index.+1)...)
         for j in 1:nshifts
             for i in 1:nqoi
                 append!(estimator.samples[i,j][idx],getindex.(getindex.(dsamples[j,:],(idx.+1)...),i))
