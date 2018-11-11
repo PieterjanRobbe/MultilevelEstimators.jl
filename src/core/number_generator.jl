@@ -52,8 +52,8 @@ const QuasiMonteCarloNumberGenerator = NumberGenerator{D,P} where {D,P<:QMC}
 
 ## Type aliases ##
 """
-    UniformMCGenerator(s)
-    UniformMCGenerator(a,b)
+UniformMCGenerator(s)
+UniformMCGenerator(a,b)
 
 An `s`-dimensional uniform Monte Carlo point set generator with lower bound `a` and upper bound `b`. The default is `a=zeros(s)` and `b=ones(s)`. When the lower and upper bounds are provided, the number of dimensions is extracted from their respective lengths.
 
@@ -71,9 +71,9 @@ See also: [UniformQMCGenerator](@ref)
 const UniformMCGenerator = NumberGenerator{Uniform,MC}
 
 """
-    UniformQMCGenerator(s,q)
-    UniformQMCGenerator(q,a,b)
-    UniformQMCGenerator(rwr,a,b)
+UniformQMCGenerator(s,q)
+UniformQMCGenerator(q,a,b)
+UniformQMCGenerator(rwr,a,b)
 
 An `s`-dimensional uniform Quasi-Monte Carlo point set generator with lower bound `a` and upper bound `b` that uses `q` random shifts. The default is `a=zeros(s)` and `b=ones(s)`. When the lower and upper bounds are provided, the number of dimensions is extracted from their respective lengths. Unless otherwise specified with the `rwr` keyword, a default randomized lattice rule is used.
 
@@ -97,8 +97,8 @@ See also: [UniformMCGenerator](@ref)
 const UniformQMCGenerator = NumberGenerator{Uniform,QMC}
 
 """
-    NormalMCGenerator(s)
-    NormalMCGenerator(μ,σ)
+NormalMCGenerator(s)
+NormalMCGenerator(μ,σ)
 
 An `s`-dimensional standard normal Monte Carlo point set generator with mean `μ` and standard devitation `σ`. The default is `μ=zeros(s)` and `σ=ones(s)` When the mean and standard deviation are provided, the number of dimensions is extracted from their respective lengths.
 
@@ -116,9 +116,9 @@ See also: [NormalQMCGenerator](@ref)
 const NormalMCGenerator = NumberGenerator{Normal,MC}
 
 """
-    NormalQMCGenerator(s,q)
-    NormalQMCGenerator(q,μ,σ)
-    NormalQMCGenerator(rwr,μ,σ)
+NormalQMCGenerator(s,q)
+NormalQMCGenerator(q,μ,σ)
+NormalQMCGenerator(rwr,μ,σ)
 
 An `s`-dimensional standard normal Quasi-Monte Carlo point set generator with mean `μ` and standard deviation `σ` that uses `q` random shifts. The default is `μ=zeros(s)` and `σ=ones(s)`. When the mean and standard deviation are provided, the number of dimensions is extracted from their respective lengths. Unless otherwise specified with the `rwr` keyword, a default randomized lattice rule is used. An inverse mapping is used to map the QMC points to ``\\mathbb{R}^s``.
 
@@ -142,8 +142,8 @@ See also: [NormalMCGenerator](@ref)
 const NormalQMCGenerator = NumberGenerator{Normal,QMC}
 
 """
-    TruncatedNormalMCGenerator(s)
-    TruncatedNormalMCGenerator(μ,σ,a,b)
+TruncatedNormalMCGenerator(s)
+TruncatedNormalMCGenerator(μ,σ,a,b)
 
 An `s`-dimensional truncated standard normal Monte Carlo point set generator with mean `μ`, standard devitation `σ`, lower bound `a` and upper bound `b`. The default is `μ=zeros(s)`, `σ=ones(s)`, `a=-3*ones(s)` and `b=3*ones(s)`. When the mean, standard deviation, lower and upper bound are provided, the number of dimensions is extracted from their respective lengths.
 
@@ -161,11 +161,11 @@ See also: [TruncatedNormalQMCGenerator](@ref)
 const TruncatedNormalMCGenerator = NumberGenerator{TruncatedNormal,MC}
 
 """
-    TruncatedNormalQMCGenerator(s,q)
-    TruncatedNormalQMCGenerator(q,μ,σ,a,b)
-    TruncatedNormalQMCGenerator(rwr,μ,σ,a,b)
+TruncatedNormalQMCGenerator(s,q)
+TruncatedNormalQMCGenerator(q,μ,σ,a,b)
+TruncatedNormalQMCGenerator(rwr,μ,σ,a,b)
 
-    An `s`-dimensional truncated standard normal Quasi-Monte Carlo point set generator with mean `μ`, standard deviation `σ`, lower bound `a` and upper bound `b` that uses `q` random shifts. The default is `μ=zeros(s)`, `σ=ones(s)`, `a=-3*ones(s)` and `b=3*ones(s)`. When the mean, standard deviation, lower and upper bounds are provided, the number of dimensions is extracted from their respective lengths. Unless otherwise specified with the `rwr` keyword, a default randomized lattice rule is used. An inverse mapping is used to map the QMC points to ``\\mathbb{R}^s``.
+An `s`-dimensional truncated standard normal Quasi-Monte Carlo point set generator with mean `μ`, standard deviation `σ`, lower bound `a` and upper bound `b` that uses `q` random shifts. The default is `μ=zeros(s)`, `σ=ones(s)`, `a=-3*ones(s)` and `b=3*ones(s)`. When the mean, standard deviation, lower and upper bounds are provided, the number of dimensions is extracted from their respective lengths. Unless otherwise specified with the `rwr` keyword, a default randomized lattice rule is used. An inverse mapping is used to map the QMC points to ``\\mathbb{R}^s``.
 
 # Examples
 ```jldoctest
@@ -263,8 +263,8 @@ end
 get_point(::MC{s},k::N where {N<:Integer}) where {s} = rand(s)
 get_point(pointset::QMC,k::N where {N<:Integer}) = getPoint(pointset.generator,k)
 
-transform(u::Uniform,point) = u.a .+ spdiagm(u.b - u.a) * point
-transform(n::Normal,point) = n.μ .+ spdiagm(n.σ) * Φ⁻¹.(point)
+transform(u::Uniform,point) = u.a .+ sparse(Diagonal(u.b - u.a)) * point
+transform(n::Normal,point) = n.μ .+ sparse(Diagonal(n.σ)) * Φ⁻¹.(point)
 function transform(t::TruncatedNormal,point)
     α = (t.a-t.μ)./t.σ
     β = (t.b-t.μ)./t.σ

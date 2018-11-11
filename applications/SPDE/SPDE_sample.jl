@@ -21,7 +21,7 @@ end
 ## interpolate field ##
 function interpolate_field(pts_fine,pts_coarse,Z::Matrix{T}) where {T<:Real}
     itp = interpolate(pts_fine, Z, Gridded(Linear()))
-    itp[pts_coarse[1],pts_coarse[2]]
+    itp(pts_coarse[1],pts_coarse[2])
 end
 
 ## sample functions ##

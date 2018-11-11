@@ -7,7 +7,7 @@ check(settings::Dict{Symbol,T} where{T},value,symbol::Symbol) = check(settings,v
 check(::Dict{Symbol,T} where {T},::V where {V},::Type{Val{S}}) where {S} = throw(ArgumentError("could not parse key $(S)"))
 
 # method
-check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:method}}) where {V} = isa(val,IndexSet) || throw(ArgumentError("method must be of type IndexSet, got $(V)"))
+check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:method}}) where {V} = isa(val,AbstractIndexSet) || throw(ArgumentError("method must be of type AbstractIndexSet, got $(V)"))
 
 # number_generator
 check(settings::Dict{Symbol,T} where{T}, val::V,::Type{Val{:number_generator}}) where {V} = isa(val,NumberGenerator) || throw(ArgumentError("number_generator must be of type NumberGenerator, got $(V)"))
@@ -84,7 +84,7 @@ end
 
 # max_search_space
 function check(settings::Dict{Symbol,T} where {T},val::V,::Type{Val{:max_search_space}}) where {V}
-    isa(val,IndexSet) || throw(ArgumentError("max_search_space must be of type IndexSet, got $(V)"))
+    isa(val,AbstractIndexSet) || throw(ArgumentError("max_search_space must be of type AbstractIndexSet, got $(V)"))
     ndims(val) == ndims(settings[:method]) || throw(ArgumentError("max_search_space must be an index set in $(ndims(settings[:method])) dimensions, got $(ndims(val))"))
 end
 

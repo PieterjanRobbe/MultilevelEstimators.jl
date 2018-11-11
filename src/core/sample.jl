@@ -7,7 +7,7 @@ function sample!(estimator::Estimator,index::Index,nb_of_samples::N where {N<:In
 
     estimator.verbose && begin
         name = warm_up ? "warm-up" : "additional"
-        is_qmc = isa(estimator,QuasiMonteCarloTypeEstimator)
+        is_qmc = isa(estimator,Estimator{<:AbstractML,<:_QMC})
         mult = is_qmc ? "$(estimator.nb_of_shifts) x " : ""
         withs = nb_of_samples > 1 ? "s" : ""
         level_or_index = length(index) > 1 ? "index $(index)" : "level $(index[1])"

@@ -2,7 +2,7 @@
 
 # TODO at some point this should be rewritten with a "BaseEstimator"
 # and dedicated types for each method: avoids empty keys
-struct Estimator{I<:IndexSet,G<:NumberGenerator,T<:AbstractFloat,N<:Integer,S,U,P,Q,C,H,J,D}
+struct Estimator{I<:AbstractIndexSet,G<:NumberGenerator,T<:AbstractFloat,N<:Integer,S,U,P,Q,C,H,J,D}
 
     # required keys
     method::I
@@ -70,25 +70,29 @@ struct Estimator{I<:IndexSet,G<:NumberGenerator,T<:AbstractFloat,N<:Integer,S,U,
     sample_multiplication_factor::T
 end
 
-const MonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:SL, G<:MonteCarloNumberGenerator,T,N}
-const QuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:SL, G<:QuasiMonteCarloNumberGenerator,T,N}
-const MultiLevelMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:ML, G<:MonteCarloNumberGenerator,T,N}
-const MultiLevelQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:ML, G<:QuasiMonteCarloNumberGenerator,T,N}
-const MultiIndexMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:Union{TD,FT,HC,AD}, G<:MonteCarloNumberGenerator,T,N}
-const MultiIndexQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:Union{TD,FT,HC,AD}, G<:QuasiMonteCarloNumberGenerator,T,N}
-const MultiGridMultiLevelMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:MG{d,J} where {d,J<:ML}, G<:MonteCarloNumberGenerator,T,N}
-const MultiGridMultiLevelQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:MG{d,J} where {d,J<:ML}, G<:QuasiMonteCarloNumberGenerator,T,N}
-const MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:MG{d,J} where {d,J<:Union{TD,FT,HC,AD}}, G<:MonteCarloNumberGenerator,T,N}
+const _MC = MonteCarloNumberGenerator
+const _QMC = QuasiMonteCarloNumberGenerator
+
+
+#const MonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:SL, G<:MonteCarloNumberGenerator,T,N}
+#const QuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:SL, G<:QuasiMonteCarloNumberGenerator,T,N}
+#const MultiLevelMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:ML, G<:MonteCarloNumberGenerator,T,N}
+#const MultiLevelQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:ML, G<:QuasiMonteCarloNumberGenerator,T,N}
+#const MultiIndexMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:Union{TD,FT,HC,AD}, G<:MonteCarloNumberGenerator,T,N}
+#const MultiIndexQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:Union{TD,FT,HC,AD}, G<:QuasiMonteCarloNumberGenerator,T,N}
+#const MultiGridMultiLevelMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:MG{d,J} where {d,J<:ML}, G<:MonteCarloNumberGenerator,T,N}
+#const MultiGridMultiLevelQuasiMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:MG{d,J} where {d,J<:ML}, G<:QuasiMonteCarloNumberGenerator,T,N}
+#const MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstimator{T,N} = Estimator{I,G,T,N} where {I<:MG{d,J} where {d,J<:Union{TD,FT,HC,AD}}, G<:MonteCarloNumberGenerator,T,N}
 
 # type aliases
-const MonteCarloTypeEstimator = Estimator{I,G,T,N} where {I,G<:MonteCarloNumberGenerator,T,N}
-const QuasiMonteCarloTypeEstimator = Estimator{I,G,T,N} where {I,G<:QuasiMonteCarloNumberGenerator,T,N}
-const SingleLevelTypeEstimator = Estimator{I} where {I<:SL}
-const MultiLevelTypeEstimator = Estimator{I} where {I<:Union{ML,MG{d,J} where {d,J<:ML}}}
-const MultiIndexTypeEstimator = Estimator{I} where {I<:Union{TD,FT,HC,AD,MG{d,J} where {d,J<:Union{TD,FT,HC,AD}}}}
-const AdaptiveMultiIndexTypeEstimator = Estimator{I} where {I<:Union{AD,MG{d,<:AD} where {d}}}
-const MultiGridMonteCarloTypeEstimator = Estimator{I,G} where {I<:MG,G<:MonteCarloNumberGenerator}
-const MultiGridQuasiMonteCarloTypeEstimator = Estimator{I,G} where {I<:MG,G<:QuasiMonteCarloNumberGenerator}
+#const MonteCarloTypeEstimator = Estimator{I,G,T,N} where {I,G<:MonteCarloNumberGenerator,T,N}
+#const QuasiMonteCarloTypeEstimator = Estimator{I,G,T,N} where {I,G<:QuasiMonteCarloNumberGenerator,T,N}
+#const SingleLevelTypeEstimator = Estimator{I} where {I<:SL}
+#const MultiLevelTypeEstimator = Estimator{I} where {I<:Union{ML,MG{d,J} where {d,J<:ML}}}
+#const MultiIndexTypeEstimator = Estimator{I} where {I<:Union{TD,FT,HC,AD,MG{d,J} where {d,J<:Union{TD,FT,HC,AD}}}}
+#const AdaptiveMultiIndexTypeEstimator = Estimator{I} where {I<:Union{AD,MG{d,<:AD} where {d}}}
+#const MultiGridMonteCarloTypeEstimator = Estimator{I,G} where {I<:MG,G<:MonteCarloNumberGenerator}
+#const MultiGridQuasiMonteCarloTypeEstimator = Estimator{I,G} where {I<:MG,G<:QuasiMonteCarloNumberGenerator}
 
 function create_estimator(;kwargs...)
 
@@ -186,7 +190,7 @@ haskey(estimator::Estimator,index::Index) = in(index,estimator.current_index_set
 
 keys(estimator::Estimator) = sort(collect(estimator.current_index_set))
 
-active_set(estimator::AdaptiveMultiIndexTypeEstimator) = setdiff(estimator.current_index_set,estimator.old_index_set) 
+#active_set(estimator::AdaptiveMultiIndexTypeEstimator) = setdiff(estimator.current_index_set,estimator.old_index_set) 
 
 push!(estimator::Estimator,index::Index) = push!(estimator.current_index_set,index)
 
@@ -204,14 +208,14 @@ end
 ndims(estimator::Estimator) = ndims(estimator.method)
 
 # show methods
-print_name(estimator::MonteCarloEstimator) = "Monte Carlo estimator"
-print_name(estimator::MultiLevelMonteCarloEstimator) = "Multilevel Monte Carlo estimator"
-print_name(estimator::QuasiMonteCarloEstimator) = "Quasi-Monte Carlo estimator"
-print_name(estimator::MultiLevelQuasiMonteCarloEstimator) = "Multilevel Quasi-Monte Carlo estimator"
-print_name(estimator::MultiIndexMonteCarloEstimator) = "Multi-Index Monte Carlo estimator ($(estimator.method) index set)"
-print_name(estimator::MultiIndexQuasiMonteCarloEstimator) = "Multi-Index Quasi-Monte Carlo estimator ($(estimator.method) index set)"
-print_name(estimator::MultiGridMultiLevelMonteCarloEstimator) = "MG-Multilevel Monte Carlo estimator"
-print_name(estimator::MultiGridMultiLevelQuasiMonteCarloEstimator) = "MG-Multilevel Quasi-Monte Carlo estimator"
-print_name(estimator::MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstimator) = "MSG-Multi-Index Monte Carlo estimator ($(estimator.method) index set)"
+print_name(estimator::Estimator{<:SL,<:_MC}) = "Monte Carlo estimator"
+print_name(estimator::Estimator{<:ML,<:_MC}) = "Multilevel Monte Carlo estimator"
+#print_name(estimator::QuasiMonteCarloEstimator) = "Quasi-Monte Carlo estimator"
+#print_name(estimator::MultiLevelQuasiMonteCarloEstimator) = "Multilevel Quasi-Monte Carlo estimator"
+#print_name(estimator::MultiIndexMonteCarloEstimator) = "Multi-Index Monte Carlo estimator ($(estimator.method) index set)"
+#print_name(estimator::MultiIndexQuasiMonteCarloEstimator) = "Multi-Index Quasi-Monte Carlo estimator ($(estimator.method) index set)"
+#print_name(estimator::MultiGridMultiLevelMonteCarloEstimator) = "MG-Multilevel Monte Carlo estimator"
+#print_name(estimator::MultiGridMultiLevelQuasiMonteCarloEstimator) = "MG-Multilevel Quasi-Monte Carlo estimator"
+#print_name(estimator::MultipleSemiCoarsenedMultiGridMultiIndexMonteCarloEstimator) = "MSG-Multi-Index Monte Carlo estimator ($(estimator.method) index set)"
 
 show(io::IO, estimator::Estimator) = print(io, print_name(estimator))

@@ -9,9 +9,11 @@
 end
 
 ## Analyse SPDE, multi-index case
+#=
 @testset "analyse SPDE, MI case        " begin
     @suppress begin
         estimator = init_SPDE_analyse_mi()
         analyse(estimator, nsamples=100)
     end
 end
+=#

@@ -40,7 +40,7 @@ function _run(estimator::MultiIndexQuasiMonteCarloEstimator, ϵ::T where {T<:Rea
         while varest(estimator) > θ*ϵ^2 # doubling algorithm
 
             # find index with maximum variance
-            idx = indmax(varest.(estimator, keys(estimator))./cost.(estimator,keys(estimator)))
+            idx = argmax(varest.(estimator, keys(estimator))./cost.(estimator,keys(estimator)))
             max_index = keys(estimator)[idx] 
 
             # increase the number of samples already taken

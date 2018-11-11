@@ -55,13 +55,13 @@ end
 print_largest_profit(index) = println("The index with largest profit is $(index), checking forward neighbours...")
 
 # print rates
-function print_rates(estimator::MultiLevelTypeEstimator)
+function print_rates(estimator::Estimator{<:AbstractML})
 	println(string("  ==> Rates: α ≈",short(α(estimator)),
                    ", β ≈",short(β(estimator)),
                    ", γ ≈",short(γ(estimator)),"."))
 end
 
-function print_rates(estimator::MultiIndexTypeEstimator)
+function print_rates(estimator::Estimator{<:AbstractMI})
     template = string("(",["%6.3f" for i in 1:ndims(estimator.method)]...,")")
 	println(string("  ==> Rates: α ≈ (", join(short.(α.(estimator,1:ndims(estimator))),","), ")",
                    ", β ≈ (", join(short.(β.(estimator,1:ndims(estimator))),","), ")",
@@ -108,7 +108,7 @@ function print_footer()
 end
 
 # print (optimal) number of samples
-function print_number_of_samples(estimator,samples)
+function print_number_of_samples(estimator::Estimator, samples::Dict)
     println("Samples will be updated according to")
     n = 14
     nb = 2
@@ -120,7 +120,7 @@ function print_number_of_samples(estimator,samples)
     println(header)
     println(repeat("-",29))
     for index in sort(collect(keys(samples)))
-        index_str = "$(index)"
+        index_str = string(index)
         str = string(border,index_str,spaces(n-nb-length(index_str)))
         str = string(str,@sprintf("%s",samples[index]))
         println(str)
@@ -131,9 +131,9 @@ end
 # print index set
 print_index_set(estimator::Estimator) = nothing
 
-print_index_set(estimator::MultiIndexTypeEstimator) = print_index_set(collect(estimator.current_index_set),Index{ndims(estimator)}[])
+print_index_set(estimator::Estimator{<:AbstractMI}) = print_index_set(collect(estimator.current_index_set),Index{ndims(estimator)}[])
 
-print_index_set(estimator::AdaptiveMultiIndexTypeEstimator) = print_index_set( collect(setdiff(estimator.old_index_set,estimator.spill_index_set)), collect(union(estimator.spill_index_set,active_set(estimator))) )
+print_index_set(estimator::Estimator{<:AbstractAD}) = print_index_set( collect(setdiff(estimator.old_index_set,estimator.spill_index_set)), collect(union(estimator.spill_index_set,active_set(estimator))) )
 
 function print_index_set(old_set::Vector{Index{d}}, active_set::Vector{Index{d}}=Index{d}()) where {d}
     if d == 2

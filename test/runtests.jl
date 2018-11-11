@@ -1,8 +1,9 @@
 # runtests.jl : run all MultilevelEstimators tests
 
-push!(LOAD_PATH,joinpath(Pkg.dir("MultilevelEstimators"),"applications","SPDE"))
+import MultilevelEstimators
+push!(LOAD_PATH,joinpath(dirname(pathof(MultilevelEstimators)),"..","applications","SPDE"))
 
-using SPDE, MultilevelEstimators, QMC, Suppressor, Base.Test, JLD
+using SPDE, MultilevelEstimators, QMC, Suppressor, Test, JLD, Printf
 
 # basic tests
 include("test_index.jl")

@@ -1,7 +1,7 @@
 ## multilevel_monte_carlo.jl : run Multilevel Monte Carlo estimator
 
 ## main routine ##
-function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
+function _run(estimator::Estimator{<:ML, <:_MC}, ϵ::T) where {T<:Real}
 
     # print status
     estimator.verbose && print_header(estimator,ϵ)
@@ -11,6 +11,7 @@ function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
 
     # loop variables
     converged = false
+    θ = 1/2
 
     # main loop
     while !converged 
@@ -32,11 +33,8 @@ function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
         θ = estimator.do_splitting ? compute_splitting(estimator,ϵ) : 1/2
 
         # evaluate optimal number of samples
-        n_opt = Dict{Index,Int}()
         all_sum = sum(sqrt.([var(estimator,level)*cost(estimator,level) for level in keys(estimator)])) 
-        for tau in keys(estimator)
-            n_opt[tau] = ceil.(Int,1/(θ*ϵ^2) * sqrt(var(estimator,tau)/cost(estimator,tau)) * all_sum)
-        end
+        n_opt = Dict(tau=>ceil.(Int,1/(θ*ϵ^2) * sqrt(var(estimator,tau)/cost(estimator,tau)) * all_sum) for tau in keys(estimator))
 
         # print optimal number of samples
         estimator.verbose && print_number_of_samples(estimator,n_opt)
@@ -68,12 +66,12 @@ function _run(estimator::MultiLevelMonteCarloEstimator, ϵ::T where {T<:Real})
 end
 
 ## Multilevel Monte Carlo parallel sampling ##
-function parallel_sample!(estimator::MonteCarloTypeEstimator,index::Index,istart::N,iend::N) where {N<:Integer}
+function parallel_sample!(estimator::Estimator{<:AbstractIndexSet, <:_MC},index::Index,istart::N,iend::N) where {N<:Integer}
 
     # parallel sampling
     wp = CachingPool(workers())
     f(i) = estimator.sample_function(index,get_point(estimator.number_generators[index],i),estimator.user_data)
-	t = @elapsed all_samples = pmap(wp,f,istart:iend,batch_size=ceil(Int,(iend-istart+1)/nworkers()), retry_delays = ExponentialBackOff(n = 3))
+	t = @elapsed all_samples = pmap(f,wp,istart:iend,batch_size=ceil(Int,(iend-istart+1)/nworkers()), retry_delays = ExponentialBackOff(n = 3))
 
     # extract samples
     samples = last.(all_samples)
@@ -91,11 +89,11 @@ end
 ## inspector functions ##
 cost(estimator::Estimator,index::Index) = estimator.total_work[index]/estimator.nsamples[index]
 
-point_with_max_var(estimator::MonteCarloTypeEstimator) = indmax([ sum([var(estimator.samples[i][idx]) for idx in keys(estimator)]) for i in 1:estimator.nb_of_qoi ])
+point_with_max_var(estimator::Estimator{<:AbstractIndexSet, <:_MC}) = argmax([ sum([var(estimator.samples[i][idx]) for idx in keys(estimator)]) for i in 1:estimator.nb_of_qoi ])
 
 for f in [:mean :var :skewness]
     ex = :(
-           function $(f)(estimator::MonteCarloTypeEstimator,index::Index)
+           function $(f)(estimator::Estimator{<:AbstractIndexSet, <:_MC},index::Index)
                idx = point_with_max_var(estimator)
                $(f)(estimator.samples[idx][index])
            end
@@ -105,7 +103,7 @@ end
 
 for f in [:mean :var] # for samples0
     ex = :(
-           function $(Symbol(f,0))(estimator::MonteCarloTypeEstimator,index::Index)
+           function $(Symbol(f,0))(estimator::Estimator{<:AbstractIndexSet, <:_MC},index::Index)
                idx = point_with_max_var(estimator)
                $(f)(estimator.samples0[idx][index])
            end
@@ -115,7 +113,7 @@ end
 
 for f in [:mean :var :skewness]
     ex = :(
-           function $(f)(estimator::MonteCarloTypeEstimator)
+           function $(f)(estimator::Estimator{<:AbstractIndexSet, <:_MC})
                idx = point_with_max_var(estimator)
                sum(Float64[$(f)(estimator.samples[idx][index]) for index in keys(estimator)])
            end
@@ -123,27 +121,27 @@ for f in [:mean :var :skewness]
     eval(ex)
 end
 
-function varest(estimator::MonteCarloTypeEstimator,index::Index)
+function varest(estimator::Estimator{<:AbstractIndexSet, <:SL}, index::Index)
     n = estimator.nsamples[index]
     var(estimator,index)/n 
 end
 
-function varest(estimator::MonteCarloTypeEstimator)
+function varest(estimator::Estimator{<:AbstractIndexSet, <:_MC})
     idx = point_with_max_var(estimator)
     sum([var(estimator.samples[idx][index])/estimator.nsamples[index] for index in keys(estimator)])
 end
 
-function moment(estimator::MonteCarloTypeEstimator,k::N where {N<:Integer},index::Index)
+function moment(estimator::Estimator{<:AbstractIndexSet, <:_MC}, k::N where {N<:Integer},index::Index)
     idx = point_with_max_var(estimator)
     moment(estimator.samples[idx][index],k)
 end
 
-function moment(estimator::MonteCarloTypeEstimator,k::N where {N<:Integer})
+function moment(estimator::Estimator{<:AbstractIndexSet, <:_MC},k::N where {N<:Integer})
     idx = point_with_max_var(estimator)
     sum([moment(estimator.samples[idx][index],k) for index in keys(estimator)])
 end
 
-function bias(estimator::MultiLevelTypeEstimator; use_maximum=false::Bool)
+function bias(estimator::Estimator{<:ML}; use_maximum=false::Bool)
     max_idx = use_maximum ? maximum(keys(estimator.samples[1])) : maximum(keys(estimator))
     θ = α(estimator,both=true,conservative=estimator.conservative_bias_estimate,max_idx=max_idx)
     2^(θ[1]+(max_idx[1]+1)*θ[2])
@@ -154,7 +152,7 @@ mse(estimator::Estimator) = varest(estimator) + bias(estimator)^2
 rmse(estimator::Estimator) = sqrt(mse(estimator))
 
 ## rates ##
-function α(estimator::MultiLevelTypeEstimator; both=false, conservative=true, max_idx=maximum(keys(estimator))::Level) # optional arguments account for regression, MSE splitting etc.
+function α(estimator::Estimator{<:ML}; both=false, conservative=true, max_idx=maximum(keys(estimator))::Level) # optional arguments account for regression, MSE splitting etc.
     if max_idx < (2,)
         return both ? [NaN, NaN] : NaN
     else
@@ -166,7 +164,7 @@ function α(estimator::MultiLevelTypeEstimator; both=false, conservative=true, m
     end
 end
 
-function β(estimator::MultiLevelTypeEstimator; both=false)
+function β(estimator::Estimator{<:ML}; both=false)
     max_idx = maximum(keys(estimator))
     if max_idx < (2,)
         return both ? [NaN, NaN] : NaN
@@ -189,7 +187,7 @@ function β(estimator::MultiLevelTypeEstimator; both=false)
     end
 end
 
-function γ(estimator::MultiLevelTypeEstimator; both=false)
+function γ(estimator::Estimator{<:ML}; both=false)
     max_idx = maximum(keys(estimator))
     if max_idx < (2,)
         return both ? [NaN, NaN] : NaN
@@ -208,7 +206,7 @@ function straight_line_fit(x::AbstractVector,y::AbstractVector)
 end
 
 # regression of optimal number of samples at unknown level
-function regress(estimator::MultiLevelMonteCarloEstimator,level::Level,ϵ::T,θ::T) where {T<:Real}
+function regress(estimator::Estimator{<:ML, <:_MC},level::Level,ϵ::T,θ::T) where {T<:Real}
     p = β(estimator,both=true)
     var_est = 2^(p[1]+level[1]*p[2])
     p = γ(estimator,both=true)

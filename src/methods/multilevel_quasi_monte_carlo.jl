@@ -33,7 +33,7 @@ function _run(estimator::Union{MultiLevelQuasiMonteCarloEstimator,MultiGridMulti
         while varest(estimator) > θ*ϵ^2 # doubling algorithm
 
             # find level with maximum variance
-            max_level = (indmax([varest(estimator,tau)/cost(estimator,tau) for tau in keys(estimator)])-1,) # convert to level
+            max_level = (argmax([varest(estimator,tau)/cost(estimator,tau) for tau in keys(estimator)])-1,) # convert to level
 
             # increase the number of samples already taken
             if estimator.sample_multiplication_factor == 2 # (round to nearest power of two)
@@ -86,7 +86,7 @@ function parallel_sample!(estimator::QuasiMonteCarloTypeEstimator,index::Index,i
     f(i) = estimator.sample_function(index,get_point(estimator.number_generators[index],i[2],i[1]),estimator.user_data)
     nshifts = estimator.nb_of_shifts
     nqoi = estimator.nb_of_qoi
-    t = @elapsed all_samples = pmap(wp,f,Base.Iterators.product(1:nshifts,istart:iend)) # first changes fastest
+    t = @elapsed all_samples = pmap(f,wp,Base.Iterators.product(1:nshifts,istart:iend),batch_size=ceil(Int,(iend-istart+1)/nworkers()), retry_delays = ExponentialBackOff(n = 3))
 
     # extract samples
     samples = last.(all_samples)
@@ -104,7 +104,7 @@ function parallel_sample!(estimator::QuasiMonteCarloTypeEstimator,index::Index,i
 end
 
 ## inspector functions ##
-point_with_max_var_est(estimator::QuasiMonteCarloTypeEstimator) = indmax([var(sum([mean.([estimator.samples[q,s][idx] for s in 1:estimator.nb_of_shifts]) for idx in keys(estimator)])) for q in 1:estimator.nb_of_qoi])
+point_with_max_var_est(estimator::QuasiMonteCarloTypeEstimator) = argmax([var(sum([mean.([estimator.samples[q,s][idx] for s in 1:estimator.nb_of_shifts]) for idx in keys(estimator)])) for q in 1:estimator.nb_of_qoi])
 
 for f in [:mean :var :skewness]
     ex = :(

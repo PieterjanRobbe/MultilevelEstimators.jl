@@ -9,7 +9,7 @@ idxset = get_index_set(sl,5)
 @test length(idxset) == 1
 @test idxset[1] == (5,)
 @test_throws MethodError SL(2)
-str = @sprintf("%s",sl)
+str = @sprintf "%s" sl 
 
 ml = ML()
 @test isa(ml,ML)
@@ -18,7 +18,7 @@ idxset = get_index_set(ml,4)
 @test length(idxset) == 5
 @test sort(idxset)[3] == (2,)
 @test_throws MethodError ML(2)
-str = @sprintf("%s",ml)
+str = @sprintf "%s" ml
 
 ft = FT(3)
 @test isa(ft,FT{3})
@@ -37,7 +37,7 @@ idxset2 = get_index_set(ft2,3)
 @test_throws ArgumentError FT(2,δ=[1,1,1])
 @test_throws ArgumentError FT(2,δ=[1,0])
 @test_throws MethodError FT()
-str = @sprintf("%s",ft)
+str = @sprintf "%s" ft
 
 td = TD(3)
 @test isa(td,TD{3})
@@ -56,7 +56,7 @@ idxset2 = get_index_set(td2,4)
 @test_throws ArgumentError TD(2,δ=[1,1,1])
 @test_throws ArgumentError TD(2,δ=[1,0])
 @test_throws MethodError TD()
-str = @sprintf("%s",td)
+str = @sprintf "%s" td
 
 hc = HC(3)
 @test isa(hc,HC{3})
@@ -75,7 +75,7 @@ idxset2 = get_index_set(hc2,12)
 @test_throws ArgumentError HC(2,δ=[1,1,1])
 @test_throws ArgumentError HC(2,δ=[1,0])
 @test_throws MethodError HC()
-str = @sprintf("%s",hc)
+str = @sprintf "%s" hc
 
 ad = AD(4)
 @test isa(ad,AD)
@@ -83,6 +83,6 @@ ad = AD(4)
 @test_throws MethodError get_index_set(ad,4)
 @test_throws BoundsError AD(1)
 @test_throws MethodError AD()
-str = @sprintf("%s",ad)
+str = @sprintf "%s" ad
 
 end

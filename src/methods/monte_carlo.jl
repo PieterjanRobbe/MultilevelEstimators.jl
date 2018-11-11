@@ -1,7 +1,7 @@
 ## monte_carlo.jl : run Monte Carlo estimator
 
 ## main routine ##
-function _run(estimator::MonteCarloEstimator, ϵ::T where {T<:Real})
+function _run(estimator::Estimator{<:SL, <:_MC}, ϵ::T where {T<:Real})
 
     # print status
     estimator.verbose && print_header(estimator,ϵ)
@@ -34,9 +34,9 @@ function _run(estimator::MonteCarloEstimator, ϵ::T where {T<:Real})
 end
 
 # bias
-bias(estimator::SingleLevelTypeEstimator) = 0.
+bias(estimator::Estimator{<:SL}) = 0.
 
 # rates
-α(estimator::SingleLevelTypeEstimator) = NaN
-β(estimator::SingleLevelTypeEstimator) = NaN
-γ(estimator::SingleLevelTypeEstimator) = NaN
+α(estimator::Estimator{<:SL}) = NaN
+β(estimator::Estimator{<:SL}) = NaN
+γ(estimator::Estimator{<:SL}) = NaN

@@ -57,7 +57,7 @@ init_SPDE_msgamimc(;kwargs...) = init_SPDE(MG(AD(2)),false,false,false,true;kwar
 init_SPDE_msgamimc_multiple(;kwargs...) = init_SPDE(MG(AD(2)),false,true,false,true;kwargs...)
 
 ## main function ##
-function init_SPDE(method::IndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_analyse::Bool, is_multigrid::Bool; corr_len::T=0.5, smoothness::T=1.5, nterms::N=500, max_level::N=5, continuate::Bool=false, nshifts::N=20, verbose::Bool=true, sample_multiplication_factor::T=1.1) where {T<:AbstractFloat,N<:Integer}
+function init_SPDE(method::AbstractIndexSet, is_qmc::Bool, is_multiple_qoi::Bool, is_analyse::Bool, is_multigrid::Bool; corr_len::T=0.5, smoothness::T=1.5, nterms::N=500, max_level::N=5, continuate::Bool=false, nshifts::N=20, verbose::Bool=true, sample_multiplication_factor::T=1.1) where {T<:AbstractFloat,N<:Integer}
 
     ## Gaussian random fields ##
     nlevels = isa(method,SL) ? 1 : max_level + 1

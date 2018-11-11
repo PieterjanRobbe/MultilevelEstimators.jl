@@ -1,19 +1,27 @@
-## index_set.jl : representation of an IndexSet
+## index_set.jl : representation of an AbstractIndexSet
 
 ## Indexset ##
 """
-    IndexSet{d}
+    AbstractIndexSet{d}
 
 Supertype for an index set in `d` dimensions.
 """
-abstract type IndexSet{d} end
+abstract type AbstractIndexSet{d} end
+
+abstract type AbstractSL{d} <: AbstractIndexSet{d} end
+
+abstract type AbstractML{d} <: AbstractIndexSet{d} end
+
+abstract type AbstractMI{d} <: AbstractIndexSet{d} end
+
+abstract type AbstractAD{d} <: AbstractMI{d} end
 
 """
     SL()
 
 A single-level index set.
 """
-struct SL{d} <: IndexSet{d} end
+struct SL{d} <: AbstractSL{d} end
 
 SL() = SL{1}()
 
@@ -24,7 +32,7 @@ filter(::SL,sz) = itr -> sum(itr) == sz
 
 A multi-level index set.
 """
-struct ML{d} <: IndexSet{d} end
+struct ML{d} <: AbstractML{d} end
 
 ML() = ML{1}()
 
@@ -35,7 +43,7 @@ filter(::ML,sz) = itr -> sum(itr) <= sz
 
 A full tensor index set in `d` dimenions with weights `δ`.
 """
-struct FT{d, W<:AbstractVector} <: IndexSet{d}
+struct FT{d, W<:AbstractVector} <: AbstractMI{d}
     δ::W
 end
 
@@ -54,7 +62,7 @@ filter(idxset::FT,sz) = itr -> all(idxset.δ.*itr.<=sz)
 
 A total degree index set in `d` dimenions with weights `δ`.
 """
-struct TD{d, W<:AbstractVector} <: IndexSet{d}
+struct TD{d, W<:AbstractVector} <: AbstractMI{d}
     δ::W
 end
 
@@ -73,7 +81,7 @@ filter(idxset::TD,sz) = itr -> sum(idxset.δ.*itr) <= sz
 
 A hyperbolic cross index set in `d` dimenions with weights `δ`.
 """
-struct HC{d, W<:AbstractVector} <: IndexSet{d}
+struct HC{d, W<:AbstractVector} <: AbstractMI{d}
     δ::W
 end
 
@@ -92,21 +100,21 @@ filter(idxset::HC,sz) = itr -> prod(idxset.δ.*itr.+1) <= sz
 
 An adaptive index set in `d` dimenions.
 """
-struct AD{d} <: IndexSet{d} end
+struct AD{d} <: AbstractAD{d} end
 
 AD(d::Integer) = d <= 1 ? throw(BoundsError("to use AD, dimension must be greater than 1, got $(d)")) : AD{d}()
 
 # Multigrid wrapper type
-struct MG{d,I} <: IndexSet{d}
+struct MG{d,I} <: AbstractIndexSet{d}
     idxset::I
 end
 
-MG(idxset::I) where {I<:IndexSet} = MG{ndims(idxset),I}(idxset)
+MG(idxset::I) where {I<:AbstractIndexSet} = MG{ndims(idxset),I}(idxset)
 
 # utilities
-ndims(::IndexSet{d}) where {d} = d
+ndims(::AbstractIndexSet{d}) where {d} = d
 
-function get_index_set(idxset::IndexSet{d},sz::N) where {d,N<:Integer}
+function get_index_set(idxset::AbstractIndexSet{d},sz::N) where {d,N<:Integer}
     sz >= 0 || throw(ArgumentError("index set size parameter cannot be negative"))
     tensor_grid = Base.product(UnitRange.(0,ntuple(i->sz+1,d))...)
     filtered_grid = Base.Iterators.filter(filter(idxset,sz),tensor_grid)

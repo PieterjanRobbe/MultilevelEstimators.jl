@@ -37,7 +37,7 @@ function _analyse(estimator::Estimator)
     # all other runs: scale number of samples such that equal amount of work on each level/index
     else
         for level in keys(estimator)
-            n = round(Int,1/cost(estimator,level)*cost(estimator,keys(estimator)[indmax([cost(estimator,level) for level in keys(estimator)])]))
+            n = round(Int,1/cost(estimator,level)*cost(estimator,keys(estimator)[argmax([cost(estimator,level) for level in keys(estimator)])]))
             n = max(n,nworkers())
             sample!(estimator,level,n)
         end

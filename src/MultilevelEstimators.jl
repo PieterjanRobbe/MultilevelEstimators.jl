@@ -1,10 +1,10 @@
 module MultilevelEstimators
 
 # load other modules
-using Printf, Statistics, Distributed, Dates, SpecialFunctions, JLD, QMC
+using Printf, Statistics, Distributed, Dates, SpecialFunctions, JLD, QMC, LinearAlgebra, SparseArrays
 
 # import statements
-import Base: show, setindex!, run, haskey, push!, getindex, keys, diff#, γ
+import Base: show, setindex!, run, haskey, push!, getindex, keys, diff #, γ
 import Statistics: mean, var
 
 import QMC: ndims, nshifts, RandWrapper
@@ -12,7 +12,7 @@ import QMC: ndims, nshifts, RandWrapper
 # export statements
 export Level, Index, diff # from index.jl
 
-export IndexSet, SL, ML, FT, TD, HC, AD, MG, get_index_set # from index_set.jl
+export AbstractIndexSet, SL, ML, FT, TD, HC, AD, MG, get_index_set # from index_set.jl
 
 export UniformMCGenerator, NormalMCGenerator, TruncatedNormalMCGenerator, UniformQMCGenerator, NormalQMCGenerator, TruncatedNormalQMCGenerator, get_point # from number_generator.jl
 
@@ -57,21 +57,21 @@ include("methods/monte_carlo.jl")
 
 include("methods/multilevel_monte_carlo.jl")
 
-include("methods/quasi_monte_carlo.jl")
+#include("methods/quasi_monte_carlo.jl")
 
-include("methods/multilevel_quasi_monte_carlo.jl")
+#include("methods/multilevel_quasi_monte_carlo.jl")
 
-include("methods/multiindex_monte_carlo.jl")
+#include("methods/multiindex_monte_carlo.jl")
 
-include("methods/multiindex_quasi_monte_carlo.jl")
+#include("methods/multiindex_quasi_monte_carlo.jl")
 
-include("methods/multigrid_multilevel_monte_carlo.jl")
+#include("methods/multigrid_multilevel_monte_carlo.jl")
 
-include("methods/multiple_semicoarsened_multigrid_multiindex_monte_carlo.jl")
+#include("methods/multiple_semicoarsened_multigrid_multiindex_monte_carlo.jl")
 
-include("methods/multigrid_multilevel_quasi_monte_carlo.jl")
+#include("methods/multigrid_multilevel_quasi_monte_carlo.jl")
 
-include("utils/plot.jl")
+#include("utils/plot.jl")
 
 include("utils/tex.jl")
 

@@ -222,7 +222,7 @@ function new_index_set(estimator::AdaptiveMultiIndexTypeEstimator, level::N wher
     else
         # find index with largest "profit" and add to old set; enlarge active set
         temp_active_set = collect(active_set(estimator))
-        idx = indmax(profit.(estimator,temp_active_set))
+        idx = argmax(profit.(estimator,temp_active_set))
         max_index = temp_active_set[idx]
         push!(estimator.old_index_set,max_index)
         print_largest_profit(max_index)
