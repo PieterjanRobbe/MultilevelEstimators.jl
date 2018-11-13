@@ -1,5 +1,27 @@
 module MultilevelEstimators
 
+# dependencies
+using LinearAlgebra, SpecialFunctions
+
+# import statements
+import Base: show, diff, getindex, filter, ndims
+
+# export statements
+export Level, Index
+
+export AbstractIndexSet, SL, ML, FT, TD, HC, AD, MG, get_index_set
+
+export AbstractDistribution, Uniform, Normal, TruncatedNormal, Weibull 
+
+# include statements
+include("core/index.jl")
+
+include("core/index_sets.jl")
+
+include("core/distributions.jl")
+
+#=
+
 # load other modules
 using Printf, Statistics, Distributed, Dates, SpecialFunctions, JLD, QMC, LinearAlgebra, SparseArrays
 
@@ -76,5 +98,6 @@ include("methods/multilevel_monte_carlo.jl")
 include("utils/tex.jl")
 
 include("utils/report.jl")
+=#
 
 end # module

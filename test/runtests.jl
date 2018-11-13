@@ -1,5 +1,14 @@
 # runtests.jl : run all MultilevelEstimators tests
 
+using Test, Printf
+using MultilevelEstimators
+
+# unit tests
+include("index.jl")
+include("index_sets.jl")
+include("distributions.jl")
+
+#=
 import MultilevelEstimators
 push!(LOAD_PATH,joinpath(dirname(pathof(MultilevelEstimators)),"..","applications","SPDE"))
 
@@ -15,3 +24,4 @@ include("test_estimator.jl")
 include("test_SPDE.jl")
 include("test_analyse_SPDE.jl")
 #include("generate_reports.jl")
+=#
