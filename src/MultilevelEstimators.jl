@@ -1,10 +1,12 @@
 module MultilevelEstimators
 
 # dependencies
-using LinearAlgebra, SpecialFunctions
+using LinearAlgebra, SpecialFunctions, Distributed, Random
 
 # import statements
-import Base: show, diff, getindex, filter, ndims
+import Base: show, diff, getindex, filter, ndims, eltype
+
+import Random: AbstractRNG
 
 # export statements
 export Level, Index
@@ -13,12 +15,24 @@ export AbstractIndexSet, SL, ML, FT, TD, HC, AD, MG, get_index_set
 
 export AbstractDistribution, Uniform, Normal, TruncatedNormal, Weibull 
 
+export AbstractSampleMethod, MC, QMC
+
+export Estimator
+
 # include statements
+include("core/check_inputs.jl")
+
 include("core/index.jl")
 
 include("core/index_sets.jl")
 
 include("core/distributions.jl")
+
+include("core/sample_methods.jl")
+
+include("core/estimators.jl")
+
+include("core/parsers.jl")
 
 #=
 
