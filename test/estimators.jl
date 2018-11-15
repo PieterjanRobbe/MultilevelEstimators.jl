@@ -37,7 +37,7 @@
     
     @test_throws ArgumentError Estimator(index_set, mc_sample_method, sample_function, distribution; continuation_mul_factor="blabla")
     @test_throws ArgumentError Estimator(index_set, mc_sample_method, sample_function, distribution; continuation_mul_factor=NaN)
-    @test Estimator(index_set, mc_sample_method, sample_function, distribution; continuation_mul_factor=2) isa type_mlmc
+    @test Estimator(index_set, qmc_sample_method, sample_function, distribution; continuation_mul_factor=2) isa type_mlqmc
 
     @test_throws ArgumentError Estimator(index_set, mc_sample_method, sample_function, distribution; folder=1.0)
     @test Estimator(index_set, mc_sample_method, sample_function, distribution; folder=".") isa type_mlmc
@@ -47,8 +47,6 @@
 
     @test_throws ArgumentError Estimator(index_set, mc_sample_method, sample_function, distribution; save_samples=1)
     @test Estimator(index_set, mc_sample_method, sample_function, distribution; save_samples=true) isa type_mlmc
-
-    @test Estimator(index_set, mc_sample_method, sample_function, distribution; user_data=MersenneTwister()) isa type_mlmc
 
     @test_throws ArgumentError Estimator(index_set, mc_sample_method, sample_function, distribution; verbose=1)
     @test Estimator(index_set, mc_sample_method, sample_function, distribution; verbose=true) isa type_mlmc
@@ -68,7 +66,7 @@
     
     @test_throws ArgumentError Estimator(index_set, mc_sample_method, sample_function, distribution; sample_mul_factor="blabla")
     @test_throws ArgumentError Estimator(index_set, mc_sample_method, sample_function, distribution; sample_mul_factor=Inf)
-    @test Estimator(index_set, mc_sample_method, sample_function, distribution; sample_mul_factor=1.5) isa type_mlmc
+    @test Estimator(index_set, qmc_sample_method, sample_function, distribution; sample_mul_factor=1.5) isa type_mlqmc
     @test Estimator(index_set, qmc_sample_method, sample_function, distribution; sample_mul_factor=2) isa type_mlqmc
 
     @test_throws ArgumentError Estimator(index_set, mc_sample_method, sample_function, distribution; nb_of_workers=Inf)

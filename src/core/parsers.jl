@@ -51,7 +51,7 @@ make_parse!(:(:continuate),
 make_parse!(:(:nb_of_tols),
             :(10),
             :(check_type(to_string(key, val)..., Integer);
-              check_larger_than(to_string(key, val)..., 0))
+              check_positive(to_string(key, val)...))
            )
 
 ## continuation_mul_factor ##
@@ -94,12 +94,6 @@ make_parse!(:(:save_samples),
             :(check_type(to_string(key, val)..., Bool))
            )
 
-## user_data ##
-make_parse!(:(:user_data),
-            :(nothing),
-            :()
-           )
-
 ## verbose ##
 make_parse!(:(:verbose),
             :(true),
@@ -107,8 +101,9 @@ make_parse!(:(:verbose),
            )
 
 ## cost_model ##
+struct EmptyFunction <: Function end
 make_parse!(:(:cost_model),
-            :(nothing),
+            :(EmptyFunction()),
             :(check_type(to_string(key, val)..., Function))
            )
 
@@ -161,9 +156,8 @@ make_parse!(:(:nb_of_shifts),
            )
 
 ## point_generator ##
-# TODO: create lattice rule, but get ndims form distributions in settings
 make_parse!(:(:point_generator),
-            :(),
+            :(LatticeRule32(length(settings[:distributions]))),
             :(check_type(to_string(key, val)..., AbstractRNG))
            )
 
@@ -175,7 +169,7 @@ make_parse!(:(:do_regression),
 
 ## max_search_space ##
 make_parse!(:(:max_search_space),
-            :(TD(ndims)),
+            :(TD(ndims(index_set))),
             :(check_type(to_string(key, val)..., AbstractIndexSet);
               check_ndims(to_string(key, val)..., ndims(index_set), "dimensions of search space and index set do not agree"))
            )

@@ -8,6 +8,7 @@ include("index.jl")
 include("index_sets.jl")
 include("distributions.jl")
 include("estimators.jl")
+include("lattices.jl")
 
 #=
 import MultilevelEstimators

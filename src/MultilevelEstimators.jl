@@ -1,23 +1,23 @@
 module MultilevelEstimators
 
 # dependencies
-using LinearAlgebra, SpecialFunctions, Distributed, Random
+using LinearAlgebra, SpecialFunctions, Distributed, Random, DelimitedFiles
 
 # import statements
 import Base: show, diff, getindex, filter, ndims, eltype
 
-import Random: AbstractRNG
-
 # export statements
 export Level, Index
 
-export AbstractIndexSet, SL, ML, FT, TD, HC, AD, MG, get_index_set
+export SL, ML, FT, TD, HC, AD, MG, get_index_set
 
-export AbstractDistribution, Uniform, Normal, TruncatedNormal, Weibull 
+export Uniform, Normal, TruncatedNormal, Weibull 
 
-export AbstractSampleMethod, MC, QMC
+export MC, QMC
 
 export Estimator
+
+export LatticeRule32
 
 # include statements
 include("core/check_inputs.jl")
@@ -30,10 +30,15 @@ include("core/distributions.jl")
 
 include("core/sample_methods.jl")
 
+include("core/options.jl")
+
+include("core/internals.jl")
+
 include("core/estimators.jl")
 
 include("core/parsers.jl")
 
+include("core/lattices.jl")
 #=
 
 # load other modules

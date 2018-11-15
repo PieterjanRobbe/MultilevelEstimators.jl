@@ -6,10 +6,12 @@
 # Carlo Methods (c) Pieterjan Robbe, 2018
 
 ## Estimator ##
-struct Estimator{I<:AbstractIndexSet, S<:AbstractSampleMethod,D}
+struct Estimator{I<:AbstractIndexSet, S<:AbstractSampleMethod, D, O, N}
     index_set::I
     sample_function::Function
     distributions::D
+    options::O
+    internals::N
 end
 
 function Estimator(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, sample_function::Function, distributions::Vector{<:AbstractDistribution}; kwargs...)
@@ -19,14 +21,16 @@ function Estimator(index_set::AbstractIndexSet, sample_method::AbstractSampleMet
     check_valid_keys(settings, index_set, sample_method)
     
     # default settings
+    settings[:distributions] = distributions
     for key in valid_keys(index_set, sample_method)
         parse!(index_set, sample_method, settings, key)
     end
 
     # create options, base_estimator...
-    #display(settings)
+    options = EstimatorOptions(settings)
+    internals = EstimatorInternals(index_set, sample_method, settings)
     
-    Estimator{typeof(index_set), typeof(sample_method), typeof(distributions)}(index_set, sample_function, distributions)
+    Estimator{typeof(index_set), typeof(sample_method), typeof(distributions), typeof(options), typeof(internals)}(index_set, sample_function, distributions, options, internals)
 end
 
 Estimator(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, sample_function::Function, distribution::AbstractDistribution; kwargs...) = Estimator(index_set, sample_method, sample_function, [distribution]; kwargs...)
@@ -40,13 +44,14 @@ end
 
 ## valid keys ##
 valid_keys(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod) = vcat(valid_keys(), valid_keys(index_set), valid_keys(sample_method))
-valid_keys(::AbstractIndexSet) = Symbol[]
-valid_keys(::AbstractSampleMethod) = Symbol[]
 
-# TODO replace this by fieldnames(EstimatorOptions) ?
-valid_keys() = [:nb_of_warm_up_samples, :nb_of_qoi, :continuate, :nb_of_tols, :continuation_mul_factor, :folder, :name, :save_samples, :user_data, :verbose, :cost_model, :robustify_bias_estimate, :do_mse_splitting, :sample_mul_factor, :max_index_set_param, :nb_of_workers]
+valid_keys() = collect(fieldnames(EstimatorOptions))
+
+valid_keys(::AbstractSampleMethod) = Symbol[]
 valid_keys(::QMC) = [:nb_of_shifts, :point_generator, :sample_mul_factor]
 valid_keys(::MC) = [:do_regression]
+
+valid_keys(::AbstractIndexSet) = Symbol[]
 valid_keys(::AbstractAD) = [:max_search_space]
 valid_keys(::MG) = [:sample_mul_factor]
 valid_keys(::MG{<:AD}) = [:sample_mul_factor, :max_search_space]
