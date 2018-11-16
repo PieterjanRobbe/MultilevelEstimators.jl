@@ -13,11 +13,11 @@ import Base: show, diff, getindex, filter, ndims, eltype
 # export statements
 export Level, Index
 
-export SL, ML, FT, TD, HC, AD, MG, get_index_set
+export AbstractIndexSet, SL, ML, FT, TD, HC, AD, MG, get_index_set
 
-export Uniform, Normal, TruncatedNormal, Weibull 
+export AbstractDistribution, Uniform, Normal, TruncatedNormal, Weibull 
 
-export MC, QMC
+export AbstractSampleMethod, MC, QMC
 
 export Estimator
 
