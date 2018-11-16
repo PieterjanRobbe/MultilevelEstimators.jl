@@ -5,7 +5,7 @@
 module LognormalDiffusionProblems
 
 # dependencies
-using MultilevelEstimators, GaussianRandomFields
+using MultilevelEstimators#, GaussianRandomFields
 
 # export statements
 export init_lognormal
