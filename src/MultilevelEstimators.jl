@@ -1,3 +1,7 @@
+## MultilevelEstimators.jl : module file
+#
+# This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
+# Carlo Methods (c) Pieterjan Robbe, 2018
 module MultilevelEstimators
 
 # dependencies
