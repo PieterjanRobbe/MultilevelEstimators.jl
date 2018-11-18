@@ -20,8 +20,7 @@ function init_lognormal(index_set::AbstractIndexSet, sample_method::AbstractSamp
     grfs = Dict(index => compute_grf(cov_fun, grf_generator, m0, index, p) for index in indices)
 
     # sample function
-    f = get_sample_function(index_set)
-    sample_function = (index, x) -> f(index, x, grfs)
+    sample_function = (index, x) -> sample_lognormal(index, x, grfs[index], get_arg(args, :damping))
 
     # distributions
     s = min(3600, maximum(randdim.(collect(values(grfs)))))
@@ -39,16 +38,13 @@ grid_size(level::Level) = (2^level[1], 2^level[1])
 
 function compute_grf(cov_fun::CovarianceFunction, grf_generator::GaussianRandomFieldGenerator, m0, index::Index, p)
     n = m0 .* grid_size(index)
-    pts = broadcast(i -> range(0, stop=1, length=i), n)
+    pts = broadcast(i -> range(0, stop=1, length=i+1), n)
     compute_grf(cov_fun, grf_generator, pts, p)
 end
 
 compute_grf(cov_fun, grf_generator::GaussianRandomFieldGenerator, pts, p) = GaussianRandomField(cov_fun, grf_generator, pts...)
 
 compute_grf(cov_fun, grf_generator::CirculantEmbedding, pts, p) = GaussianRandomField(cov_fun, grf_generator, pts..., minpadding=p)
-
-## sample function ##
-get_sample_function(index_set::AbstractIndexSet) = () -> ()
 
 ## get_arg ##
 macro get_arg(key_name, default_value)
@@ -59,7 +55,7 @@ get_arg(args::Dict{Symbol,Any}, arg::Symbol) = get_arg(args, Val(arg))
 
 get_arg(args::Dict{Symbol,Any}, arg::Val{T}) where T = throw(ArgumentError(string("in init_lognormal, invalid key ", T, " found")))
 
-@get_arg :nb_of_coarse_dofs 2
+@get_arg :nb_of_coarse_dofs 4
 
 @get_arg :covariance_function Matern(get_arg(args, :length_scale), get_arg(args, :smoothness))
 
@@ -67,11 +63,13 @@ get_arg(args::Dict{Symbol,Any}, arg::Val{T}) where T = throw(ArgumentError(strin
 
 @get_arg :smoothness 1
 
-@get_arg :max_index_set_param 7
+@get_arg :max_index_set_param 6
 
 @get_arg :grf_generator CirculantEmbedding()
 
 @get_arg :minpadding 0
+
+@get_arg :damping 0.8
 
 # make sure all keys in args are valid keys for Estimator
 filter_keys!(args::Dict{Symbol, Any}) = isempty(args) || delete!.(Ref(args), [:nb_of_coarse_dofs, :covariance_function, :length_scale, :smoothness, :max_index_set_param, :grf_generator, :minpadding])
