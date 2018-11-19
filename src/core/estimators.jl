@@ -26,7 +26,7 @@ function Estimator(index_set::AbstractIndexSet, sample_method::AbstractSampleMet
         parse!(index_set, sample_method, settings, key)
     end
 
-    # create options, base_estimator...
+    # create options and internals
     options = EstimatorOptions(settings)
     internals = EstimatorInternals(index_set, sample_method, settings)
     
@@ -58,3 +58,31 @@ valid_keys(::MG{<:AD}) = [:sample_mul_factor, :max_search_space]
 
 ## print methods ##
 show(io::IO, estimator::Estimator{I,S}) where {I<:AbstractIndexSet, S<:AbstractSampleMethod} = print(io, string("Estimator{", estimator.index_set, ", ", S, "}"))
+
+## getters and setters ##
+push!(estimator::Estimator, index::Index) = push!(estimator.internals.current_index_set, index)
+
+nb_of_warm_up_samples(estimator::Estimator) = estimator.options.nb_of_warm_up_samples
+
+contains_samples_at_index(estimator::Estimator, index::Index) = haskey(estimator.internals.samples_diff[1], index)
+
+nb_of_samples_at_index(estimator::Estimator, index::Index) = estimator.internals.nb_of_samples[index]
+
+nb_of_workers_at_index(estimator::Estimator, index::Index) = estimator.internals.nb_of_workers[index]
+
+nb_of_shifts_at_index(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index) = estimator.internals.nb_of_shifts(index)
+
+nb_of_qoi(estimator::Estimator) = estimator.internals.nb_of_qoi
+
+name(estimator) = estimator.options.name # TODO automate?
+
+function add_index(estimator::Estimator{<:AbstractIndexSet,<:QMC}, index::Index)
+    estimator.internals.nb_of_samples[index] = zero(valtype(estimator.internals.nb_of_samples))
+    estimator.internals.total_work[index] = zero(valtype(estimator.internals.total_work))
+    # samples ?
+    # samples_diff ?
+end
+
+distributions(estimator::Estimator) = estimator.distributions
+
+stochastic_dim(estimator::Estimator) = length(distributions(estimator::Estimator))

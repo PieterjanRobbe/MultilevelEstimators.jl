@@ -1,47 +1,120 @@
 # print.jl : collection of print statements for MultilevelEstimators.jl
 
-# print spaces
-spaces(n) = repeat(" ",n)
+## convenience functions ##
+l() = 80
+l_short() = 29
+n() = 14
+nb() = 2
+spaces(n) = repeat(" ", n)
+border() = spaces(nb())
+short(num) = @sprintf("%6.3f", num)
+long(num) = @sprintf("%12.5e", num)
 
-# short formatting
-short(num) = @sprintf("%6.3f",num)
-
-# print status of the estimator
-function print_status(estimator::Estimator)
-    print_index_set(estimator)
-    n = 14
-    nb = 2
-    border = spaces(nb)
-    level_name = ndims(estimator.method) == 1 ? "level" : "index"
-    header = string(border,level_name,spaces(n-nb-length(level_name)))
-    for name in ["E" "V" "N" "W"]
-        header = string(header,name,spaces(n))
-    end
-    println(repeat("-",80))
-    println(header)
-    println(repeat("-",80))
-    for index in keys(estimator)
-        index_str = "$(index)"
-        str = string(border,index_str,spaces(n-nb-length(index_str)-1))
-        str = string(str,@sprintf("%12.5e",mean(estimator,index)),spaces(3))
-        str = string(str,@sprintf("%12.5e",var(estimator,index)),spaces(4))
-        nshifts = nb_of_shifts(estimator.number_generator)
-        nsamples_str = nshifts == 1 ? "" : "$(nshifts) x "
-        nsamples_str = string(nsamples_str,"$(estimator.nsamples[index])")
-        str = string(str,@sprintf("%s",nsamples_str),spaces(n-length(nsamples_str)))
-        str = string(str,@sprintf("%12.5e",cost(estimator,index)),spaces(4))
-        println(str)
-    end
-    println(repeat("-",80))
+## print header ##
+function print_header(estimator::Estimator, ϵ::Real)
+    println(repeat("-", l()))
+    println(string("*** MultilevelEstimators.jl @", now()))
+    println(string("*** This is a ", estimator))
+    println(string("*** Simulating ", name(estimator)))
+    println(string("*** Tolerance on RMSE ϵ = ", short(ϵ)))
+    println(repeat("-", l()))
 end
 
-# print convergence of the estimator
-function print_convergence(estimator::Estimator,converged::Bool)
+## print footer ##
+function print_footer()
+    println(repeat("-", l()))
+    println(string("*** MultilevelEstimators.jl @", now()))
+    println("*** Successfull termination")
+    println(repeat("-", l()))
+end
+
+## print status ##
+function print_status(estimator::Estimator)
+    print_index_set(estimator)
+    header = print_pre_header(estimator)
+    for name in ["E" "V" "N" "W"]
+        header = string(header, name, spaces(n()))
+    end
+    print_sub_header(header, l())
+    for index in keys(estimator)
+        index_str = string(index)
+        str = string(border(), index_str, spaces(n()-nb()-length(index_str)-1))
+        str = string(str, long(mean(estimator, index)), spaces(3))
+        str = string(str, long(var(estimator, index)), spaces(4))
+        samples_str = print_nb_of_samples(estimator)
+        str = string(str, samples_str, spaces(n-length(samples_str)))
+        str = string(str, long(cost(estimator, index)), spaces(4))
+        println(str)
+    end
+    print_sub_footer(l())
+end
+
+print_sub_header(header, length) = println(repeat("-", length)), println(header), println(repeat("-", length))
+print_sub_footer(length) = println(repeat("-", length))
+
+print_pre_header(estimator) = string(border(), print_elname(estimator), spaces(n()-nb()-length(print_elname(estimator))))
+
+## index or level ##
+print_elname(::Estimator{<:AbstractML}) = "level"
+print_elname(::Estimator{<:AbstractMI}) = "index"
+
+## print_nb_of_samples ##
+print_nb_of_samples(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index, b::Integer) = string(b)
+print_nb_of_samples(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index) = print_nb_of_samples(estimator, index, nb_of_samples_at_index(estimator, index))
+print_nb_of_samples(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index, n::Integer) = string(nb_of_shifts_at_index(estimator), " x ", n)
+print_nb_of_samples(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index) = string(estimator, index, nb_of_samples_at_index(estimator, index))
+
+## print_optimal_nb_of_samples ##
+function print_optimal_nb_of_samples(estimator::Estimator, samples)
+    println("Samples will be updated according to")
+    header = print_pre_header(estimator)
+    header = string(header, "N", spaces(n))
+    print_sub_header(header, l_short()) 
+    print_optimal_nb_of_samples(samples)
+    print_sub_footer(l_short())
+end
+
+function print_optimal_nb_of_samples(samples::Dict)
+    for index in sort(collect(keys(samples)))
+        index_str = string(index)
+        str = string(border,index_str(), spaces(n-()nb()-length(index_str)))
+        str = string(str, samples[index])
+        println(str)
+    end
+end
+
+print_optimal_nb_of_samples(samples::Integer) = println(string(border(), "0", spaces(n()-nb()-1), samples))
+
+## print_convergence ##
+function print_convergence(estimator::Estimator, converged::Bool)
     print_status(estimator)
     converged && println(string("Convergence reached. RMSE ≈",@sprintf("%12.5e",rmse(estimator)),"."))
     print_footer() 
 end
 
+## print sample! header ##
+print_sample!_header(estimator::Estimator, index::Index, n::Integer, warm_up::Bool) = println(string("Taking ", print_nb_of_samples(estimator, index, n), print_warm_up(Val(warm_up)), " sample", print_with_s(n), " at ", print_elname(estimator), " ", index, "..."))
+
+print_warm_up(::Type{Val{true}}) = " warm-up "
+print_warm_up(::Type{Val{false}}) = " additional "
+
+print_with_s(n::integer) = n > 1 ? "s" : ""
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#=
 # print warning about max level
 function warn_max_level(estimator)
     warn("maximum level L = $(estimator.max_level) reached, no convergence")
@@ -89,23 +162,6 @@ function print_qmc_convergence(estimator::Estimator,ϵ::T where {T<:Real},θ::T 
     println(string("  ==> ",@sprintf("%11.5e",varest(estimator)),"$(converged ? " <" : " >")",@sprintf("%12.5e",θ*ϵ^2),": $(converged ? "no!" : "yes" )"))
 end
 
-# print header
-function print_header(estimator::Estimator,ϵ::Float64)
-    println(repeat("-",80))
-    println("*** MultilevelEstimators.jl @$(now())")
-    println("*** This is a $(print_name(estimator))")
-    println("*** Simulating $(estimator.sample_function)")
-    println(@sprintf("*** Tolerance on RMSE ϵ = %7.3e",ϵ))
-    println(repeat("-",80))
-end
-
-# print footer
-function print_footer()
-    println(repeat("-",80))
-    println("*** MultilevelEstimators.jl @$(now())")
-    println("*** Successfull termination")
-    println(repeat("-",80))
-end
 
 # print (optimal) number of samples
 function print_number_of_samples(estimator::Estimator, samples::Dict)
@@ -165,3 +221,4 @@ function print_index_set(old_set::Vector{Index{d}}, active_set::Vector{Index{d}}
         print(str)
     end
 end
+=#

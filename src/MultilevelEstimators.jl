@@ -10,6 +10,8 @@ using LinearAlgebra, SpecialFunctions, Distributed, Random, DelimitedFiles
 # import statements
 import Base: show, diff, getindex, filter, ndims, eltype
 
+import Random: GLOBAL_RNG
+
 # export statements
 export Level, Index
 

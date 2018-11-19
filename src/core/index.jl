@@ -48,9 +48,9 @@ const Level = Index{1}
 
 Level(i) = Index(i)
 
+show(io::IO, level::Level) = print(io, level[1])
+
 ## difference ##
-# Returns a Dict{Index,Int} with all indices where to compute coarse solutions, and how to
-# combine them with the given index.
 function diff(index::Index{d}) where d
     D = Dict{Index{d}, Int}()
     Istart = max.(zero(index), index.-one(index))
@@ -67,6 +67,5 @@ zero(::Index{d}) where d = ntuple(i->0,d)
 one(::Index{d}) where d = ntuple(i->1,d)
 
 ## unit ##
-# Returns the `i`-th unit vector in the `d`-dimensional vector space.
 unit(i, d) = I[1:d, i]
 getindex(u::UniformScaling{Bool}, v::AbstractVector, j::Int) = [u[i,j] for i in v]

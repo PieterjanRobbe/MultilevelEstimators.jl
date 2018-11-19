@@ -10,10 +10,11 @@ function init_lognormal(index_set::AbstractIndexSet, sample_method::AbstractSamp
 
     # read optional arguments
     args = Dict{Symbol,Any}(kwargs)
+    args[:index_set] = index_set
 
     # compute Gaussian random fields
     cov_fun = CovarianceFunction(2, get_arg(args, :covariance_function))
-    indices = get_index_set(index_set, get_arg(args, :max_index_set_param)) # TODO for AD?
+    indices = get_max_index_set(index_set, args)
     m0 = get_arg(args, :nb_of_coarse_dofs)
     p = get_arg(args, :minpadding)
     grf_generator = get_arg(args, :grf_generator)
@@ -31,6 +32,11 @@ function init_lognormal(index_set::AbstractIndexSet, sample_method::AbstractSamp
     Estimator(index_set, sample_method, sample_function, distributions; args...)
 
 end
+
+## get_max_index_set ##
+get_max_index_set(index_set::AbstractIndexSet, args::Dict{Symbol, Any}) = get_index_set(index_set, get_arg(args, :max_index_set_param))
+get_max_index_set(::SL, args::Dict{Symbol, Any}) = [Level(0)]
+# TODO for AD ?
 
 ## compute_grf ##
 grid_size(index::Index) = 2 .^index
@@ -55,7 +61,7 @@ get_arg(args::Dict{Symbol,Any}, arg::Symbol) = get_arg(args, Val(arg))
 
 get_arg(args::Dict{Symbol,Any}, arg::Val{T}) where T = throw(ArgumentError(string("in init_lognormal, invalid key ", T, " found")))
 
-@get_arg :nb_of_coarse_dofs 4
+@get_arg :nb_of_coarse_dofs args[:index_set] isa SL ? 4*2^get_arg(args, :max_index_set_param) : 4
 
 @get_arg :covariance_function Matern(get_arg(args, :length_scale), get_arg(args, :smoothness))
 
@@ -72,4 +78,4 @@ get_arg(args::Dict{Symbol,Any}, arg::Val{T}) where T = throw(ArgumentError(strin
 @get_arg :damping 0.8
 
 # make sure all keys in args are valid keys for Estimator
-filter_keys!(args::Dict{Symbol, Any}) = isempty(args) || delete!.(Ref(args), [:nb_of_coarse_dofs, :covariance_function, :length_scale, :smoothness, :max_index_set_param, :grf_generator, :minpadding])
+filter_keys!(args::Dict{Symbol, Any}) = isempty(args) || delete!.(Ref(args), [:nb_of_coarse_dofs, :covariance_function, :length_scale, :smoothness, :max_index_set_param, :grf_generator, :minpadding, :index_set])

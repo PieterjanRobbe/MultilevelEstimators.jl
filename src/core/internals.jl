@@ -11,7 +11,7 @@ abstract type AbstractEstimatorInternals end
 struct EstimatorInternals{S, N, T, C, T1, T2} <: AbstractEstimatorInternals
     samples_diff::S
     samples::S
-    nsamples::N
+    nb_of_samples::N
     total_work::T
     current_index_set::C
 
@@ -44,8 +44,10 @@ abstract type AbstractSampleMethodInternals <: AbstractEstimatorInternals end
 
 struct EmptySampleMethodInternals <: AbstractSampleMethodInternals end
 
-struct QMCInternals{T} <: AbstractSampleMethodInternals
-    generators::T
+struct QMCInternals{T, G} <: AbstractSampleMethodInternals
+    sample_mul_factor::T
+    generators::G
+    nb_of_shifts::Function
 end
 
 SampleMethodInternals(::DataType, index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, settings::Dict{Symbol, Any}) = EmptySampleMethodInternals()
@@ -54,7 +56,8 @@ function SampleMethodInternals(type_i::DataType, index_set::AbstractIndexSet, sa
     type_l = typeof(ShiftedLatticeRule(settings[:point_generator]))
     type_v = Vector{type_l}
     type_g = Dict{type_i, type_v}
-    QMCInternals{type_g}(type_g())
+    σ = settings[:sample_mul_factor]
+    QMCInternals{typeof(σ), type_g}(σ, type_g(), settings[:nb_of_shifts])
 end
 
 ## IndexSetInternals ##
