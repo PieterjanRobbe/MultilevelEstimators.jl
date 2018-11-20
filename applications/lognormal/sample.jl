@@ -8,6 +8,7 @@
 function sample_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::GaussianRandomField, damping::Real)
 
     # sample grf
+	# TODO for QMC, reorden inputs!!!!
     Z = sample(grf, xi=view(x, 1:randdim(grf)))
     k = exp.(Z)
     sz = size(k).-1

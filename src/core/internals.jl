@@ -14,6 +14,7 @@ struct EstimatorInternals{S, N, T, C, T1, T2} <: AbstractEstimatorInternals
     nb_of_samples::N
     total_work::T
     current_index_set::C
+	cost_model::Function
 
     sample_method_internals::T1
     index_set_internals::T2
@@ -36,7 +37,7 @@ function EstimatorInternals(index_set::AbstractIndexSet, sample_method::Abstract
     index_set_internals = IndexSetInternals(type_c, type_n, index_set, sample_method, settings) 
     T2  = typeof(index_set_internals)
 
-    EstimatorInternals{type_s, type_n, type_t, type_c, T1, T2}(type_s(undef, m, n), type_s(undef, m, n), type_n(), type_t(), type_c(), sample_method_internals, index_set_internals)
+	EstimatorInternals{type_s, type_n, type_t, type_c, T1, T2}(type_s(undef, m, n), type_s(undef, m, n), type_n(), type_t(), type_c(), settings[:cost_model], sample_method_internals, index_set_internals)
 end
 
 ## SampleMethodInternals ##

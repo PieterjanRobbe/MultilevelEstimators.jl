@@ -24,7 +24,7 @@ function init_lognormal(index_set::AbstractIndexSet, sample_method::AbstractSamp
     sample_function = (index, x) -> sample_lognormal(index, x, grfs[index], get_arg(args, :damping))
 
     # distributions
-    s = min(3600, maximum(randdim.(collect(values(grfs)))))
+    s = maximum(randdim.(collect(values(grfs))))
     distributions = [Normal() for i in 1:s]
 
     # estimator
