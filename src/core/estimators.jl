@@ -31,7 +31,7 @@ function Estimator(index_set::AbstractIndexSet, sample_method::AbstractSampleMet
     # read optional arguments
     settings = Dict{Symbol,Any}(kwargs)
     check_valid_keys(settings, index_set, sample_method)
-    
+
     # default settings
     settings[:distributions] = distributions
     for key in valid_keys(index_set, sample_method)
@@ -41,7 +41,7 @@ function Estimator(index_set::AbstractIndexSet, sample_method::AbstractSampleMet
     # create options and internals
     options = EstimatorOptions(settings)
     internals = EstimatorInternals(index_set, sample_method, settings)
-    
+
     Estimator{typeof(index_set), typeof(sample_method), typeof(distributions), typeof(options), typeof(internals)}(index_set, sample_function, distributions, options, internals)
 end
 
@@ -76,7 +76,7 @@ push!(estimator::Estimator, index::Index) = push!(estimator.internals.current_in
 
 nb_of_warm_up_samples(estimator::Estimator) = estimator.options.nb_of_warm_up_samples
 
-contains_samples_at_index(estimator::Estimator, index::Index) = isdefined(estimator.internals.samples_diff, 1) && haskey(estimator.internals.samples_diff[1], index)
+contains_samples_at_index(estimator::Estimator, index::Index) = isassigned(estimator.internals.samples_diff, 1) && haskey(estimator.internals.samples_diff[1], index)
 
 total_work(estimator::Estimator) = estimator.internals.total_work
 total_work(estimator::Estimator, index::Index) = get(total_work(estimator), index, nothing)
@@ -98,18 +98,16 @@ name(estimator) = estimator.options.name # TODO automate?
 shortname(estimator) = first(split(estimator.options.name, "."))
 
 function add_index(estimator::Estimator, index::Index)
-	estimator.internals.nb_of_samples[index] = zero(valtype(nb_of_samples(estimator)))
-	estimator.internals.total_work[index] = zero(valtype(total_work(estimator)))
-    # samples ?
-    # samples_diff ?
-	for S in [samples_diff(estimator), samples(estimator)]
-		for q in 1:nb_of_qoi(estimator)
-			if !isdefined(S, q)
-				S[q] = eltype(S)()
-			end
-			S[q][index] = valtype(S[q])(undef, 0)
-		end
-	end
+    estimator.internals.nb_of_samples[index] = zero(valtype(nb_of_samples(estimator)))
+    estimator.internals.total_work[index] = zero(valtype(total_work(estimator)))
+    for S in [samples_diff(estimator), samples(estimator)]
+        for q in 1:nb_of_qoi(estimator)
+            if !isassigned(S, q)
+                S[q] = eltype(S)()
+            end
+            S[q][index] = valtype(S[q])(undef, 0)
+        end
+    end
 end
 
 distributions(estimator::Estimator) = estimator.distributions
@@ -134,8 +132,8 @@ samples_diff(estimator::Estimator) = estimator.internals.samples_diff
 samples_diff(estimator::Estimator{<:AbstractIndexSet, <:MC}, n_qoi::Integer) = getindex(samples_diff(estimator), n_qoi)
 samples_diff(estimator::Estimator{<:AbstractIndexSet, <:MC}, n_qoi::Integer, index::Index) = get(samples_diff(estimator, n_qoi), index, nothing)
 
-append_samples!(estimator::Estimator{<:AbstractIndexSet, <:MC}, n_qoi::Integer, index::Index, samples_to_append) = append!(samples(estimator, n_qoi, index), samples_to_append)
-append_samples_diff!(estimator::Estimator{<:AbstractIndexSet, <:MC}, n_qoi::Integer, index::Index, samples_to_append) = append!(samples_diff(estimator, n_qoi, index), samples_to_append)
+append_samples!(estimator::Estimator{<:AbstractIndexSet, <:MC}, n_qoi::Integer, index::Index, samples_to_append) = append!(estimator.internals.samples[n_qoi][index], samples_to_append)
+append_samples_diff!(estimator::Estimator{<:AbstractIndexSet, <:MC}, n_qoi::Integer, index::Index, samples_to_append) = append!(estimator.internals.samples_diff[n_qoi][index], samples_to_append)
 
 update_nb_of_samples!(estimator::Estimator, index::Index, nb_of_samples::Integer) = estimator.internals.nb_of_samples[index] += nb_of_samples
 
