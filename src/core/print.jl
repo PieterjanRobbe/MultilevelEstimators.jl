@@ -63,9 +63,6 @@ function print_status(estimator::Estimator)
         println(str)
     end
     table_hline(5)
-    display(samples_diff(estimator))
-    println("")
-    @show size(samples_diff(estimator)[1][Level(0)])
 end
 
 ## index or level ##
