@@ -50,6 +50,10 @@ Level(i) = Index(i)
 
 show(io::IO, level::Level) = print(io, level[1])
 
+isless(i::Integer, level::Level) = isless(i, level[1])
++(i::Integer, level::Level) = level .+ i
++(level::Level, i::Integer) = level .+ i
+
 ## difference ##
 function diff(index::Index{d}) where d
     D = Dict{Index{d}, Int}()

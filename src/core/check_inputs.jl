@@ -18,6 +18,10 @@ function check_larger_than(x, type_name, parameter_name, y)
     x > y || throw(ArgumentError(string("in ", type_name, ", ", parameter_name, " must be larger than ", y)))
 end
 
+function check_smaller_than(x, type_name, parameter_name, y)
+    x < y || throw(ArgumentError(string("in ", type_name, ", ", parameter_name, " must be smaller than ", y)))
+end
+
 check_positive(x, type_name, parameter_name) = check_larger_than(x, type_name, parameter_name, 0)
 
 function check_type(x, type_name, parameter_name, requested_type)

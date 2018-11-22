@@ -78,6 +78,8 @@ nb_of_warm_up_samples(estimator::Estimator) = estimator.options.nb_of_warm_up_sa
 
 contains_samples_at_index(estimator::Estimator, index::Index) = isassigned(estimator.internals.samples_diff, 1) && haskey(estimator.internals.samples_diff[1], index)
 
+max_level_where_samples_are_taken(estimator::Estimator) = maximum(keys(estimator.internals.samples[1]))
+
 total_work(estimator::Estimator) = estimator.internals.total_work
 total_work(estimator::Estimator, index::Index) = get(total_work(estimator), index, nothing)
 
@@ -140,3 +142,15 @@ update_nb_of_samples!(estimator::Estimator, index::Index, nb_of_samples::Integer
 update_total_work!(estimator::Estimator, index::Index, time::Real) = total_work(estimator)[index] += cost_model(estimator) isa EmptyFunction ? time : estimator.internals.cost_model(index)
 
 keys(estimator::Estimator) = sort(collect(estimator.internals.current_index_set))
+
+do_regression(estimator::Estimator) = estimator.internals.sample_method_internals.do_regression
+
+do_mse_splitting(estimator::Estimator) = estimator.options.do_mse_splitting
+
+splitting(estimator::Estimator) = estimator.options.splitting
+
+max_index_set_param(estimator::Estimator) = estimator.options.max_index_set_param
+
+robustify_bias_estimate(estimator::Estimator) = estimator.options.robustify_bias_estimate
+
+

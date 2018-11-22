@@ -108,7 +108,7 @@ function print_convergence(estimator::Estimator, converged::Bool)
     print_footer() 
 end
 
-## print sample! header ##
+## print_sample!_header ##
 print_sample!_header(estimator::Estimator, index::Index, n::Integer, warm_up::Bool) = println(string("Taking ", print_nb_of_samples(estimator, n), print_warm_up(Val(warm_up)), " sample", print_with_s(n), " at ", print_elname(estimator), " ", index, "..."))
 
 print_warm_up(::Val{true}) = " warm-up"
@@ -116,6 +116,25 @@ print_warm_up(::Val{false}) = " additional"
 
 print_with_s(n::Integer) = n > 1 ? "s" : ""
 
+## print_mse_analysis
+function print_mse_analysis(estimator::Estimator, ϵ::Real, θ::Real)
+	println("Checking convergence...")
+	print_rates(estimator)
+	println(string("  ==> Variance of the estimator ≈", long(varest(estimator)), "."))
+	println(string("  ==> Bias of the estimator ≈", long(bias(estimator)), "."))
+	println(string("  ==> Non-trivial MSE splitting parameter ≈", short(θ), "."))
+	if rmse(estimator) > ϵ
+		println(string("No convergence yet. RMSE ≈", long(rmse(estimator)), " > ", shorte(ϵ), "."))
+		println("Adding an extra level...")
+	end
+end
+
+function print_rates(estimator::Estimator{<:AbstractML})
+	str = string("  ==> Rates: α ≈", short(α(estimator)))
+	str = string(str, ", β ≈", short(β(estimator)))
+	str = string(str, ", γ ≈", short(γ(estimator)), ".")
+	println(str)
+end
 
 
 
@@ -157,19 +176,6 @@ function print_rates(estimator::Estimator{<:AbstractMI})
         ", γ ≈ (", join(short.(γ.(estimator,1:ndims(estimator))),","), ")."))
     end
 
-    # print MSE analysis
-    function print_mse_analysis(estimator::Estimator,ϵ::T where {T<:Real},θ::T where {T<:Real})
-        print_status(estimator)
-        println(string("Checking convergence..."))
-        print_rates(estimator)
-        println(string("  ==> Variance of the estimator ≈",@sprintf("%12.5e",varest(estimator)),"."))
-        println(string("  ==> Bias of the estimator ≈",@sprintf("%12.5e",bias(estimator)),"."))
-        θ != 1/2 && println(string("  ==> Non-trivial MSE splitting parameter ≈",@sprintf("%5.2f",θ),"."))
-        if rmse(estimator) > ϵ
-            println(string("No convergence yet. RMSE ≈",@sprintf("%12.5e",rmse(estimator))," > ",@sprintf("%9.3e",ϵ),"."))
-            println(string("Adding an extra level..."))
-        end
-    end
 
     # print QMC convergence
     function print_qmc_convergence(estimator::Estimator,ϵ::T where {T<:Real},θ::T where {T<:Real})

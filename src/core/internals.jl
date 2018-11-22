@@ -43,7 +43,9 @@ end
 ## SampleMethodInternals ##
 abstract type AbstractSampleMethodInternals <: AbstractEstimatorInternals end
 
-struct EmptySampleMethodInternals <: AbstractSampleMethodInternals end
+struct MCInternals <: AbstractSampleMethodInternals
+	do_regression::Bool
+end
 
 struct QMCInternals{T, G} <: AbstractSampleMethodInternals
     sample_mul_factor::T
@@ -51,7 +53,7 @@ struct QMCInternals{T, G} <: AbstractSampleMethodInternals
     nb_of_shifts::Function
 end
 
-SampleMethodInternals(::DataType, index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, settings::Dict{Symbol, Any}) = EmptySampleMethodInternals()
+SampleMethodInternals(::DataType, index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, settings::Dict{Symbol, Any}) = MCInternals(settings[:do_regression])
 
 function SampleMethodInternals(type_i::DataType, index_set::AbstractIndexSet, sample_method::QMC, settings::Dict{Symbol, Any})
     type_l = typeof(ShiftedLatticeRule(settings[:point_generator]))

@@ -8,7 +8,7 @@ module MultilevelEstimators
 using LinearAlgebra, SpecialFunctions, Distributed, Random, DelimitedFiles, Printf, Dates, Statistics
 
 # import statements
-import Base: show, diff, getindex, filter, ndims, eltype, run, push!, keys, zero
+import Base: show, diff, getindex, filter, ndims, eltype, run, push!, keys, zero, isless, +
 
 import Random: GLOBAL_RNG
 
@@ -57,6 +57,8 @@ include("core/sample.jl")
 include("core/run.jl")
 
 include("methods/monte_carlo.jl")
+
+include("methods/multilevel_monte_carlo.jl")
 
 #=
 

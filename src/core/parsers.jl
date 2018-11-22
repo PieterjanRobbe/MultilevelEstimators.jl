@@ -65,6 +65,15 @@ parse!(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, setting
           check_larger_than(to_string(key, val)..., 1))
        )
 
+## splitting ##
+@parse!(:splitting,
+        1/2,
+        :(check_type(to_string(key, val)..., Real);
+          check_finite(to_string(key, val)...);
+          check_larger_than(to_string(key, val)..., 0);
+		  check_smaller_than(to_string(key, val)..., 0))
+       )
+
 ## folder ##
 @parse!(:folder,
         pwd(),

@@ -1,62 +1,65 @@
-## multilevel_monte_carlo.jl : run Multilevel Monte Carlo estimator
+## multilevel_monte_carlo.jl : Multilevel Monte Carlo method
+#
+# Implementation of the Multilevel Monte Carlo method.
+#
+# This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
+# Carlo Methods (c) Pieterjan Robbe, 2018
 
 ## main routine ##
-function _run(estimator::Estimator{<:ML, <:_MC}, ϵ::T) where {T<:Real}
+function _run(estimator::Estimator{<:ML, <:MC}, ϵ::T where {T<:Real})
 
     # print status
-    estimator.verbose && print_header(estimator,ϵ)
+	verbose(estimator) && print_header(estimator, ϵ)
 
     # start level is 0
     level = Level(0)
 
-    # loop variables
-    converged = false
-    θ = 1/2
+    # MSE splitting parameter
+	θ = splitting(estimator)
 
     # main loop
-    while !converged 
+	while !converged(estimator, level, ϵ, θ) 
 
         # obtain initial variance estimate
-        N0 = estimator.nb_of_warm_up_samples
-        if !haskey(estimator.samples[1],level)
-            N0_ = ( level > (2,) && estimator.do_regression ) ? regress(estimator,level,ϵ,θ) : N0 # regression
-            sample!(estimator,level,N0_)
-        end
+		if !contains_samples_at_index(estimator, level)
+			if do_regression(estimator) &&  level > 2
+				n = regress_nb_of_samples(estimator, level, ϵ, θ)
+			else
+				n = nb_of_warm_up_samples(estimator)
+			end
+			sample!(estimator, level, n)
+		end
 
         # add new level to the index set
-        push!(estimator,level)
+        push!(estimator, level)
 
         # print status
-        estimator.verbose && print_status(estimator)
+		verbose(estimator) && print_status(estimator)
 
         # value of the MSE splitting parameter
-        θ = estimator.do_splitting ? compute_splitting(estimator,ϵ) : 1/2
+		θ = do_mse_splitting(estimator) ? compute_splitting(estimator, ϵ) : splitting(estimator)
 
         # evaluate optimal number of samples
-        all_sum = sum(sqrt.([var(estimator,level)*cost(estimator,level) for level in keys(estimator)])) 
-        n_opt = Dict(tau=>ceil.(Int,1/(θ*ϵ^2) * sqrt(var(estimator,tau)/cost(estimator,tau)) * all_sum) for tau in keys(estimator))
+		n_opt = Dict(τ => optimal_nb_of_samples(estimator, τ, ϵ, θ) for τ in keys(estimator))
 
         # print optimal number of samples
-        estimator.verbose && print_number_of_samples(estimator,n_opt)
+		verbose(estimator) && print_nb_of_samples(estimator, n_opt)
 
         # take additional samples
-        for tau in keys(estimator)
-            n_due = n_opt[tau] - estimator.nsamples[tau]
-            n_due > 0 && sample!(estimator,tau,n_due)
+        for τ in keys(estimator)
+			n_due = n_opt[τ] - nb_of_samples(estimator, τ)
+            n_due > 0 && sample!(estimator, τ, n_due)
         end
 
         # show status
-        estimator.verbose && print_mse_analysis(estimator,ϵ,θ)
-
-        # check convergence
-        converged = ( level >= (2,) ) && ( bias(estimator)^2 <= (1-θ)*ϵ^2 || mse(estimator) <= ϵ^2 )
+		verbose(estimator) && print_status(estimator) && print_mse_analysis(estimator, ϵ, θ)
 
         # increase level
-        level = level .+ 1
+        level = level + 1 
 
         # check if the new level exceeds the maximum level
-        if !converged && ( level > (estimator.max_level,) ) 
-            estimator.verbose && warn_max_level(estimator)
+		if !converged(estimator, level, ϵ, θ) && ( level > max_index_set_param(estimator) ) 
+			verbose(estimator) && warn_max_level(estimator)
             break
         end
     end
@@ -65,160 +68,90 @@ function _run(estimator::Estimator{<:ML, <:_MC}, ϵ::T) where {T<:Real}
     estimator.verbose && print_convergence(estimator,converged)
 end
 
-## Multilevel Monte Carlo parallel sampling ##
-function parallel_sample!(estimator::Estimator{<:AbstractIndexSet, <:_MC},index::Index,istart::N,iend::N) where {N<:Integer}
+## converged ##
+converged(estimator::Estimator, level::Level, ϵ::Real, θ::Real) = ( level ≥ 2 ) && ( bias(estimator)^2 ≤ (1-θ)*ϵ^2 || mse(estimator) ≤ ϵ^2 )
 
-    # parallel sampling
-    wp = CachingPool(workers())
-    f(i) = estimator.sample_function(index,get_point(estimator.number_generators[index],i),estimator.user_data)
-	t = @elapsed all_samples = pmap(f,wp,istart:iend,batch_size=ceil(Int,(iend-istart+1)/nworkers()), retry_delays = ExponentialBackOff(n = 3))
+## cost ##
+cost(estimator::Estimator, index::Index) = total_work(estimator, index)/nb_of_samples(estimator, index)
 
-    # extract samples
-    samples = last.(all_samples)
-    dsamples = first.(all_samples)
+## qoi_with_max_var ##
+qoi_with_max_var(estimator::Estimator{<:AbstractIndexSet, <:MC}) = argmax(map(q->sum(map(i->var(getindex(samples_diff(estimator, q), i)), keys(estimator))), 1:nb_of_qoi(estimator)))
 
-    # append samples
-    for n_qoi in 1:estimator.nb_of_qoi
-        append!(estimator.samples[n_qoi][index],getindex.(dsamples,n_qoi))
-        append!(estimator.samples0[n_qoi][index],getindex.(samples,n_qoi))
-    end
-    estimator.nsamples[index] += iend-istart+1
-    estimator.total_work[index] += estimator.use_cost_model ? (iend-istart+1)*estimator.cost_model(index) : t
+## mean and var at index ##
+for f in [:mean, :var]
+	eval(
+		 quote
+			 $f(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index) = $f(samples_diff(estimator, qoi_with_max_var(estimator), index))
+		 end)
 end
 
-## inspector functions ##
-cost(estimator::Estimator,index::Index) = estimator.total_work[index]/estimator.nsamples[index]
+## varest at index ##
+varest(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index) = var(estimator, index)/nb_of_samples(estimator, index)
 
-point_with_max_var(estimator::Estimator{<:AbstractIndexSet, <:_MC}) = argmax([ sum([var(estimator.samples[i][idx]) for idx in keys(estimator)]) for i in 1:estimator.nb_of_qoi ])
-
-for f in [:mean :var :skewness]
-    ex = :(
-           function $(f)(estimator::Estimator{<:AbstractIndexSet, <:_MC},index::Index)
-               idx = point_with_max_var(estimator)
-               $(f)(estimator.samples[idx][index])
-           end
-          )
-    eval(ex)
+## mean, var, varest ##
+for f in [:mean, :var, :varest]
+	eval(
+		 quote
+			 $f(estimator::Estimator{<:AbstractIndexSet, <:MC}) = sum($f(estimator, index) for index in keys(estimator))
+		 end)
 end
 
-for f in [:mean :var] # for samples0
-    ex = :(
-           function $(Symbol(f,0))(estimator::Estimator{<:AbstractIndexSet, <:_MC},index::Index)
-               idx = point_with_max_var(estimator)
-               $(f)(estimator.samples0[idx][index])
-           end
-          )
-    eval(ex)
-end
-
-for f in [:mean :var :skewness]
-    ex = :(
-           function $(f)(estimator::Estimator{<:AbstractIndexSet, <:_MC})
-               idx = point_with_max_var(estimator)
-               sum(Float64[$(f)(estimator.samples[idx][index]) for index in keys(estimator)])
-           end
-          )
-    eval(ex)
-end
-
-function varest(estimator::Estimator{<:AbstractIndexSet, <:SL}, index::Index)
-    n = estimator.nsamples[index]
-    var(estimator,index)/n 
-end
-
-function varest(estimator::Estimator{<:AbstractIndexSet, <:_MC})
-    idx = point_with_max_var(estimator)
-    sum([var(estimator.samples[idx][index])/estimator.nsamples[index] for index in keys(estimator)])
-end
-
-function moment(estimator::Estimator{<:AbstractIndexSet, <:_MC}, k::N where {N<:Integer},index::Index)
-    idx = point_with_max_var(estimator)
-    moment(estimator.samples[idx][index],k)
-end
-
-function moment(estimator::Estimator{<:AbstractIndexSet, <:_MC},k::N where {N<:Integer})
-    idx = point_with_max_var(estimator)
-    sum([moment(estimator.samples[idx][index],k) for index in keys(estimator)])
-end
-
-function bias(estimator::Estimator{<:ML}; use_maximum=false::Bool)
-    max_idx = use_maximum ? maximum(keys(estimator.samples[1])) : maximum(keys(estimator))
-    θ = α(estimator,both=true,conservative=estimator.conservative_bias_estimate,max_idx=max_idx)
-    2^(θ[1]+(max_idx[1]+1)*θ[2])
-end
-
+## MSE and RMSE ##
 mse(estimator::Estimator) = varest(estimator) + bias(estimator)^2
-
 rmse(estimator::Estimator) = sqrt(mse(estimator))
 
 ## rates ##
-function α(estimator::Estimator{<:ML}; both=false, conservative=true, max_idx=maximum(keys(estimator))::Level) # optional arguments account for regression, MSE splitting etc.
-    if max_idx < (2,)
-        return both ? [NaN, NaN] : NaN
-    else
-        x_start = conservative ? 1 : max_idx[1]-1
-        x = x_start:max_idx[1]
-        y = [mean(estimator,(i,)) for i in x]
-        θ = straight_line_fit(x,log2.(abs.(y)))
-        return both ? θ : -θ[2]
-    end
+function interp1(x::Vector{<:Real}, y::Vector{<:Real})
+	A = hcat(ones(eltype(x), length(x)), x)
+    A\y
 end
 
-function β(estimator::Estimator{<:ML}; both=false)
-    max_idx = maximum(keys(estimator))
-    if max_idx < (2,)
-        return both ? [NaN, NaN] : NaN
-    else
-        x = 1:max_idx[1]
-        y = Float64[]
-        for i in x
-            v = var(estimator,(i,))
-            if !isnan(v)
-                push!(y,v)
-            end
-        end
-        x = x[1:length(y)]
-        θ = straight_line_fit(x,log2.(y))
-        if length(x) < 2
-            return both ? [NaN, NaN] : NaN
-        else
-            return both ? θ : -θ[2]
-        end
-    end
+for (f, g, sgn) in zip((:α, :β, :γ), (:mean, :var, :cost), (-1, -1, 1))
+	eval(
+		 quote
+			 $f(estimator::Estimator{<:AbstractML}) = $sgn*$(Symbol("rates_", f))(estimator)[2]
+			 $(Symbol("rates_", f))(estimator::Estimator{<:AbstractML}) = $sgn*$(Symbol("rates_", f))(estimator, first(maximum(keys(estimator))))[2]
+			 $(Symbol("rates_", f))(estimator::Estimator{<:AbstractML}, max_level::Integer) = $(Symbol("rates_", f))(estimator, max_level-1, max_level)
+			 function $(Symbol("rates_", f))(estimator::Estimator{<:AbstractML}, start_level::Integer, max_level::Integer)
+				 if max_level < 2
+					 return (NaN, NaN)
+				 else
+					 x = 1:max_level
+					 y = map(xᵢ -> $g(estimator, Level(xᵢ)) for xᵢ in x)
+					 idcs = .!isnan.(y)
+					 θ = interp1(view(x, idcs), log2.(abs.(view(y, idcs))))
+					 return tuple(θ...)
+				 end
+			 end
+		 end)
 end
 
-function γ(estimator::Estimator{<:ML}; both=false)
-    max_idx = maximum(keys(estimator))
-    if max_idx < (2,)
-        return both ? [NaN, NaN] : NaN
-    else
-        x = 1:max_idx[1]
-        y = [cost(estimator,(i,)) for i in x]
-        θ = straight_line_fit(x,log2.(y))
-        return both ? θ : θ[2]
-    end
+## regression ##
+function regress_nb_of_samples(estimator::Estimator{<:ML, <:MC}, level::Level, ϵ::Real, θ::Real)
+    p1 = rates_β(estimator)
+    var_estimate = 2^(p1[1]+level[1]*p1[2])
+    p2 = rates_γ(estimator)
+    cost_estimate = 2^(p2[1]+level[1]*p2[2])
+	Σ_estimate = Σ(estimator)
+	Σ_estimate += sqrt(var_estimate * cost_estimate)
+	max(2, min(optimal_nb_of_samples(estimator, level, ϵ, θ), nb_of_warm_up_samples(estimator)))
 end
 
-function straight_line_fit(x::AbstractVector,y::AbstractVector)
-    X = ones(length(x),2)
-    X[:,2] = x
-    X\y
+## bias ##
+bias(estimator::Estimator{<:AbstractML}) = bias(estimator, maximum(keys(estimator)))
+function bias(estimator::Estimator{<:AbstractML}, max_level::Integer)
+	start_level = robustify_bias_estimate(estimator) ? 1 : max_level-1 
+	p = rates_α(estimator, start_level, max_level)
+    2^(p[1]+(max_level+1)*p[2])
 end
 
-# regression of optimal number of samples at unknown level
-function regress(estimator::Estimator{<:ML, <:_MC},level::Level,ϵ::T,θ::T) where {T<:Real}
-    p = β(estimator,both=true)
-    var_est = 2^(p[1]+level[1]*p[2])
-    p = γ(estimator,both=true)
-    cost_est = 2^(p[1]+level[1]*p[2])
-    all_sum = sum(sqrt.([var(estimator,level)*cost(estimator,level) for level in setdiff(keys(estimator),level)])) 
-    all_sum += sqrt(var_est*cost_est)
-    n_opt = ceil.(Int,1/(θ*ϵ^2) * sqrt(var_est/cost_est) * all_sum)
-    max(2,min(n_opt,estimator.nb_of_warm_up_samples))
+## compute optimal value of MSE splitting parameter ##
+function compute_splitting(estimator::Estimator, ϵ::Real)
+	bias_estimate = bias(estimator, max_level_where_samples_are_taken(estimator)[1])
+	θ = splitting(estimator)
+	isnan(bias_estimate) ? θ : min(0.99, max(θ, 1-bias_estimate^2/ϵ^2))
 end
 
-# compute optimal value of MSE splitting parameter
-function compute_splitting(estimator::Estimator,ϵ::T where {T<:Real})
-    bias_est = bias(estimator,use_maximum=true)
-    isnan(bias_est) ? 0.5 : min(0.99, max(1/2,1-bias_est^2/ϵ^2))
-end
+## optimal nb of samples ##
+Σ(estimator::Estimator) = sum(sqrt.(map(index -> var(estimator, index) * cost(estimator, index), keys(estimator))))
+optimal_nb_of_samples(estimator::Estimator, index::Index, ϵ::Real, θ::Real) = ceil(Int, 1/(θ*ϵ^2) * sqrt(var(estimator, index) / cost(estimator, index)) * Σ(estimator))
