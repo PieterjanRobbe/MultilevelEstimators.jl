@@ -118,22 +118,22 @@ print_with_s(n::Integer) = n > 1 ? "s" : ""
 
 ## print_mse_analysis
 function print_mse_analysis(estimator::Estimator, ϵ::Real, θ::Real)
-	println("Checking convergence...")
-	print_rates(estimator)
-	println(string("  ==> Variance of the estimator ≈", long(varest(estimator)), "."))
-	println(string("  ==> Bias of the estimator ≈", long(bias(estimator)), "."))
-	println(string("  ==> Non-trivial MSE splitting parameter ≈", short(θ), "."))
-	if rmse(estimator) > ϵ
-		println(string("No convergence yet. RMSE ≈", long(rmse(estimator)), " > ", shorte(ϵ), "."))
-		println("Adding an extra level...")
-	end
+    println("Checking convergence...")
+    print_rates(estimator)
+    println(string("  ==> Variance of the estimator ≈", long(varest(estimator)), "."))
+    println(string("  ==> Bias of the estimator ≈", long(bias(estimator)), "."))
+    println(string("  ==> Non-trivial MSE splitting parameter ≈ ", short(θ), "."))
+    if !converged(estimator, ϵ, θ) > ϵ
+        println(string("No convergence yet. RMSE ≈", long(rmse(estimator)), " > ", shorte(ϵ), "."))
+        println("Adding an extra level...")
+    end
 end
 
 function print_rates(estimator::Estimator{<:AbstractML})
-	str = string("  ==> Rates: α ≈", short(α(estimator)))
-	str = string(str, ", β ≈", short(β(estimator)))
-	str = string(str, ", γ ≈", short(γ(estimator)), ".")
-	println(str)
+    str = string("  ==> Rates: α ≈ ", short(α(estimator)))
+    str = string(str, ", β ≈ ", short(β(estimator)))
+    str = string(str, ", γ ≈ ", short(γ(estimator)), ".")
+    println(str)
 end
 
 

@@ -8,7 +8,7 @@ module MultilevelEstimators
 using LinearAlgebra, SpecialFunctions, Distributed, Random, DelimitedFiles, Printf, Dates, Statistics
 
 # import statements
-import Base: show, diff, getindex, filter, ndims, eltype, run, push!, keys, zero, isless, +
+import Base: show, diff, getindex, filter, ndims, eltype, run, push!, keys, zero, isless, >, <, ≥, ≤, +
 
 import Random: GLOBAL_RNG
 

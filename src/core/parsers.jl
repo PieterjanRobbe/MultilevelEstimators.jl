@@ -71,8 +71,8 @@ parse!(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, setting
         :(check_type(to_string(key, val)..., Real);
           check_finite(to_string(key, val)...);
           check_larger_than(to_string(key, val)..., 0);
-		  check_smaller_than(to_string(key, val)..., 0))
-       )
+          check_smaller_than_or_equal_to(to_string(key, val)..., 1))
+)
 
 ## folder ##
 @parse!(:folder,
@@ -117,7 +117,7 @@ struct EmptyFunction <: Function end
 @parse!(:cost_model,
         EmptyFunction(),
         check_type(to_string(key, val)..., Function)
-)
+       )
 
 ## robustify_bias_estimate ##
 @parse!(:robustify_bias_estimate,

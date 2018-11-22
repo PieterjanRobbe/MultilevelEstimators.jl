@@ -28,6 +28,7 @@ function run(estimator::Estimator, tols::AbstractVector{<:Real})
     # run the sequence of tolerances
     for tol in tols
         _run(estimator,tol)
+        clear(estimator)
         #push!(h,estimator,tol) # log the results in history
         #clear(estimator) # prepare new run 
     end

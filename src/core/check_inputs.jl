@@ -14,12 +14,11 @@ function check_ordered(a, b, type_name, parameter_name_1, parameter_name_2)
     a < b || throw(ArgumentError(string("in ", type_name, ", ", parameter_name_1, " must be smaller than ", parameter_name_2)))
 end
 
-function check_larger_than(x, type_name, parameter_name, y)
-    x > y || throw(ArgumentError(string("in ", type_name, ", ", parameter_name, " must be larger than ", y)))
-end
-
-function check_smaller_than(x, type_name, parameter_name, y)
-    x < y || throw(ArgumentError(string("in ", type_name, ", ", parameter_name, " must be smaller than ", y)))
+for (descr, sym) in zip(("larger than", "larger than or equal to", "smaller than", "smaller than or equal to"), (:>, :≥, :<, :≤))
+    eval(
+         quote
+             $(Symbol("check_", join(split(descr), "_")))(x, type_name, parameter_name, y) = $sym(x, y) || throw(ArgumentError(string("in ", type_name, ", ", parameter_name, " must be ", $descr, " ", y)))
+         end)
 end
 
 check_positive(x, type_name, parameter_name) = check_larger_than(x, type_name, parameter_name, 0)

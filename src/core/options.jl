@@ -13,8 +13,8 @@ struct EstimatorOptions{N<:Integer, T<:Real}
     nb_of_tols::N
 
     continuation_mul_factor::T
-	splitting::T
-    
+    splitting::T
+
     continuate::Bool
     save_samples::Bool
     robustify_bias_estimate::Bool

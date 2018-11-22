@@ -74,7 +74,6 @@ show(io::IO, estimator::Estimator{I,S}) where {I<:AbstractIndexSet, S<:AbstractS
 ## getters and setters ##
 push!(estimator::Estimator, index::Index) = push!(estimator.internals.current_index_set, index)
 
-nb_of_warm_up_samples(estimator::Estimator) = estimator.options.nb_of_warm_up_samples
 
 contains_samples_at_index(estimator::Estimator, index::Index) = isassigned(estimator.internals.samples_diff, 1) && haskey(estimator.internals.samples_diff[1], index)
 
@@ -89,13 +88,9 @@ nb_of_samples(estimator::Estimator, index::Index) = get(nb_of_samples(estimator)
 cost_model(estimator::Estimator) = estimator.internals.cost_model
 cost_model(estimator::Estimator, index::Index) = cost_model(estimator)(index)
 
-nb_of_workers(estimator::Estimator, index::Index) = estimator.options.nb_of_workers(index)
+nb_of_workers(estimator::Estimator, index::Index) = nb_of_workers(estimator)(index)
 
 nb_of_shifts(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index) = estimator.internals.nb_of_shifts(index)
-
-nb_of_qoi(estimator::Estimator) = estimator.options.nb_of_qoi
-
-name(estimator) = estimator.options.name # TODO automate?
 
 shortname(estimator) = first(split(estimator.options.name, "."))
 
@@ -116,13 +111,8 @@ distributions(estimator::Estimator) = estimator.distributions
 
 stochastic_dim(estimator::Estimator) = length(distributions(estimator::Estimator))
 
-nb_of_tols(estimator::Estimator) = estimator.options.nb_of_tols
 
-continuation_mul_factor(estimator::Estimator) = estimator.options.continuation_mul_factor
 
-continuate(estimator::Estimator) = estimator.options.continuate
-
-verbose(estimator::Estimator) = estimator.options.verbose
 
 get_tols(estimator::Estimator, tol::T) where T<:Real = continuate(estimator) ? continuation_mul_factor(estimator).^(nb_of_tols(estimator)-1:-1:0)*tol : T[tol] 
 
@@ -141,16 +131,25 @@ update_nb_of_samples!(estimator::Estimator, index::Index, nb_of_samples::Integer
 
 update_total_work!(estimator::Estimator, index::Index, time::Real) = total_work(estimator)[index] += cost_model(estimator) isa EmptyFunction ? time : estimator.internals.cost_model(index)
 
-keys(estimator::Estimator) = sort(collect(estimator.internals.current_index_set))
+keys(estimator::Estimator) = sort(collect(current_index_set(estimator)))
+
+current_index_set(estimator::Estimator) = estimator.internals.current_index_set
 
 do_regression(estimator::Estimator) = estimator.internals.sample_method_internals.do_regression
 
-do_mse_splitting(estimator::Estimator) = estimator.options.do_mse_splitting
-
-splitting(estimator::Estimator) = estimator.options.splitting
-
-max_index_set_param(estimator::Estimator) = estimator.options.max_index_set_param
-
-robustify_bias_estimate(estimator::Estimator) = estimator.options.robustify_bias_estimate
 
 
+function clear(estimator::Estimator)
+    for index in keys(estimator)
+        delete!(current_index_set(estimator), index)
+    end
+end
+
+
+
+for f in fieldnames(EstimatorOptions)
+    eval(
+         quote
+             $f(estimator::Estimator) = estimator.options.$f
+         end)
+end
