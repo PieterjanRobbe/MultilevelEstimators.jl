@@ -20,7 +20,7 @@ function FMG!(mg::MultigridIterable, grid_ptr::Int)
     else
         grids[grid_ptr+1].b .= grids[grid_ptr].R*grids[grid_ptr].b
         sol = FMG!(mg, grid_ptr+1)
-        grids[grid_ptr].x .= P(Cubic(), grids[grid_ptr+1].sz...)*grids[grid_ptr+1].x
+        grids[grid_ptr].x .= P(SimpleMultigrid.Cubic(), grids[grid_ptr+1].sz...)*grids[grid_ptr+1].x
     end
     ν₀= 0
     while norm_of_residu(grids[grid_ptr]) >= 1/prod(grids[grid_ptr].sz) && ν₀ < 15

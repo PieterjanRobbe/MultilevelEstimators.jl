@@ -5,10 +5,10 @@
 module MultilevelEstimators
 
 # dependencies
-using LinearAlgebra, SpecialFunctions, Distributed, Random, DelimitedFiles, Printf, Dates, Statistics
+using LinearAlgebra, SpecialFunctions, Distributed, Random, DelimitedFiles, Printf, Dates, Statistics, JLD, Colors
 
 # import statements
-import Base: show, diff, getindex, filter, ndims, eltype, run, push!, keys, zero, isless, >, <, ≥, ≤, +
+import Base: show, diff, getindex, filter, ndims, eltype, run, push!, keys, zero, isless, >, <, ≥, ≤, +, length, one
 
 import Random: GLOBAL_RNG
 
@@ -28,6 +28,8 @@ export Estimator
 export LatticeRule32
 
 export run
+
+export report
 
 # include statements
 include("core/check_inputs.jl")
@@ -54,11 +56,17 @@ include("core/print.jl")
 
 include("core/sample.jl")
 
+include("core/history.jl")
+
 include("core/run.jl")
 
 include("methods/monte_carlo.jl")
 
 include("methods/multilevel_monte_carlo.jl")
+
+include("utils/report.jl")
+
+include("utils/tex.jl")
 
 #=
 

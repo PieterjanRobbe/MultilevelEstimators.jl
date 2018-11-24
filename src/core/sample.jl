@@ -14,6 +14,7 @@ function sample!(estimator::Estimator, index::Index, n::Integer)
     update_total_work!(estimator, index, t)
 end
 
+## sample for MC index sets ##
 function parallel_sample!(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index, Istart::Integer, Iend::Integer)
 
     f(i) = estimator.sample_function(index, transform.(distributions(estimator), rand(stochastic_dim(estimator))))

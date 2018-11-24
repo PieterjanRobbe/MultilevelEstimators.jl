@@ -21,7 +21,9 @@ function init_lognormal(index_set::AbstractIndexSet, sample_method::AbstractSamp
     grfs = Dict(index => compute_grf(cov_fun, grf_generator, m0, index, p) for index in indices)
 
     # sample function
-    sample_function = (index, x) -> sample_lognormal(index, x, grfs[index], get_arg(args, :damping))
+    damping = get_arg(args, :damping)
+    qoi = get_arg(args, :qoi)
+    sample_function = (index, x) -> sample_lognormal(index, x, grfs[index], damping, qoi)
 
     # distributions
     s = maximum(randdim.(collect(values(grfs))))
@@ -77,5 +79,15 @@ get_arg(args::Dict{Symbol,Any}, arg::Val{T}) where T = throw(ArgumentError(strin
 
 @get_arg :damping 0.8
 
+abstract type AbstractQoi end
+
+struct Qoi1 <:AbstractQoi end
+
+struct Qoi2 <:AbstractQoi end
+
+struct Qoi3 <:AbstractQoi end
+
+@get_arg :qoi Qoi1()
+
 # make sure all keys in args are valid keys for Estimator
-filter_keys!(args::Dict{Symbol, Any}) = isempty(args) || delete!.(Ref(args), [:nb_of_coarse_dofs, :covariance_function, :length_scale, :smoothness, :max_index_set_param, :grf_generator, :minpadding, :index_set])
+filter_keys!(args::Dict{Symbol, Any}) = isempty(args) || delete!.(Ref(args), [:nb_of_coarse_dofs, :covariance_function, :length_scale, :smoothness, :max_index_set_param, :grf_generator, :minpadding, :index_set, :qoi])

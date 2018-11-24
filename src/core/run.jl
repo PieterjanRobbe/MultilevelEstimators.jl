@@ -1,6 +1,6 @@
 ## run.jl : entry point method for simulating an Estimator
 #
-# Runs the Estimator for the given tolerance, and logs a History entry.
+# Runs the Estimator for the given tolerance, and returns a History object.
 #
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
 # Carlo Methods (c) Pieterjan Robbe, 2018
@@ -20,20 +20,19 @@ julia>
 function run(estimator::Estimator, tols::AbstractVector{<:Real})
 
     # input checking
-	all(tols.>0) || throw(ArgumentError(string("supplied tolerance(s) must be positive, got ", tols)))
+    all(tols.>0) || throw(ArgumentError(string("supplied tolerance(s) must be positive, got ", tols)))
 
     # make history
-    #h = History()
+    history = History()
 
     # run the sequence of tolerances
     for tol in tols
         _run(estimator,tol)
-        clear(estimator)
-        #push!(h,estimator,tol) # log the results in history
-        #clear(estimator) # prepare new run 
+        push!(history, estimator, tol) # log the results in history
+        clear(estimator) # prepare new run
     end
 
-    #return h
+    return history
 end
 
 run(estimator::Estimator, tol::Real) = run(estimator, get_tols(estimator, tol))

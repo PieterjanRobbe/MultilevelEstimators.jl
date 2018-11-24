@@ -31,6 +31,6 @@ end
 EstimatorOptions(settings::Dict{Symbol,Any}) = 
 EstimatorOptions(
                  promote([settings[name] for name in fieldnames(EstimatorOptions)[1:4]]...)..., # promotion of N
-                 promote([settings[name] for name in fieldnames(EstimatorOptions)[5:5]]...)..., # promotion of T
-                 [settings[name] for name in fieldnames(EstimatorOptions)[6:end]]... # other fields
+                 promote([settings[name] for name in fieldnames(EstimatorOptions)[5:6]]...)..., # promotion of T
+                 [settings[name] for name in fieldnames(EstimatorOptions)[7:end]]... # other fields
                 )

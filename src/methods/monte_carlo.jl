@@ -4,9 +4,10 @@
 #
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
 # Carlo Methods (c) Pieterjan Robbe, 2018
+
 # TODO how to make comparison with QMC method?
 #  - implement as qmc, with MersenneTwister and deticated var functions?
-#  - deticated method?
+#  - dedicated method?
 
 ## main routine ##
 function _run(estimator::Estimator{<:SL, <:MC}, ϵ::T where {T<:Real})
@@ -38,6 +39,15 @@ function _run(estimator::Estimator{<:SL, <:MC}, ϵ::T where {T<:Real})
 
     # print convergence status
     verbose(estimator) && print_convergence(estimator, true)
+end
+
+## rates ##
+for f in (:α, :β, :γ)
+    eval(
+         quote 
+             $f(estimator::Estimator{<:SL}) = nothing
+         end
+        )
 end
 
 ## bias ##

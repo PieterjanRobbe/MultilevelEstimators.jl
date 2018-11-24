@@ -1,65 +1,67 @@
-## history.jl : store general info about an estimator
+## history.jl : a history object for bookkeeping
+#
+# A history object contains bookkeeping data for multilevel estimators.
+#
+# This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
+# Carlo Methods (c) Pieterjan Robbe, 2018
 
-mutable struct History{N<:Integer}
-    iter::N
-    time_stamp::DateTime
-    data::Vector{Dict{Symbol, Any}}
+## History ##
+mutable struct History{T}
+    t_start::DateTime
+    data::T
 end
 
-History() = History(0,now(),Dict{Symbol,Any}[])
+History() = History(now(), Vector{Dict{Symbol, Any}}(undef, 0))
 
-function push!(h::History, estimator::Estimator,tol::T where {T<:Real})
-    old_time_stamp = h.time_stamp
+function push!(history::History, estimator::Estimator, tol::Real)
+    h = Dict{Symbol, Any}()
+    h[:type]          = typeof(estimator)
+    h[:ndims]         = ndims(estimator.index_set)
+    h[:name]          = name(estimator)
+    h[:folder]        = folder(estimator)
+    h[:time_stamp]    = now()
+    h[:tol]           = tol
+    h[:index_set]     = keys(estimator)
+    h[:mse]           = mse(estimator)
+    h[:rmse]          = rmse(estimator)
+    h[:mean]          = mean(estimator)
+    h[:var]           = var(estimator)
+    h[:varest]        = varest(estimator)
+    h[:bias]          = bias(estimator)
+    h[:E]             = apply_f(estimator, mean0)
+    h[:V]             = apply_f(estimator, var0)
+    h[:dE]            = apply_f(estimator, mean)
+    h[:dV]            = apply_f(estimator, var)
+    h[:W]             = apply_f(estimator, cost)
+    h[:α]             = α(estimator)
+    h[:β]             = β(estimator)
+    h[:γ]             = γ(estimator)
+    h[:nb_of_samples] = copy(nb_of_samples(estimator)) 
 
-    h.iter += 1 # add extra iteration
-    h.time_stamp = now() # update time stamp
-    push!(h.data,Dict{Symbol,Any}()) # add empty Dict
-
-    # log all keys
-    h[:name] = estimator.name
-    h[:tol] = tol
-    h[:index_set] = keys(estimator)
-    h[:folder] = estimator.folder
-    h[:runtime] = Dates.value(h.time_stamp - old_time_stamp)/1e3 # milliseconds
-    h[:cost] = sum([estimator.nb_of_shifts*estimator.nsamples[index]*cost(estimator,index) for index in keys(estimator)])
-    h[:nsamples] = [estimator.nb_of_shifts*estimator.nsamples[index] for index in keys(estimator)]
-    h[:nb_of_shifts] = estimator.nb_of_shifts
-    h[:mse] = mse(estimator)
-    h[:rmse] = rmse(estimator)
-    h[:mean] = mean(estimator)
-    h[:var] = var(estimator)
-    h[:varest] = varest(estimator)
-    h[:bias] = bias(estimator)
-    h[:E] = [mean0(estimator,index) for index in keys(estimator)]
-    h[:V] = [var0(estimator,index) for index in keys(estimator)]
-    h[:dE] = [mean(estimator,index) for index in keys(estimator)]
-    h[:dV] = [var(estimator,index) for index in keys(estimator)]
-    h[:W] = [cost(estimator,index) for index in keys(estimator)]
-    h[:α] = α(estimator)
-    h[:β] = β(estimator)
-    h[:γ] = γ(estimator)
-    if estimator.store_samples
-        h[:samples] = estimator.samples
+    # save samples if required
+    if save_samples(estimator)
+        h[:samples] = samples(estimator)
+        h[:samples_diff] = samples_diff(estimator)
     end
-    h[:ndims] = ndims(estimator)
-	h[:method] = estimator.method
-	h[:adaptive_index_set] = estimator.adaptive_index_set
 
-    # save
-    save(h)
+    push!(history.data, h)
+
+    # save history
+    save(history)
 end
 
-# save history
-save(h::History) = 
-jldopen(string(h[:folder],"history.jld"), "w") do file
+apply_f(estimator::Estimator, f::Function) = Dict(i => f(estimator, i) for i in keys(estimator))
+
+## save history ##
+save(history::History) = jldopen(joinpath(history[:folder], history[:name]), "w") do file
     addrequire(file, MultilevelEstimators)
-    write(file, "history", h)
+    write(file, "history", history)
 end
 
-# convenience functions
-setindex!(h::History, val, s::Symbol) = h.data[h.iter][s] = val
-getindex(h::History, s::Symbol) = h.data[h.iter][s]
-getindex(h::History, i::N where {N<:Int}) = h.data[i]
+## convenience functions ##
+getindex(history::History, s::Symbol) = history.data[end][s]
+getindex(history::History, i::Integer) = history.data[i]
+length(history::History) = length(history.data)
 
-# show methods
+## show ##
 show(io::IO, history::History) = print(io, "MultilevelEstimators.jl history file")

@@ -82,6 +82,14 @@ qoi_with_max_var(estimator::Estimator{<:AbstractIndexSet, <:MC}) = argmax(map(q-
 for f in [:mean, :var]
     eval(
          quote
+             $(Symbol(f, 0))(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index) = $f(samples(estimator, qoi_with_max_var(estimator), index))
+         end)
+end
+
+## mean and var at index ##
+for f in [:mean, :var]
+    eval(
+         quote
              $f(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index) = $f(samples_diff(estimator, qoi_with_max_var(estimator), index))
          end)
 end

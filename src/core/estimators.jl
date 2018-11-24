@@ -85,7 +85,6 @@ total_work(estimator::Estimator, index::Index) = get(total_work(estimator), inde
 nb_of_samples(estimator::Estimator) = estimator.internals.nb_of_samples
 nb_of_samples(estimator::Estimator, index::Index) = get(nb_of_samples(estimator), index, 0)
 
-cost_model(estimator::Estimator) = estimator.internals.cost_model
 cost_model(estimator::Estimator, index::Index) = cost_model(estimator)(index)
 
 nb_of_workers(estimator::Estimator, index::Index) = nb_of_workers(estimator)(index)
