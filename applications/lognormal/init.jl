@@ -90,4 +90,4 @@ struct Qoi3 <:AbstractQoi end
 @get_arg :qoi Qoi1()
 
 # make sure all keys in args are valid keys for Estimator
-filter_keys!(args::Dict{Symbol, Any}) = isempty(args) || delete!.(Ref(args), [:nb_of_coarse_dofs, :covariance_function, :length_scale, :smoothness, :max_index_set_param, :grf_generator, :minpadding, :index_set, :qoi])
+filter_keys!(args::Dict{Symbol, Any}) = isempty(args) || delete!.(Ref(args), [:nb_of_coarse_dofs, :covariance_function, :length_scale, :smoothness, :grf_generator, :minpadding, :index_set, :qoi])

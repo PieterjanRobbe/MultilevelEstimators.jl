@@ -34,3 +34,5 @@ function parallel_sample!(estimator::Estimator{<:AbstractIndexSet, <:MC}, index:
         append_samples!(estimator, n_qoi, index, getindex.(s, n_qoi))
     end
 end
+
+## sample for QMC index sets ##

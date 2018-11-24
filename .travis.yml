@@ -2,29 +2,20 @@
 language: julia
 os:
   - linux
+  - osx
 julia:
-  - 0.6
+  - 0.7
+  - 1.0
   - nightly
-matrix:
-  - PYTHON=Conda-python
 matrix:
   allow_failures:
     - julia: nightly
+env:
+  - PYTHON=""
 notifications:
   email: false
-addons:
-  apt:
-    update: true
-sudo: required
-before_script:
-  - julia -e 'Pkg.clone("https://github.com/PieterjanRobbe/QMC.jl")'
-  - if [ $TRAVIS_JULIA_VERSION = "0.6" ]; then export JULIA_LOAD_PATH=$JULIA_LOAD_PATH:~/.julia/v$TRAVIS_JULIA_VERSION/QMC; fi
-script:
-  - if [ $TRAVIS_JULIA_VERSION = "0.6" ]; then export LD_LIBRARY_PATH=$HOME/.julia/v0.6/Conda/deps/usr/lib; LD_PRELOAD=${HOME}/.julia/v0.6/Conda/deps/usr/lib/libz.so julia -e 'Pkg.clone(pwd());Pkg.test("MultilevelEstimators"; coverage=true);'; fi
-before_install:
-  - julia -e 'ENV["PYTHON"]=""; Pkg.add("Conda"); using Conda; Conda.update(); Conda.add("matplotlib"); Pkg.add("PyCall"); Pkg.build("PyCall"); Pkg.add("PyPlot");'
 after_success:
   # push coverage results to Coveralls
-  - julia -e 'cd(Pkg.dir("MultilevelEstimators")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(Coveralls.process_folder())'
+  - julia -e 'using Pkg; cd(Pkg.dir("MultilevelEstimators")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(process_folder())'
   # push coverage results to Codecov
-  - julia -e 'cd(Pkg.dir("MultilevelEstimators")); Pkg.add("Coverage"); using Coverage; Codecov.submit(Codecov.process_folder())'
+  - julia -e 'using Pkg; cd(Pkg.dir("MultilevelEstimators")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'

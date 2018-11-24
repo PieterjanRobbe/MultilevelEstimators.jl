@@ -71,19 +71,26 @@ valid_keys(::MG{<:AD}) = [:sample_mul_factor, :max_search_space]
 ## print methods ##
 show(io::IO, estimator::Estimator{I,S}) where {I<:AbstractIndexSet, S<:AbstractSampleMethod} = print(io, string("Estimator{", estimator.index_set, ", ", S, "}"))
 
-## getters and setters ##
-push!(estimator::Estimator, index::Index) = push!(estimator.internals.current_index_set, index)
+## getters for options ##
+for f in fieldnames(EstimatorOptions)
+    eval(
+         quote
+             $f(estimator::Estimator) = estimator.options.$f
+         end)
+end
 
-
+## getters and setters for internals ##
 contains_samples_at_index(estimator::Estimator, index::Index) = isassigned(estimator.internals.samples_diff, 1) && haskey(estimator.internals.samples_diff[1], index)
 
 max_level_where_samples_are_taken(estimator::Estimator) = maximum(keys(estimator.internals.samples[1]))
 
 total_work(estimator::Estimator) = estimator.internals.total_work
 total_work(estimator::Estimator, index::Index) = get(total_work(estimator), index, nothing)
+update_total_work!(estimator::Estimator, index::Index, time::Real) = total_work(estimator)[index] += cost_model(estimator) isa EmptyFunction ? time : estimator.internals.cost_model(index)
 
 nb_of_samples(estimator::Estimator) = estimator.internals.nb_of_samples
 nb_of_samples(estimator::Estimator, index::Index) = get(nb_of_samples(estimator), index, 0)
+update_nb_of_samples!(estimator::Estimator, index::Index, nb_of_samples::Integer) = estimator.internals.nb_of_samples[index] += nb_of_samples
 
 cost_model(estimator::Estimator, index::Index) = cost_model(estimator)(index)
 
@@ -93,25 +100,9 @@ nb_of_shifts(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index) = es
 
 shortname(estimator) = first(split(estimator.options.name, "."))
 
-function add_index(estimator::Estimator, index::Index)
-    estimator.internals.nb_of_samples[index] = zero(valtype(nb_of_samples(estimator)))
-    estimator.internals.total_work[index] = zero(valtype(total_work(estimator)))
-    for S in [samples_diff(estimator), samples(estimator)]
-        for q in 1:nb_of_qoi(estimator)
-            if !isassigned(S, q)
-                S[q] = eltype(S)()
-            end
-            S[q][index] = valtype(S[q])(undef, 0)
-        end
-    end
-end
-
 distributions(estimator::Estimator) = estimator.distributions
 
 stochastic_dim(estimator::Estimator) = length(distributions(estimator::Estimator))
-
-
-
 
 get_tols(estimator::Estimator, tol::T) where T<:Real = continuate(estimator) ? continuation_mul_factor(estimator).^(nb_of_tols(estimator)-1:-1:0)*tol : T[tol] 
 
@@ -126,29 +117,31 @@ samples_diff(estimator::Estimator{<:AbstractIndexSet, <:MC}, n_qoi::Integer, ind
 append_samples!(estimator::Estimator{<:AbstractIndexSet, <:MC}, n_qoi::Integer, index::Index, samples_to_append) = append!(estimator.internals.samples[n_qoi][index], samples_to_append)
 append_samples_diff!(estimator::Estimator{<:AbstractIndexSet, <:MC}, n_qoi::Integer, index::Index, samples_to_append) = append!(estimator.internals.samples_diff[n_qoi][index], samples_to_append)
 
-update_nb_of_samples!(estimator::Estimator, index::Index, nb_of_samples::Integer) = estimator.internals.nb_of_samples[index] += nb_of_samples
-
-update_total_work!(estimator::Estimator, index::Index, time::Real) = total_work(estimator)[index] += cost_model(estimator) isa EmptyFunction ? time : estimator.internals.cost_model(index)
-
 keys(estimator::Estimator) = sort(collect(current_index_set(estimator)))
 
 current_index_set(estimator::Estimator) = estimator.internals.current_index_set
 
 do_regression(estimator::Estimator) = estimator.internals.sample_method_internals.do_regression
 
-
-
+## clear ##
 function clear(estimator::Estimator)
     for index in keys(estimator)
         delete!(current_index_set(estimator), index)
     end
 end
 
+## push index to estimator ##
+push!(estimator::Estimator, index::Index) = push!(estimator.internals.current_index_set, index)
 
-
-for f in fieldnames(EstimatorOptions)
-    eval(
-         quote
-             $f(estimator::Estimator) = estimator.options.$f
-         end)
+function add_index(estimator::Estimator, index::Index) # this is called in "sample"
+    estimator.internals.nb_of_samples[index] = zero(valtype(nb_of_samples(estimator)))
+    estimator.internals.total_work[index] = zero(valtype(total_work(estimator)))
+    for S in [samples_diff(estimator), samples(estimator)]
+        for q in 1:nb_of_qoi(estimator)
+            if !isassigned(S, q)
+                S[q] = eltype(S)()
+            end
+            S[q][index] = valtype(S[q])(undef, 0)
+        end
+    end
 end
