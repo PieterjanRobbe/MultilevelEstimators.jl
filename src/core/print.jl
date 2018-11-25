@@ -134,3 +134,6 @@ function print_rates(estimator::Estimator{<:AbstractML})
     str = string(str, ", γ ≈ ", short(γ(estimator)), ".")
     println(str)
 end
+
+## warning when max level is reached ##
+warn_max_level(estimator::Estimator{<:AbstractML}) = @warn string("maximum level L = ", max_index_set_param(estimator), " reached, no convergence")
