@@ -136,4 +136,4 @@ function print_rates(estimator::Estimator{<:AbstractML})
 end
 
 ## warning when max level is reached ##
-warn_max_level(estimator::Estimator{<:AbstractML}) = @warn string("maximum level L = ", max_index_set_param(estimator), " reached, no convergence")
+warn_max_level(estimator::Estimator{<:AbstractML}) = @warn string("Maximum level L = ", max_index_set_param(estimator), " reached, no convergence yet.")

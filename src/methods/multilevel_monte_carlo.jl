@@ -12,28 +12,27 @@ function _run(estimator::Estimator{<:ML, <:MC}, ϵ::T where {T<:Real})
     verbose(estimator) && print_header(estimator, ϵ)
 
     # start level is 0
-    set_sz(estimator, 0)
+    level = 0
 
     # MSE splitting parameter
     θ = splitting(estimator)
 
     # main loop
-    while sz(estimator) ≤ 2 || !converged(estimator, ϵ, θ)
-
-        level = Level(sz(estimator))
+    while level ≤ 2 || !converged(estimator, ϵ, θ)
 
         # obtain initial variance estimate
-        if !contains_samples_at_index(estimator, level)
+        if !contains_samples_at_index(estimator, Level(level))
             if do_regression(estimator) && level > 2
-                n = regress_nb_of_samples(estimator, level, ϵ, θ)
+                n = regress_nb_of_samples(estimator, Level(level), ϵ, θ)
             else
                 n = nb_of_warm_up_samples(estimator)
             end
-            sample!(estimator, level, n)
+            sample!(estimator, Level(level), n)
         end
 
         # add new level to the index set
-        push!(estimator, level)
+        push!(estimator, Level(level))
+        set_sz(estimator, level)
 
         # print status
         verbose(estimator) && print_status(estimator)
@@ -57,14 +56,14 @@ function _run(estimator::Estimator{<:ML, <:MC}, ϵ::T where {T<:Real})
         verbose(estimator) && print_status(estimator)
         verbose(estimator) && level ≥ 2 && print_mse_analysis(estimator, ϵ, θ)
 
-        # increase level
-        add_sz(estimator)
-
         # check if the new level exceeds the maximum level
-        if !converged(estimator, ϵ, θ) && ( sz(estimator) > max_index_set_param(estimator) ) 
+        if !converged(estimator, ϵ, θ) && ( sz(estimator) ≥ max_index_set_param(estimator) ) 
             verbose(estimator) && warn_max_level(estimator)
             break
         end
+
+        # update level
+        level += 1
     end
 
     # print convergence status
@@ -121,7 +120,7 @@ for (f, g, sgn) in zip((:α, :β, :γ), (:mean, :var, :cost), (-1, -1, 1))
     eval(
          quote
              $f(estimator::Estimator{<:AbstractML}) = $sgn*$(Symbol("rates_", f))(estimator)[2]
-             $(Symbol("rates_", f))(estimator::Estimator{<:AbstractML}) = $(Symbol("rates_", f))(estimator, first(keys(estimator)[1]))
+             $(Symbol("rates_", f))(estimator::Estimator{<:AbstractML}) = $(Symbol("rates_", f))(estimator, sz(estimator))
              $(Symbol("rates_", f))(estimator::Estimator{<:AbstractML}, max_level::Integer) = $(Symbol("rates_", f))(estimator, max_level-1, max_level)
              function $(Symbol("rates_", f))(estimator::Estimator{<:AbstractML}, start_level::Integer, max_level::Integer)
                  if max_level < 2
@@ -149,11 +148,11 @@ function regress_nb_of_samples(estimator::Estimator{<:ML, <:MC}, level::Level, �
 end
 
 ## bias ##
-bias(estimator::Estimator{<:AbstractML}) = bias(estimator, first(keys(estimator)[1]))
-function bias(estimator::Estimator{<:AbstractML}, max_level::Integer)
-    start_level = robustify_bias_estimate(estimator) ? 1 : max_level-1 
-    p = rates_α(estimator, start_level, max_level)
-    2^(p[1]+(max_level+1)*p[2])
+bias(estimator::Estimator{<:AbstractML}) = bias(estimator, sz(estimator))
+function bias(estimator::Estimator{<:AbstractML}, sz::Integer)
+    start_level = robustify_bias_estimate(estimator) ? 1 : sz - 1 
+    p = rates_α(estimator, start_level, sz)
+    2^(p[1]+(sz+1)*p[2])
 end
 
 ## compute optimal value of MSE splitting parameter ##

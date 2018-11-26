@@ -126,9 +126,8 @@ get_index_set(estimator::Estimator, level) = get_index_set(estimator.index_set, 
 boundary(estimator::Estimator{<:AbstractMI}, cntr) = setdiff(get_index_set(estimator, cntr), get_index_set(estimator, cntr-1))
 
 sz(estimator::Estimator) = estimator.internals.index_set_size.sz
-set_sz(estimator::Estimator, n) = estimator.internals.index_set_size.sz = n
-function add_sz(estimator::Estimator)
-    estimator.internals.index_set_size.sz += 1
+function set_sz(estimator::Estimator, n)
+    estimator.internals.index_set_size.sz = n
     estimator.internals.index_set_size.max_sz = max(sz(estimator), max_sz(estimator))
 end
 max_sz(estimator::Estimator) = estimator.internals.index_set_size.max_sz
