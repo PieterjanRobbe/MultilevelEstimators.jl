@@ -5,34 +5,39 @@
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
 # Carlo Methods (c) Pieterjan Robbe, 2018
 
-## main routine ##
-function _run(estimator::Estimator{<:ML, <:MC}, ϵ::T where {T<:Real})
+## Main routine ##
+function _run(estimator::Estimator{T1, <:MC}, ϵ::T where {T<:Real}) where T1<:Union{ML, MI}
 
     # print status
     verbose(estimator) && print_header(estimator, ϵ)
 
     # start level is 0
-    level = 0
+    L = 0
 
     # MSE splitting parameter
     θ = splitting(estimator)
 
     # main loop
-    while level ≤ 2 || !converged(estimator, ϵ, θ)
+    while L ≤ 2 || !converged(estimator, ϵ, θ)
 
         # obtain initial variance estimate
-        if !contains_samples_at_index(estimator, Level(level))
-            if do_regression(estimator) && level > 2
-                n = regress_nb_of_samples(estimator, Level(level), ϵ, θ)
-            else
-                n = nb_of_warm_up_samples(estimator)
+        for index in index_set
+            if !contains_samples_at_index(estimator, index)
+                if do_regression(estimator) && L > 2
+                    n = regress_nb_of_samples(estimator, index, ϵ, θ)
+                else
+                    n = nb_of_warm_up_samples(estimator)
+                end
+                sample!(estimator, index, n)
             end
-            sample!(estimator, Level(level), n)
         end
 
-        # add new level to the index set
-        push!(estimator, Level(level))
-        set_sz(estimator, level)
+
+        # add new indices to the index set
+        for index in index_set
+            push!(estimator, index)
+        end
+        set_sz(estimator, L)
 
         # print status
         verbose(estimator) && print_status(estimator)
@@ -54,7 +59,7 @@ function _run(estimator::Estimator{<:ML, <:MC}, ϵ::T where {T<:Real})
 
         # show status
         verbose(estimator) && print_status(estimator)
-        verbose(estimator) && level ≥ 2 && print_mse_analysis(estimator, ϵ, θ)
+        verbose(estimator) && L ≥ 2 && print_mse_analysis(estimator, ϵ, θ)
 
         # check if the new level exceeds the maximum level
         if !converged(estimator, ϵ, θ) && ( sz(estimator) ≥ max_index_set_param(estimator) ) 
@@ -63,29 +68,26 @@ function _run(estimator::Estimator{<:ML, <:MC}, ϵ::T where {T<:Real})
         end
 
         # update level
-        level += 1
+        L += 1
     end
 
     # print convergence status
     verbose(estimator) && print_convergence(estimator, converged(estimator, ϵ, θ))
 end
 
-## converged ##
-converged(estimator::Estimator, ϵ::Real, θ::Real) = ( bias(estimator)^2 ≤ (1-θ)*ϵ^2 || mse(estimator) ≤ ϵ^2 )
-
-## cost ##
-cost(estimator::Estimator, index::Index) = total_work(estimator, index)/nb_of_samples(estimator, index)
-
 ## qoi_with_max_var ##
 qoi_with_max_var(estimator::Estimator{<:AbstractIndexSet, <:MC}) = argmax(map(q->sum(map(i->var(getindex(samples_diff(estimator, q), i)), keys(estimator))), 1:nb_of_qoi(estimator)))
 
-## mean and var at index ##
+## mean0 and var0 at index ##
 for f in [:mean, :var]
     eval(
          quote
              $(Symbol(f, 0))(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index) = $f(samples(estimator, qoi_with_max_var(estimator), index))
          end)
 end
+
+## cost at index ##
+cost(estimator::Estimator, index::Index) = total_work(estimator, index)/nb_of_samples(estimator, index)
 
 ## mean and var at index ##
 for f in [:mean, :var]
@@ -105,10 +107,6 @@ for f in [:mean, :var, :varest]
              $f(estimator::Estimator{<:AbstractIndexSet, <:MC}) = sum($f(estimator, index) for index in keys(estimator))
          end)
 end
-
-## MSE and RMSE ##
-mse(estimator::Estimator) = varest(estimator) + bias(estimator)^2
-rmse(estimator::Estimator) = sqrt(mse(estimator))
 
 ## rates ##
 function interp1(x::AbstractVector{<:Real}, y::AbstractVector{<:Real})
@@ -166,3 +164,6 @@ end
 Σ(estimator::Estimator) = sum(sqrt.(map(index -> var(estimator, index) * cost(estimator, index), keys(estimator))))
 optimal_nb_of_samples(estimator::Estimator, index::Index, ϵ::Real, θ::Real) = optimal_nb_of_samples(ϵ, θ, var(estimator, index), cost(estimator, index), Σ(estimator))
 optimal_nb_of_samples(ϵ::Real, θ::Real, var_estimate::Real, cost_estimate::Real, Σ_estimate::Real) = ceil(Int, 1/(θ*ϵ^2) * sqrt(var_estimate/cost_estimate) * Σ_estimate)
+
+## new index set ##
+new_index_set(estimator::Estimator{<:AbstractML}, n::Integer) = Set((Level(n),))

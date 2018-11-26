@@ -154,3 +154,10 @@ function add_index(estimator::Estimator, index::Index) # this is called in "samp
         end
     end
 end
+
+## MSE and RMSE ##
+mse(estimator::Estimator) = varest(estimator) + bias(estimator)^2
+rmse(estimator::Estimator) = sqrt(mse(estimator))
+
+converged(estimator::Estimator, ϵ::Real, θ::Real) = ( bias(estimator)^2 ≤ (1-θ)*ϵ^2 || mse(estimator) ≤ ϵ^2 )
+
