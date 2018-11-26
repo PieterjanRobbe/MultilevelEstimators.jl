@@ -1,6 +1,6 @@
 ## multilevel_monte_carlo.jl : Multilevel Monte Carlo method
 #
-# Implementation of the Multilevel Monte Carlo method.
+# Implementation of the Multilevel Monte Carlo (MLMC) method.
 #
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
 # Carlo Methods (c) Pieterjan Robbe, 2018
@@ -12,18 +12,18 @@ function _run(estimator::Estimator{<:ML, <:MC}, ϵ::T where {T<:Real})
     verbose(estimator) && print_header(estimator, ϵ)
 
     # start level is 0
-    level = Level(0)
+    set_L(estimator, 0)
 
     # MSE splitting parameter
     θ = splitting(estimator)
 
     # main loop
-    while level ≤ 2 || !converged(estimator, ϵ, θ) 
+    while L(estimator) ≤ 2 || !converged(estimator, ϵ, θ) 
 
         # obtain initial variance estimate
-        if !contains_samples_at_index(estimator, level)
-            if do_regression(estimator) &&  level > 2
-                n = regress_nb_of_samples(estimator, level, ϵ, θ)
+        if !contains_samples_at_index(estimator, Level(L(estimator)))
+            if do_regression(estimator) && L(estimator) > 2
+                n = regress_nb_of_samples(estimator, Level(L(estimator)), ϵ, θ)
             else
                 n = nb_of_warm_up_samples(estimator)
             end
@@ -56,7 +56,7 @@ function _run(estimator::Estimator{<:ML, <:MC}, ϵ::T where {T<:Real})
         verbose(estimator) && level ≥ 2 && print_mse_analysis(estimator, ϵ, θ)
 
         # increase level
-        level = level + 1 
+        level += 1 
 
         # check if the new level exceeds the maximum level
         if !converged(estimator, ϵ, θ) && ( level > max_index_set_param(estimator) ) 

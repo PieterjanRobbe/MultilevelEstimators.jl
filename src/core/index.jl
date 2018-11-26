@@ -50,16 +50,6 @@ Level(i) = Index(i)
 
 show(io::IO, level::Level) = print(io, level[1])
 
-for f in [:< :> :≤ :≥]
-    eval(
-         quote
-             $f(i::Integer, level::Level) = $f(i, level[1])
-             $f(level::Level, i::Integer) = $f(level[1], i)
-         end)
-end
-+(i::Integer, level::Level) = level .+ i
-+(level::Level, i::Integer) = level .+ i
-
 ## difference ##
 function diff(index::Index{d}) where d
     D = Dict{Index{d}, Int}()

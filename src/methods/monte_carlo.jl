@@ -1,6 +1,6 @@
 ## monte_carlo.jl : standard Monte Carlo method
 #
-# Implementation of the standard Monte Carlo method.
+# Implementation of the standard Monte Carlo (MC) method.
 #
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
 # Carlo Methods (c) Pieterjan Robbe, 2018

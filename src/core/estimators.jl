@@ -123,6 +123,17 @@ current_index_set(estimator::Estimator) = estimator.internals.current_index_set
 
 do_regression(estimator::Estimator) = estimator.internals.sample_method_internals.do_regression
 
+get_index_set(estimator::Estimator, level) = get_index_set(estimator.index_set, level)
+
+boundary(estimator::Estimator{<:AbstractMI}, cntr) = setdiff(get_index_set(estimator, cntr), get_index_set(estimator, cntr-1))
+
+L(estimator::Estimator{<:AbstractMI}) = estimator.internals.L
+set_L(estimator::Estimator{<:AbstractMI}, n) = estimator.internals.L = n
+add_L(estimator::Estimator{<:AbstractMI}) = set_L(estimator, L(estimator))
+
+max_L(estimator::Estimator{<:AbstractMI}) = estimator.internals.max_L
+set_max_L(estimator::Estimator{<:AbstractMI}, n) = estimator.internals.max_L = n
+
 ## clear ##
 function clear(estimator::Estimator)
     for index in keys(estimator)

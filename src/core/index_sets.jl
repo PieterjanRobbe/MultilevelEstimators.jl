@@ -156,8 +156,9 @@ end
 MG(idxset::I) where {I<:AbstractIndexSet} = idxset isa MG ? throw(ArgumentError("cannot create MG wrapper for type MG")) : MG{ndims(idxset), I}(idxset)
 
 ## Union types ##
+MI = Union{TD, FT, HC, AD}
 AbstractML = Union{ML, MG{ML}}
-AbstractMI = Union{TD, FT, HC, AD, MG{TD}, MG{FT}, MG{HC}, MG{ML}}
+AbstractMI = Union{TD, FT, HC, AD, MG{TD}, MG{FT}, MG{HC}, MG{AD}}
 AbstractAD = Union{AD, MG{AD}}
 
 ## ndims ##
