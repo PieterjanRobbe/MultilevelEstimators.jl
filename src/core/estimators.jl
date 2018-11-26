@@ -82,8 +82,6 @@ end
 ## getters and setters for internals ##
 contains_samples_at_index(estimator::Estimator, index::Index) = isassigned(estimator.internals.samples_diff, 1) && haskey(estimator.internals.samples_diff[1], index)
 
-max_level_where_samples_are_taken(estimator::Estimator) = maximum(keys(estimator.internals.samples[1]))
-
 total_work(estimator::Estimator) = estimator.internals.total_work
 total_work(estimator::Estimator, index::Index) = get(total_work(estimator), index, nothing)
 update_total_work!(estimator::Estimator, index::Index, time::Real) = total_work(estimator)[index] += cost_model(estimator) isa EmptyFunction ? time : estimator.internals.cost_model(index)
@@ -127,12 +125,13 @@ get_index_set(estimator::Estimator, level) = get_index_set(estimator.index_set, 
 
 boundary(estimator::Estimator{<:AbstractMI}, cntr) = setdiff(get_index_set(estimator, cntr), get_index_set(estimator, cntr-1))
 
-L(estimator::Estimator{<:AbstractMI}) = estimator.internals.L
-set_L(estimator::Estimator{<:AbstractMI}, n) = estimator.internals.L = n
-add_L(estimator::Estimator{<:AbstractMI}) = set_L(estimator, L(estimator))
-
-max_L(estimator::Estimator{<:AbstractMI}) = estimator.internals.max_L
-set_max_L(estimator::Estimator{<:AbstractMI}, n) = estimator.internals.max_L = n
+sz(estimator::Estimator) = estimator.internals.index_set_size.sz
+set_sz(estimator::Estimator, n) = estimator.internals.index_set_size.sz = n
+function add_sz(estimator::Estimator)
+    estimator.internals.index_set_size.sz += 1
+    estimator.internals.index_set_size.max_sz = max(sz(estimator), max_sz(estimator))
+end
+max_sz(estimator::Estimator) = estimator.internals.index_set_size.max_sz
 
 ## clear ##
 function clear(estimator::Estimator)

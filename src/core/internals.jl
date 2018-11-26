@@ -8,15 +8,14 @@
 ## EstimatorInternals ##
 abstract type AbstractEstimatorInternals end
 
-struct EstimatorInternals{S, N, T, C, T1, T2} <: AbstractEstimatorInternals
+struct EstimatorInternals{S, N, T, C, Z, T1, T2} <: AbstractEstimatorInternals
     samples_diff::S
     samples::S
     nb_of_samples::N
     total_work::T
     current_index_set::C
     cost_model::Function
-    L::N
-    max_L::N
+    index_set_size::Z
 
     sample_method_internals::T1
     index_set_internals::T2
@@ -33,13 +32,20 @@ function EstimatorInternals(index_set::AbstractIndexSet, sample_method::Abstract
     type_n = Dict{type_i, N}
     type_t = Dict{type_i, T}
     type_c = Set{type_i}
+    type_z = IndexSetSize{N}
 
     sample_method_internals = SampleMethodInternals(type_i, index_set, sample_method, settings) 
     T1 = typeof(sample_method_internals)
     index_set_internals = IndexSetInternals(type_c, type_n, index_set, sample_method, settings) 
     T2  = typeof(index_set_internals)
 
-    EstimatorInternals{type_s, type_n, type_t, type_c, T1, T2}(type_s(undef, m, n), type_s(undef, m, n), type_n(), type_t(), type_c(), settings[:cost_model], 0, 0, sample_method_internals, index_set_internals)
+    EstimatorInternals{type_s, type_n, type_t, type_c, type_z, T1, T2}(type_s(undef, m, n), type_s(undef, m, n), type_n(), type_t(), type_c(), settings[:cost_model], IndexSetSize(0, 0), sample_method_internals, index_set_internals)
+end
+
+## IndexSetSize ##
+mutable struct IndexSetSize{N}
+    sz::N
+    max_sz::N
 end
 
 ## SampleMethodInternals ##

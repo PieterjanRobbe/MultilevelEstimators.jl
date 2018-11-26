@@ -121,7 +121,7 @@ function print_mse_analysis(estimator::Estimator, ϵ::Real, θ::Real)
     print_rates(estimator)
     println(string("  ==> Variance of the estimator ≈", long(varest(estimator)), "."))
     println(string("  ==> Bias of the estimator ≈", long(bias(estimator)), "."))
-    println(string("  ==> Non-trivial MSE splitting parameter ≈ ", short(θ), "."))
+    println(string("  ==> MSE splitting parameter ≈ ", short(θ), "."))
     if !converged(estimator, ϵ, θ) > ϵ
         println(string("No convergence yet. RMSE ≈", long(rmse(estimator)), " > ", shorte(ϵ), "."))
         println("Adding an extra level...")
