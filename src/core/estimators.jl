@@ -141,6 +141,7 @@ append_samples!(estimator::Estimator{<:AbstractIndexSet, <:MC}, n_qoi::Integer, 
 append_samples_diff!(estimator::Estimator{<:AbstractIndexSet, <:MC}, n_qoi::Integer, index::Index, samples_to_append) = append!(estimator.internals.samples_diff[n_qoi][index], samples_to_append)
 
 keys(estimator::Estimator) = sort(collect(current_index_set(estimator)))
+all_keys(estimator::Estimator) = sort(collect(keys(samples(estimator))))
 
 current_index_set(estimator::Estimator) = estimator.internals.current_index_set
 

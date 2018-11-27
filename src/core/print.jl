@@ -135,3 +135,6 @@ end
 
 ## warning when max level is reached ##
 warn_max_level(estimator::Estimator{<:AbstractML}) = @warn string("Maximum level L = ", max_index_set_param(estimator), " reached, no convergence yet.")
+
+## print level ##
+print_level(estimator::Estimator{<:Union{SL, AbstractML}}, level::Integer) = println(string("Currently running on level ", level, "."))

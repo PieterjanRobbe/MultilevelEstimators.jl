@@ -201,7 +201,7 @@ function is_admissable(idxset::Set{Index{d}}, index::Index{d})  where d
         return false
     else
         for i in 1:d
-            bw_neighbour = index .- unit(i, d) # backward neighbour
+            bw_neighbour = index .- ntuple(j->j==i, d) # backward neighbour
             if !( in(bw_neighbour, idxset) || bw_neighbour[i] < 0 )
                 return false
             end

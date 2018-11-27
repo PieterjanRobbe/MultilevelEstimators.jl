@@ -51,18 +51,17 @@ function _run(estimator::Estimator{T, <:MC}, ϵ::Real) where T<:AbstractIndexSet
 	# main loop
 	while L ≤ 2 || !converged(estimator, ϵ, θ)
 
+		# print level
+		verbose(estimator) && print_level(estimator, L)
+
 		# update index set
 		index_set = new_index_set(estimator, L)
 
 		# obtain initial variance estimate
+		ns = regress_nb_of_samples(estimator, index_set, ϵ, θ) 
 		for index in index_set
 			if !contains_samples_at_index(estimator, index)
-				if do_regression(estimator) && L > 2
-					n = regress_nb_of_samples(estimator, index, ϵ, θ)
-				else
-					n = nb_of_warm_up_samples(estimator)
-				end
-				sample!(estimator, index, n)
+				sample!(estimator, index, ns[index])
 			end
 		end
 

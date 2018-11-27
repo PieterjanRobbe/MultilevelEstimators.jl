@@ -5,83 +5,95 @@
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
 # Carlo Methods (c) Pieterjan Robbe, 2018
 
-## main routine ##
-function _run(estimator::Estimator{<:MI, <:MC}, ϵ::T where {T<:Real})
-
-    # print status
-    verbose(estimator) && print_header(estimator, ϵ)
-
-    # index size parameter is 0
-    set_L(estimator, 0)
-
-    # loop variables
-    θ = splitting(estimator)
-
-    # main loop
-    while L(estimator) ≤ 2 || !converged(estimator, ϵ, θ) 
-
-        # update index set
-        index_set = new_index_set(estimator, level)
-
-        # obtain initial variance estimate
-        for index in index_set
-            if !contains_samples_at_index(estimator, index)
-                if do_regression(estimator) && L(estimator) > 2
-                    n = regress_nb_of_samples(estimator, index, ϵ, θ) # TODO !!! Σ contains unintialized indices
-                    # must de regression on all indices! ==> regress(::Set{Index}) ?
-                else
-                    n = nb_of_warm_up_samples(estimator)
-                end
-                sample!(estimator, index, n)
-            end
-        end
-
-        # add new level to the index set
-        for index in index_set
-            push!(estimator, index)
-        end
-
-        # print status
-        verbose(estimator) && print_status(estimator)
-
-        # value of the MSE splitting parameter
-        θ = do_mse_splitting(estimator) ? compute_splitting(estimator, ϵ) : splitting(estimator)
-
-        # evaluate optimal number of samples
-        n_opt = Dict(τ => optimal_nb_of_samples(estimator, τ, ϵ, θ) for τ in keys(estimator))
-
-        # print optimal number of samples
-        verbose(estimator) && print_optimal_number_of_samples(estimator, n_opt)
-
-        # take additional samples
-        for τ in keys(estimator)
-            n_due = n_opt[τ] - nb_of_samples(estimator, τ)
-            n_due > 0 && sample!(estimator, τ, n_due)
-        end
-
-        # show status
-        verbose(estimator) && print_status(estimator)
-        verbose(estimator) && level ≥ 2 && print_mse_analysis(estimator, ϵ, θ)
-
-        # increase level
-        add_L(estimator)
-
-        # check if the new level exceeds the maximum level
-        if !converged(estimator, ϵ, θ) && max_level_exceeded(estimator, L(estimator))
-            verbose(estimator) && warn_max_level(estimator)
-            break
-        end
-    end
-
-    # update max_L
-    max_L(estimator) < L(estimator) && set_max_L(estimator, L(estimator)) 
-
-    # update maximum active set
-    update_max_active(estimator)
-
-    # print convergence status
-    verbose(estimator) && print_convergence(estimator, converged(estimator, ϵ, θ))
+## rates ##
+for (f, g, sgn) in zip((:α, :β, :γ), (:mean, :var, :cost), (-1, -1, 1))
+	eval(
+		 quote
+			 $f(estimator::Estimator{<:AbstractMI}) = $sgn.*getindex.($(Symbol("rates_", f))(estimator, 1:ndims(estimator)), 2)
+			 $(Symbol("rates_", f))(estimator::Estimator{<:AbstractMI}, dir::Integer) = $(Symbol("rates_", f))(estimator, (maximum(getindex.(keys(estimator), dir)) + 1) * ntuple(i->i==dir, ndims(estimator)), dir)
+			 function $(Symbol("rates_", f))(estimator::Estimator{<:AbstractMI}, idx::Index, dir::Integer)
+				 m = idx[dir] - 1
+				 if m < 2
+					 return (NaN, NaN)
+				 else
+					 x = m:-1:1
+					 y = map(xᵢ -> $g(estimator, idx .- xᵢ.*ntuple(i->i==dir, ndims(estimator))), 1:m)
+					 idcs = .!isnan.(y)
+					 θ = interp1(view(x, idcs), log2.(abs.(view(y, idcs))))
+					 return tuple(θ...)
+				 end
+			 end
+		 end)
 end
+
+## regression ##
+function interpd(estimator::Estimator{I}, f::Function) where I<:AbstractMI
+	idx_set = all_keys(estimator)
+	A = [getindex(idx_set[i], j) for i in 2:length(idx_set), j in 1:ndims(estimator)]
+	A = hcat(ones(eltype(A), size(A, 1)), A)
+	y = map(index->log2(f(estimator, index)), view(idx_set, 2:length(idx_set)))
+	A\y
+end
+
+for (f, sym) in zip([:var, :cost], [:β, :γ])
+	eval(
+		 quote
+			 function $(Symbol("_regress_", f))(estimator::Estimator{<:MI, <:MC}, index::Index)
+				 p = broadcast(dir->$(Symbol("rates_", sym))(estimator, index, dir), 1:ndims(estimator))
+				 estimates = broadcast(dir->2^(p[dir][1]+index[dir]*p[dir][2]), 1:ndims(estimator))
+				 estimate = mean(filter(!isnan, estimates))
+				 if isnan(estimate)
+					 p = interpd(estimator, $sym)
+					 return 2 .^(p[1]+sum(p[2:end].*index))
+				 else
+				   	 return estimate
+				 end
+			 end
+		 end)
+end
+
+regress_var(estimator::Estimator{<:MI, <:MC}, index::Index) = _regress_var(estimator::Estimator{<:MI, <:MC}, index::Index)
+regress_cost(estimator::Estimator{<:MI, <:MC}, index::Index) = cost_model(estimator) isa EmtyFunction ? _regress_cost(estimator::Estimator{<:MI, <:MC}, index::Index) : cost_model(estimator, index)
+
+# TODO also for ML
+function regress_nb_of_samples(estimator::Estimator{<:AbstractIndexSet, <:MC}, index_set::Set{Index}, ϵ::Real, θ::Real)
+	if do_regression(estimator) && L > 2
+		vars = Dict(index=>regress_var(estimator, index) for index in index_set)
+		costs = Dict(index=>regress_cost(estimator, index) for index in index_set)
+		Σ_estimate = Σ(estimator)
+		for index in keys(vars)
+			Σ_estimate += sqrt(vars[index] * costs[index])
+		end
+		ns = Dict(index=>max(2, min(optimal_nb_of_samples(ϵ, θ, vars[index], costs[index], Σ_estimate), nb_of_warm_up_samples(estimator))) for index in index_set)
+	else
+		ict(index=>nb_of_warm_up_samples(estimator) index in index_set)
+	end
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ## bias ##
 bias(estimator::Estimator{<:AbstractMI}) = bias(estimator, L(estimator))
@@ -92,9 +104,6 @@ function bias(estimator::Estimator{<:AbstractMI}, max_L)
     2^(p[1]+(max_L+1)*p[2])
 end
         
-
-end
-
 ## inspector functions ##
 function bias(estimator::MultiIndexTypeEstimator; use_maximum=false::Bool)
 
@@ -113,103 +122,6 @@ function bias(estimator::MultiIndexTypeEstimator; use_maximum=false::Bool)
 end
 
 ## rates ##
-α(estimator::MultiIndexTypeEstimator) = α.(estimator,1:ndims(estimator))
-
-function α(estimator::MultiIndexTypeEstimator, dir::Int64; both=false)
-    max_idx = maximum(getindex.(keys(estimator),dir)) 
-    if max_idx < 2
-        return both ? [NaN, NaN] : NaN
-    else
-        x = 1:max_idx
-        y = [mean(estimator,i.*unit(dir,ndims(estimator))) for i in x]
-        θ = straight_line_fit(x,log2.(abs.(y)))
-        return both ? θ : -θ[2]
-    end
-end
-
-β(estimator::MultiIndexTypeEstimator) = β.(estimator,1:ndims(estimator))
-
-function β(estimator::MultiIndexTypeEstimator, dir::Int64; both=false, start_idx=Index(zeros(Int64,ndims(estimator))...)::Index)
-    max_idx = all(start_idx.==0) ? maximum(getindex.(keys(estimator),dir)) : start_idx[dir]-1
-    if max_idx < 2
-        return both ? [NaN, NaN] : NaN
-    else
-        x = 1:max_idx
-        start_vec = [start_idx...]
-        start_vec[dir] = 0
-        new_start_idx = Index(start_vec...)
-        y = [var(estimator,new_start_idx.+i.*unit(dir,ndims(estimator))) for i in x]
-        θ = straight_line_fit(x,log2.(y))
-        return both ? θ : -θ[2]
-    end
-end
-
-γ(estimator::MultiIndexTypeEstimator) = γ.(estimator,1:ndims(estimator))
-
-function γ(estimator::MultiIndexTypeEstimator, dir::Int64; both=false, start_idx=Index(zeros(Int64,ndims(estimator))...)::Index)
-    max_idx = all(start_idx.==0) ? maximum(getindex.(keys(estimator),dir)) : start_idx[dir]-1
-    if max_idx < 2
-        return both ? [NaN, NaN] : NaN
-    else
-        x = 1:max_idx
-        start_vec = [start_idx...]
-        start_vec[dir] = 0
-        new_start_idx = Index(start_vec...)
-        y = [cost(estimator,new_start_idx.+i.*unit(dir,ndims(estimator))) for i in x]
-        θ = straight_line_fit(x,log2.(y))
-        return both ? θ : θ[2]
-    end
-end
-
-## regression functions ##
-function regress(estimator::MultiIndexTypeEstimator,index::Index,all_sum::T,ϵ::T,θ::T) where {T<:Real}
-    var_est = var_regress(estimator,index)
-    cost_est = cost_regress(estimator,index)
-    n_opt = ceil.(Int,1/(θ*ϵ^2) * sqrt(var_est/cost_est) * all_sum)
-    max(2,min(n_opt,estimator.nb_of_warm_up_samples))
-end
-
-# regress on all_sum: \sum \sqrt{V_\ell*C_\ell} (to avoid duplication)
-function regress_all_sum(estimator::Estimator,index_set)
-    all_sum = 0.
-    for index in index_set
-        if !haskey(estimator.samples[1],index) # no samples on this level yet; do regression on var/cost
-            all_sum += sqrt(var_regress(estimator,index)*cost_regress(estimator,index))
-        else # already samples on this level; use measured var/cost
-            all_sum += sqrt(var(estimator,index)*cost(estimator,index))
-        end
-    end
-    return all_sum
-end
-
-# regress variance and cost
-for i in zip(["var","cost"],["β","γ"])
-    ex = :(
-           # regress index based on available information in estimator
-           function $(Symbol(i[1],"_regress"))(estimator,index)
-               value = Float64[] # collect estimated contribution in each direction
-               for dir in 1:ndims(estimator)
-                   if index[dir] > 2 # if enough levels are available in direction dir
-                       θ = $(Symbol(i[2]))(estimator,dir,both=true,start_idx=index)
-                       push!(value,2^(θ[1]+index[dir]*θ[2]))
-                   end
-               end
-               if isempty(value)
-                   # multi-dimensional regression
-                   idx_set = setdiff(collect(keys(estimator.samples[1])),[tuple(zeros(ndims(estimator))...)])
-                   m = length(idx_set); n = ndims(estimator)+1
-                   X = ones(m,n)
-                   X[1:m,2:n] = [getindex(idx_set[i],j) for i in 1:m, j in 1:n-1]
-                   y = log2.([$(Symbol(i[1]))(estimator,index) for index in idx_set])
-                   θ = X\y
-                   return 2 .^(θ[1]+sum(θ[2:end].*index))
-               else
-                   return mean(value)
-               end
-           end
-           )
-    eval(ex)
-end
 
 ## adaptivity ##
 new_index_set(estimator::MultiIndexTypeEstimator, level::N where {N<:Integer}) = get_index_set(estimator.method,level)

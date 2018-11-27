@@ -55,13 +55,11 @@ for (f, g, sgn) in zip((:α, :β, :γ), (:mean, :var, :cost), (-1, -1, 1))
 	eval(
 		 quote
 			 $f(estimator::Estimator{<:AbstractML}) = $sgn*$(Symbol("rates_", f))(estimator)[2]
-			 $(Symbol("rates_", f))(estimator::Estimator{<:AbstractML}) = $(Symbol("rates_", f))(estimator, sz(estimator))
-			 $(Symbol("rates_", f))(estimator::Estimator{<:AbstractML}, max_level::Integer) = $(Symbol("rates_", f))(estimator, max_level-1, max_level)
-			 function $(Symbol("rates_", f))(estimator::Estimator{<:AbstractML}, start_level::Integer, max_level::Integer)
-				 if max_level < 2
+			 function $(Symbol("rates_", f))(estimator::Estimator{<:AbstractML})
+				 if max_sz(estimator) < 2
 					 return (NaN, NaN)
 				 else
-					 x = 1:max_level
+					 x = 1:max_sz(estimator)
 					 y = map(xᵢ -> $g(estimator, Level(xᵢ)), x)
 					 idcs = .!isnan.(y)
 					 θ = interp1(view(x, idcs), log2.(abs.(view(y, idcs))))
@@ -85,9 +83,12 @@ end
 ## bias ##
 bias(estimator::Estimator{<:AbstractML}) = bias(estimator, sz(estimator))
 function bias(estimator::Estimator{<:AbstractML}, sz::Integer)
-	start_level = robustify_bias_estimate(estimator) ? 1 : sz - 1 
-	p = rates_α(estimator, start_level, sz)
-	2^(p[1]+(sz+1)*p[2])
+	if Level(sz+1) ∈ keys(estimator) && !robustify_bias_estimate(estimator)
+		return abs(mean(estimator, Level(sz+1)))
+	else
+		p = rates_α(estimator)
+		return 2^(p[1]+(sz+1)*p[2])
+	end
 end
 
 ## compute optimal value of MSE splitting parameter ##

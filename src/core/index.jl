@@ -75,7 +75,3 @@ end
 
 zero(::Index{d}) where d = ntuple(i->0,d)
 one(::Index{d}) where d = ntuple(i->1,d)
-
-## unit ##
-unit(i, d) = I[1:d, i]
-getindex(u::UniformScaling{Bool}, v::AbstractVector, j::Int) = [u[i,j] for i in v]
