@@ -14,7 +14,6 @@ struct EstimatorInternals{S, N, T, C, Z, T1, T2} <: AbstractEstimatorInternals
     nb_of_samples::N
     total_work::T
     current_index_set::C
-    cost_model::Function
     index_set_size::Z
 
     sample_method_internals::T1
@@ -39,7 +38,7 @@ function EstimatorInternals(index_set::AbstractIndexSet, sample_method::Abstract
     index_set_internals = IndexSetInternals(type_c, type_n, index_set, sample_method, settings) 
     T2  = typeof(index_set_internals)
 
-    EstimatorInternals{type_s, type_n, type_t, type_c, type_z, T1, T2}(type_s(undef, m, n), type_s(undef, m, n), type_n(), type_t(), type_c(), settings[:cost_model], IndexSetSize(0, 0), sample_method_internals, index_set_internals)
+    EstimatorInternals{type_s, type_n, type_t, type_c, type_z, T1, T2}(type_s(undef, m, n), type_s(undef, m, n), type_n(), type_t(), type_c(), IndexSetSize(0, 0), sample_method_internals, index_set_internals)
 end
 
 ## IndexSetSize ##
@@ -51,24 +50,19 @@ end
 ## SampleMethodInternals ##
 abstract type AbstractSampleMethodInternals <: AbstractEstimatorInternals end
 
-struct MCInternals <: AbstractSampleMethodInternals
-    do_regression::Bool
-end
+struct EmptySampleMethodInternals <: AbstractSampleMethodInternals end
 
-struct QMCInternals{T, G} <: AbstractSampleMethodInternals
-    sample_mul_factor::T
+struct QMCInternals{G} <: AbstractSampleMethodInternals
     generators::G
-    nb_of_shifts::Function
 end
 
-SampleMethodInternals(::DataType, index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, settings::Dict{Symbol, Any}) = MCInternals(settings[:do_regression])
+SampleMethodInternals(::DataType, index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, settings::Dict{Symbol, Any}) = EmptySampleMethodInternals()
 
 function SampleMethodInternals(type_i::DataType, index_set::AbstractIndexSet, sample_method::QMC, settings::Dict{Symbol, Any})
     type_l = typeof(ShiftedLatticeRule(settings[:point_generator]))
     type_v = Vector{type_l}
     type_g = Dict{type_i, type_v}
-    σ = settings[:sample_mul_factor]
-    QMCInternals{typeof(σ), type_g}(σ, type_g(), settings[:nb_of_shifts])
+    QMCInternals{type_g}(type_g())
 end
 
 ## IndexSetInternals ##
@@ -98,13 +92,9 @@ get_sample_ncols(index_set::AbstractIndexSet, ::MC, settings::Dict{Symbol, Any})
 function get_sample_ncols(index_set::AbstractIndexSet, ::QMC, settings::Dict{Symbol, Any})
     nbshifts = settings[:nb_of_shifts]
     L = settings[:max_index_set_param]
-    idx_set = get_index_set(index_set, L)
+	idx_set = get_max_index_set(index_set, settings, L)
     maximum(nbshifts.(idx_set))
 end
 
-function get_sample_ncols(index_set::AbstractAD, ::QMC, settings::Dict{Symbol, Any})
-    nbshifts = settings[:nb_of_shifts]
-    L = settings[:max_index_set_param]
-    idx_set = get_index_set(settings[:max_search_space], L)
-    maximum(nbshifts.(idx_set))
-end
+get_max_index_set(index_set::AbstractIndexSet, settings::Dict{Symbol, Any}, L::Integer) = get_index_set(index_set, L)
+get_max_index_set(index_set::AbstractAD, settings::Dict{Symbol, Any}, L::Integer) = get_index_set(settings[:max_search_space], L)

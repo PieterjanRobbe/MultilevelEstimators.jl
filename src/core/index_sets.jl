@@ -153,7 +153,7 @@ struct MG{d, I} <: AbstractIndexSet{d}
     idxset::I
 end
 
-MG(idxset::I) where {I<:AbstractIndexSet} = idxset isa MG ? throw(ArgumentError("cannot create MG wrapper for type MG")) : MG{ndims(idxset), I}(idxset)
+MG(idxset::I) where {I<:AbstractIndexSet} = idxset isa MG ? throw(ArgumentError("cannot create MG wrapper for type MG")) : idxset isa SL ? throw(ArgumentError("cannot create MG wrapper for type SL")) : MG{ndims(idxset), I}(idxset)
 
 ## Union types ##
 MI = Union{TD, FT, HC, AD}

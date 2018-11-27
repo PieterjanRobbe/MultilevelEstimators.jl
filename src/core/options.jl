@@ -13,24 +13,27 @@ struct EstimatorOptions{N<:Integer, T<:Real}
     nb_of_tols::N
 
     continuation_mul_factor::T
+	sample_mul_factor::T
     splitting::T
 
     continuate::Bool
     save_samples::Bool
     robustify_bias_estimate::Bool
     do_mse_splitting::Bool
+	do_regression::Bool
     verbose::Bool
 
     folder::String
     name::String
 
     cost_model::Function
+	nb_of_shifts::Function
     nb_of_workers::Function
 end
 
 EstimatorOptions(settings::Dict{Symbol,Any}) = 
 EstimatorOptions(
                  promote([settings[name] for name in fieldnames(EstimatorOptions)[1:4]]...)..., # promotion of N
-                 promote([settings[name] for name in fieldnames(EstimatorOptions)[5:6]]...)..., # promotion of T
-                 [settings[name] for name in fieldnames(EstimatorOptions)[7:end]]... # other fields
+                 promote([settings[name] for name in fieldnames(EstimatorOptions)[5:7]]...)..., # promotion of T
+                 [settings[name] for name in fieldnames(EstimatorOptions)[8:end]]... # other fields
                 )

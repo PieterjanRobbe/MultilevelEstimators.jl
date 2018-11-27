@@ -98,8 +98,6 @@ function _print_optimal_nb_of_samples(estimator::Estimator, samples::Dict)
     end
 end
 
-_print_optimal_nb_of_samples(estimator::Estimator, samples::Integer) =  _print_optimal_nb_of_samples(estimator, Dict(Level(0) => samples))
-
 ## print_convergence ##
 function print_convergence(estimator::Estimator, converged::Bool)
     print_status(estimator)

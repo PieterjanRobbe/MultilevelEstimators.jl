@@ -36,3 +36,78 @@ function run(estimator::Estimator, tols::AbstractVector{<:Real})
 end
 
 run(estimator::Estimator, tol::Real) = run(estimator, get_tols(estimator, tol))
+
+## Main routine ##
+function _run(estimator::Estimator{T, <:MC}, ϵ::Real) where T<:AbstractIndexSet
+	# print status
+	verbose(estimator) && print_header(estimator, ϵ)
+
+	# start level is 0
+	L = 0
+
+	# MSE splitting parameter
+	θ = splitting(estimator)
+
+	# main loop
+	while L ≤ 2 || !converged(estimator, ϵ, θ)
+
+		# update index set
+		index_set = new_index_set(estimator, L)
+
+		# obtain initial variance estimate
+		for index in index_set
+			if !contains_samples_at_index(estimator, index)
+				if do_regression(estimator) && L > 2
+					n = regress_nb_of_samples(estimator, index, ϵ, θ)
+				else
+					n = nb_of_warm_up_samples(estimator)
+				end
+				sample!(estimator, index, n)
+			end
+		end
+
+		# add new indices to the index set
+		for index in index_set
+			push!(estimator, index)
+		end
+		set_sz(estimator, L)
+
+		# print status
+		verbose(estimator) && print_status(estimator)
+
+		# value of the MSE splitting parameter
+		θ = do_mse_splitting(estimator) ? compute_splitting(estimator, ϵ) : splitting(estimator)
+
+		# evaluate optimal number of samples
+		n_opt = Dict(τ => optimal_nb_of_samples(estimator, τ, ϵ, θ) for τ in keys(estimator))
+
+		# print optimal number of samples
+		verbose(estimator) && print_optimal_nb_of_samples(estimator, n_opt)
+
+		# take additional samples
+		for τ in keys(estimator)
+			n_due = n_opt[τ] - nb_of_samples(estimator, τ)
+			n_due > 0 && sample!(estimator, τ, n_due)
+		end
+
+		if T <: SL
+			break
+		else
+			# show status
+			verbose(estimator) && print_status(estimator)
+			verbose(estimator) && L ≥ 2 && print_mse_analysis(estimator, ϵ, θ)
+
+			# check if the new level exceeds the maximum level
+			if !converged(estimator, ϵ, θ) && ( sz(estimator) ≥ max_index_set_param(estimator) ) 
+				verbose(estimator) && warn_max_level(estimator)
+				break
+			end
+
+			# update level
+			L += 1
+		end
+	end
+
+	# print convergence status
+	verbose(estimator) && print_convergence(estimator, converged(estimator, ϵ, θ))
+end

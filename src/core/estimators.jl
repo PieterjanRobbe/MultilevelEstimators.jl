@@ -33,10 +33,11 @@ function Estimator(index_set::AbstractIndexSet, sample_method::AbstractSampleMet
     check_valid_keys(settings, index_set, sample_method)
 
     # default settings
-    settings[:distributions] = distributions
-    for key in valid_keys(index_set, sample_method)
+	settings[:distributions] = distributions
+	for key in fieldnames(EstimatorOptions)
         parse!(index_set, sample_method, settings, key)
     end
+	parse_additional_options!(index_set, sample_method, settings)
 
     # create options and internals
     options = EstimatorOptions(settings)
@@ -45,6 +46,7 @@ function Estimator(index_set::AbstractIndexSet, sample_method::AbstractSampleMet
     Estimator{typeof(index_set), typeof(sample_method), typeof(distributions), typeof(options), typeof(internals)}(index_set, sample_function, distributions, options, internals)
 end
 
+# for a single uncertain parameter
 Estimator(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, sample_function::Function, distribution::AbstractDistribution; kwargs...) = Estimator(index_set, sample_method, sample_function, [distribution]; kwargs...)
 
 ## check valid keys ##
@@ -54,19 +56,42 @@ function check_valid_keys(settings::Dict, index_set::AbstractIndexSet, sample_me
     end
 end
 
+## parse additional options ##
+function parse_additional_options!(index_set::T1, sample_method::T2, settings::Dict{Symbol, Any}) where {T1<:AbstractIndexSet, T2<:AbstractSampleMethod}
+	if T2 <: QMC 
+		parse!(index_set, sample_method, settings, :point_generator)
+	end
+	if T1 <: AbstractAD
+		parse!(index_set, sample_method, settings, :max_search_space)
+	end
+end
+
 ## valid keys ##
-valid_keys(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod) = vcat(valid_keys(), valid_keys(index_set), valid_keys(sample_method))
-
-valid_keys() = collect(fieldnames(EstimatorOptions))
-
-valid_keys(::AbstractSampleMethod) = Symbol[]
-valid_keys(::QMC) = [:nb_of_shifts, :point_generator, :sample_mul_factor]
-valid_keys(::MC) = [:do_regression]
-
-valid_keys(::AbstractIndexSet) = Symbol[]
-valid_keys(::AbstractAD) = [:max_search_space]
-valid_keys(::MG) = [:sample_mul_factor]
-valid_keys(::MG{<:AD}) = [:sample_mul_factor, :max_search_space]
+function valid_keys(::I, ::S) where {I<:AbstractIndexSet, S<:AbstractSampleMethod}
+	v = [:nb_of_warm_up_samples,
+		 :nb_of_qoi,
+		 :nb_of_tols,
+		 :continuation_mul_factor,
+		 :continuate,
+		 :save_samples,
+		 :verbose,
+		 :folder,
+		 :name,
+		 :cost_model,
+		 :nb_of_workers]
+	I <: Union{ML, MI} && push!(v,
+								:max_index_set_param,
+								:splitting,
+								:robustify_bias_estimate,
+								:do_mse_splitting,
+								:do_regression)
+	I <:AbstractAD && push!(v, :max_search_space)
+	I <:MG && push!(v, :sample_mul_factor)
+	S <: QMC && push!(v, :nb_of_shifts,
+					  :point_generator,
+					  :sample_mul_factor)
+	return v
+end
 
 ## print methods ##
 show(io::IO, estimator::Estimator{I,S}) where {I<:AbstractIndexSet, S<:AbstractSampleMethod} = print(io, string("Estimator{", estimator.index_set, ", ", S, "}"))
@@ -84,7 +109,7 @@ contains_samples_at_index(estimator::Estimator, index::Index) = isassigned(estim
 
 total_work(estimator::Estimator) = estimator.internals.total_work
 total_work(estimator::Estimator, index::Index) = get(total_work(estimator), index, nothing)
-update_total_work!(estimator::Estimator, index::Index, time::Real) = total_work(estimator)[index] += cost_model(estimator) isa EmptyFunction ? time : estimator.internals.cost_model(index)
+update_total_work!(estimator::Estimator, index::Index, time::Real) = total_work(estimator)[index] += cost_model(estimator) isa EmptyFunction ? time : cost_model(estimator)(index)
 
 nb_of_samples(estimator::Estimator) = estimator.internals.nb_of_samples
 nb_of_samples(estimator::Estimator, index::Index) = get(nb_of_samples(estimator), index, 0)
@@ -119,8 +144,6 @@ keys(estimator::Estimator) = sort(collect(current_index_set(estimator)))
 
 current_index_set(estimator::Estimator) = estimator.internals.current_index_set
 
-do_regression(estimator::Estimator) = estimator.internals.sample_method_internals.do_regression
-
 get_index_set(estimator::Estimator, level) = get_index_set(estimator.index_set, level)
 
 boundary(estimator::Estimator{<:AbstractMI}, cntr) = setdiff(get_index_set(estimator, cntr), get_index_set(estimator, cntr-1))
@@ -154,10 +177,3 @@ function add_index(estimator::Estimator, index::Index) # this is called in "samp
         end
     end
 end
-
-## MSE and RMSE ##
-mse(estimator::Estimator) = varest(estimator) + bias(estimator)^2
-rmse(estimator::Estimator) = sqrt(mse(estimator))
-
-converged(estimator::Estimator, ϵ::Real, θ::Real) = ( bias(estimator)^2 ≤ (1-θ)*ϵ^2 || mse(estimator) ≤ ϵ^2 )
-
