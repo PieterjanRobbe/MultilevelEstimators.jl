@@ -72,7 +72,8 @@ parse!(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, setting
          check_finite(to_string(key, val)...);
          check_larger_than(to_string(key, val)..., 0);
          check_smaller_than_or_equal_to(to_string(key, val)..., 1);
-		 check_ordered(setting[:min_splitting], settings[:max_splitting], "Estimator", "optional key min_splitting", "optional key max_splitting"))
+		 haskey(settings, :max_splitting) || parse!(index_set, sample_method, settings, :max_splitting);
+		 check_ordered(val, settings[:max_splitting], "Estimator", "optional key min_splitting", "optional key max_splitting"))
 )
 
 ## max_splitting ##
@@ -81,7 +82,9 @@ parse!(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, setting
         (check_type(to_string(key, val)..., Real);
          check_finite(to_string(key, val)...);
          check_larger_than(to_string(key, val)..., 0);
-         check_smaller_than_or_equal_to(to_string(key, val)..., 1))
+         check_smaller_than_or_equal_to(to_string(key, val)..., 1);
+		 haskey(settings, :min_splitting) || parse!(index_set, sample_method, settings, :min_splitting);
+		 check_ordered(settings[:min_splitting], val, "Estimator", "optional key min_splitting", "optional key max_splitting"))
 )
 
 ## folder ##

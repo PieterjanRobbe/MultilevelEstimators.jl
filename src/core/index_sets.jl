@@ -24,7 +24,7 @@ struct SL{d} <: AbstractIndexSet{d} end
 
 SL() = SL{1}()
 
-filter(::SL,sz) = itr -> sum(itr) == sz
+filter(::SL, sz) = itr -> sum(itr) == sz
 
 ## ML ##
 """
@@ -40,7 +40,7 @@ struct ML{d} <: AbstractIndexSet{d} end
 
 ML() = ML{1}()
 
-filter(::ML,sz) = itr -> sum(itr) <= sz
+filter(::ML, sz) = itr -> sum(itr) ≤ sz
 
 ## FT ##
 """
@@ -61,7 +61,7 @@ function FT(d::Integer; δ::Vector{T}=fill(1, max(0, d))) where {T<:Real}
     return FT{d,Vector{T}}(δ)
 end
 
-filter(idxset::FT,sz) = itr -> all(idxset.δ .* itr .<= sz) 
+filter(idxset::FT, sz) = itr -> all(idxset.δ .* itr .≤ sz) 
 
 ## TD ##
 """
@@ -82,7 +82,7 @@ function TD(d::Integer; δ::Vector{T}=fill(1, max(0, d))) where {T<:Real}
     return TD{d,Vector{T}}(δ)
 end
 
-filter(idxset::TD,sz) = itr -> sum(idxset.δ .* itr) <= sz
+filter(idxset::TD, sz) = itr -> sum(idxset.δ .* itr) ≤ sz
 
 ## HC ##
 """
@@ -103,7 +103,7 @@ function HC(d::Integer; δ::Vector{T}=fill(1, max(0, d))) where {T<:Real}
     return HC{d,Vector{T}}(δ)
 end
 
-filter(idxset::HC,sz) = itr -> prod(idxset.δ .* itr .+ 1) <= sz
+filter(idxset::HC, sz) = itr -> prod(idxset.δ .* itr .+ 1) - 1 ≤ sz
 
 function check_args(d, δ, name)
     d > 1 ||
@@ -128,7 +128,7 @@ See also: [`SL`](@ref), [`ML`](@ref), [`FT`](@ref), [`TD`](@ref), [`HC`](@ref), 
 """
 struct AD{d} <: AbstractIndexSet{d} end
 
-AD(d::Integer) = d <= 1 ? throw(BoundsError(string("to use AD, dimension must be greater than 1, got ", d))) : AD{d}()
+AD(d::Integer) = d ≤ 1 ? throw(BoundsError(string("to use AD, dimension must be greater than 1, got ", d))) : AD{d}()
 
 ## MG ##
 """

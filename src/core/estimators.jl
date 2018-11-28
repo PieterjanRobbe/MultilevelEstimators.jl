@@ -109,7 +109,7 @@ end
 contains_samples_at_index(estimator::Estimator, index::Index) = isassigned(estimator.internals.samples_diff, 1) && haskey(estimator.internals.samples_diff[1], index)
 
 total_work(estimator::Estimator) = estimator.internals.total_work
-total_work(estimator::Estimator, index::Index) = get(total_work(estimator), index, nothing)
+total_work(estimator::Estimator, index::Index) = get(total_work(estimator), index, NaN)
 update_total_work!(estimator::Estimator, index::Index, time::Real, n::Integer) = total_work(estimator)[index] += cost_model(estimator) isa EmptyFunction ? time : n * cost_model(estimator)(index)
 
 nb_of_samples(estimator::Estimator) = estimator.internals.nb_of_samples
@@ -132,11 +132,11 @@ get_tols(estimator::Estimator, tol::T) where T<:Real = continuate(estimator) ? c
 
 samples(estimator::Estimator) = estimator.internals.samples
 samples(estimator::Estimator{<:AbstractIndexSet, <:MC}, n_qoi::Integer) = getindex(samples(estimator), n_qoi)
-samples(estimator::Estimator{<:AbstractIndexSet, <:MC}, n_qoi::Integer, index::Index) = get(samples(estimator, n_qoi), index, nothing)
+samples(estimator::Estimator{<:AbstractIndexSet, <:MC}, n_qoi::Integer, index::Index) = get(samples(estimator, n_qoi), index, NaN)
 
 samples_diff(estimator::Estimator) = estimator.internals.samples_diff
 samples_diff(estimator::Estimator{<:AbstractIndexSet, <:MC}, n_qoi::Integer) = getindex(samples_diff(estimator), n_qoi)
-samples_diff(estimator::Estimator{<:AbstractIndexSet, <:MC}, n_qoi::Integer, index::Index) = get(samples_diff(estimator, n_qoi), index, nothing)
+samples_diff(estimator::Estimator{<:AbstractIndexSet, <:MC}, n_qoi::Integer, index::Index) = get(samples_diff(estimator, n_qoi), index, NaN)
 
 append_samples!(estimator::Estimator{<:AbstractIndexSet, <:MC}, n_qoi::Integer, index::Index, samples_to_append) = append!(estimator.internals.samples[n_qoi][index], samples_to_append)
 append_samples_diff!(estimator::Estimator{<:AbstractIndexSet, <:MC}, n_qoi::Integer, index::Index, samples_to_append) = append!(estimator.internals.samples_diff[n_qoi][index], samples_to_append)

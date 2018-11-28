@@ -64,16 +64,16 @@ str = @sprintf "%s" td
 hc = HC(3)
 @test isa(hc,HC{3})
 idxset = get_index_set(hc,4)
-@test length(idxset) == 13
+@test length(idxset) == 16
 @test sort(idxset)[1] == (0,0,0)
-@test sort(idxset)[end] == (3,0,0)
+@test sort(idxset)[end] == (4,0,0)
 @test in((0,1,1),idxset)
-@test !in((4,0,0),idxset)
+@test !in((5,0,0),idxset)
 hc2 = HC(2,δ=[1,2])
 @test isa(hc2,HC{2})
 idxset2 = get_index_set(hc2,12)
-@test length(idxset2) == 21
-@test sort(idxset2)[end] == (11,0)
+@test length(idxset2) == 23
+@test sort(idxset2)[end] == (12,0)
 @test_throws ArgumentError HC(1)
 @test_throws ArgumentError HC(2,δ=[1,1,1])
 @test_throws ArgumentError HC(2,δ=[1,0])

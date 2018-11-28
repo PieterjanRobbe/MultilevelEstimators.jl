@@ -9,7 +9,7 @@
 for (f, g, sgn) in zip((:α, :β, :γ), (:mean, :var, :cost), (-1, -1, 1))
 	eval(
 		 quote
-			 $f(estimator::Estimator{<:AbstractMI}) = $sgn.*getindex.($(Symbol("rates_", f)).(estimator, 1:ndims(estimator)), 2)
+			 $f(estimator::Estimator{<:AbstractMI}) = $sgn.*getindex.(broadcast(i->$(Symbol("rates_", f))(estimator, i), 1:ndims(estimator)), 2)
 			 $(Symbol("rates_", f))(estimator::Estimator{<:AbstractMI}, dir::Integer) = $(Symbol("rates_", f))(estimator, (maximum(getindex.(keys(estimator), dir)) + 1) .* ntuple(i->i==dir, ndims(estimator)), dir)
 			 function $(Symbol("rates_", f))(estimator::Estimator{<:AbstractMI}, idx::Index, dir::Integer)
 				 m = idx[dir] - 1
@@ -69,91 +69,11 @@ end
 bias(estimator::Estimator{<:AbstractMI}) = bias(estimator, sz(estimator))
 function bias(estimator::Estimator{<:AbstractMI}, sz::Integer)
 	if !isempty(boundary(estimator, sz+1) ∩ keys(estimator)) && !robustify_bias_estimate(estimator)
-		return abs(sum(mean.(estimator, boundary(estimator, sz+1))))
+		return abs(sum(broadcast(i->mean(estimator, i), boundary(estimator, sz+1))))
 	else
 		x = 1:sz
-		y = [log2(abs(sum(mean.(estimator, boundary(estimator, xᵢ))))) for xᵢ in x]
+		y = [log2(abs(sum(broadcast(i->mean(estimator, i), boundary(estimator, xᵢ))))) for xᵢ in x]
 		p = interp1(x, y)
 		return 2^(p[1]+(sz+1)*p[2])
 	end
 end
-
-## adaptivity ##
-#=
-function new_index_set(estimator::AdaptiveMultiIndexTypeEstimator, level::N where {N<:Integer})
-    d = ndims(estimator) # dimension of index set
-    # empty index set
-    index_set = typeof(estimator.current_index_set)()
-    if level == 0 # if first run
-        max_index = ntuple(i->0,d)
-        push!(index_set,max_index)
-    else
-        # find index with largest "profit" and add to old set; enlarge active set
-        temp_active_set = collect(active_set(estimator))
-        idx = argmax(profit.(estimator,temp_active_set))
-        max_index = temp_active_set[idx]
-        push!(estimator.old_index_set,max_index)
-        print_largest_profit(max_index)
-        for k in 1:d
-            new_index = max_index .+ unit(k,d)
-            if is_admissable(estimator.old_index_set,new_index)
-                if new_index ∈ get_index_set(estimator.max_search_space,estimator.max_level) 
-                    push!(index_set,new_index)
-                else
-                    warn_spill_index(max_index)
-                    push!(estimator.spill_index_set,max_index)
-                end
-            end
-        end
-    end
-    log_adaptive_index_set(estimator,keys(estimator) ∪ index_set,max_index)
-    return index_set
-end
-
-# log indices (for plotting adaptive index set)
-function log_adaptive_index_set(estimator,indices,max_index)
-	d = ndims(estimator)
-	dict = Dict{Index{d},Int64}()
-	for index in indices
-		if !haskey(dict,index)
-			if index == max_index # max index
-				dict[index] = 3
-			elseif index ∈ estimator.spill_index_set # spill index
-				dict[index] = 1
-			elseif index ∈ estimator.old_index_set # old index
-				dict[index] = 0
-			else # active index
-				dict[index] = 2
-			end
-		end
-	end
-	push!(estimator.adaptive_index_set,dict)
-end
-
-max_level_exceeded(estimator::AdaptiveMultiIndexTypeEstimator, level::N where {N<:Integer}, converged::Bool) = !converged && isempty(active_set(estimator))
-
-update_max_active(estimator::MultiIndexTypeEstimator) = nothing
-function update_max_active(estimator::AdaptiveMultiIndexTypeEstimator)
-    empty!(estimator.max_active_set)
-    union!(estimator.max_active_set,active_set(estimator))
-    union!(estimator.max_active_set,estimator.spill_index_set)
-end
-
-# TODO for AMIQM, realize that this is not the best approach to compute gains...
-function profit(estimator::AdaptiveMultiIndexTypeEstimator,index::Index)
-	if estimator.method isa MG
-		abs(mean(estimator,index))
-	else
-		abs(mean(estimator,index))/sqrt(var(estimator,index)*cost(estimator,index))
-	end
-end
-
-function bias(estimator::AdaptiveMultiIndexTypeEstimator; use_maximum=false::Bool)
-    if use_maximum
-        boundary = estimator.max_active_set
-    else
-        boundary = union(estimator.spill_index_set,active_set(estimator))
-    end
-	return length(boundary) < 2 ? NaN : abs.(sum(mean.(estimator,collect(boundary))))
-end
-=#

@@ -60,6 +60,13 @@
     @test_throws ArgumentError Estimator(index_set, mc_sample_method, sample_function, distribution; do_mse_splitting=1)
     @test Estimator(index_set, mc_sample_method, sample_function, distribution; do_mse_splitting=false) isa type_mlmc
 
+    @test Estimator(index_set, mc_sample_method, sample_function, distribution; min_splitting=0.6) isa type_mlmc
+    @test_throws ArgumentError Estimator(index_set, mc_sample_method, sample_function, distribution; min_splitting=2)
+
+    @test Estimator(index_set, mc_sample_method, sample_function, distribution; max_splitting=0.8) isa type_mlmc
+    @test_throws ArgumentError Estimator(index_set, mc_sample_method, sample_function, distribution; max_splitting=0.4)
+    @test_throws ArgumentError Estimator(index_set, mc_sample_method, sample_function, distribution; max_splitting=0.6, min_splitting=0.7)
+
     @test_throws ArgumentError Estimator(index_set, mc_sample_method, sample_function, distribution; max_index_set_param=1.0)
     @test_throws ArgumentError Estimator(index_set, mc_sample_method, sample_function, distribution; max_index_set_param=-1)
     @test Estimator(index_set, mc_sample_method, sample_function, distribution; max_index_set_param=6) isa type_mlmc
