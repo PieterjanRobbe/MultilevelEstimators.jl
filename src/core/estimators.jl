@@ -109,7 +109,7 @@ contains_samples_at_index(estimator::Estimator, index::Index) = isassigned(estim
 
 total_work(estimator::Estimator) = estimator.internals.total_work
 total_work(estimator::Estimator, index::Index) = get(total_work(estimator), index, nothing)
-update_total_work!(estimator::Estimator, index::Index, time::Real) = total_work(estimator)[index] += cost_model(estimator) isa EmptyFunction ? time : cost_model(estimator)(index)
+update_total_work!(estimator::Estimator, index::Index, time::Real, n::Integer) = total_work(estimator)[index] += cost_model(estimator) isa EmptyFunction ? time : n * cost_model(estimator)(index)
 
 nb_of_samples(estimator::Estimator) = estimator.internals.nb_of_samples
 nb_of_samples(estimator::Estimator, index::Index) = get(nb_of_samples(estimator), index, 0)
@@ -141,13 +141,15 @@ append_samples!(estimator::Estimator{<:AbstractIndexSet, <:MC}, n_qoi::Integer, 
 append_samples_diff!(estimator::Estimator{<:AbstractIndexSet, <:MC}, n_qoi::Integer, index::Index, samples_to_append) = append!(estimator.internals.samples_diff[n_qoi][index], samples_to_append)
 
 keys(estimator::Estimator) = sort(collect(current_index_set(estimator)))
-all_keys(estimator::Estimator) = sort(collect(keys(samples(estimator))))
+all_keys(estimator::Estimator) = sort(collect(keys(first(samples(estimator)))))
 
 current_index_set(estimator::Estimator) = estimator.internals.current_index_set
 
+ndims(::Estimator{<:AbstractIndexSet{d}}) where d = d 
+
 get_index_set(estimator::Estimator, level) = get_index_set(estimator.index_set, level)
 
-boundary(estimator::Estimator{<:AbstractMI}, cntr) = cntr == 0 ? get_index_set(estimator, cntr) : setdiff(get_index_set(estimator, cntr), get_index_set(estimator, cntr-1))
+boundary(estimator::Estimator, cntr) = cntr == 0 ? get_index_set(estimator, cntr) : setdiff(get_index_set(estimator, cntr), get_index_set(estimator, cntr-1))
 
 sz(estimator::Estimator) = estimator.internals.index_set_size.sz
 function set_sz(estimator::Estimator, n)

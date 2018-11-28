@@ -67,7 +67,7 @@ parse!(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, setting
 
 ## splitting ##
 @parse!(:splitting,
-        1/2,
+		0.99,
         (check_type(to_string(key, val)..., Real);
          check_finite(to_string(key, val)...);
          check_larger_than(to_string(key, val)..., 0);

@@ -9,8 +9,8 @@
 for (f, g, sgn) in zip((:α, :β, :γ), (:mean, :var, :cost), (-1, -1, 1))
 	eval(
 		 quote
-			 $f(estimator::Estimator{<:AbstractMI}) = $sgn.*getindex.($(Symbol("rates_", f))(estimator, 1:ndims(estimator)), 2)
-			 $(Symbol("rates_", f))(estimator::Estimator{<:AbstractMI}, dir::Integer) = $(Symbol("rates_", f))(estimator, (maximum(getindex.(keys(estimator), dir)) + 1) * ntuple(i->i==dir, ndims(estimator)), dir)
+			 $f(estimator::Estimator{<:AbstractMI}) = $sgn.*getindex.($(Symbol("rates_", f)).(estimator, 1:ndims(estimator)), 2)
+			 $(Symbol("rates_", f))(estimator::Estimator{<:AbstractMI}, dir::Integer) = $(Symbol("rates_", f))(estimator, (maximum(getindex.(keys(estimator), dir)) + 1) .* ntuple(i->i==dir, ndims(estimator)), dir)
 			 function $(Symbol("rates_", f))(estimator::Estimator{<:AbstractMI}, idx::Index, dir::Integer)
 				 m = idx[dir] - 1
 				 if m < 2
@@ -43,7 +43,7 @@ for (f, sym) in zip([:var, :cost], [:β, :γ])
 				 estimates = broadcast(dir->2^(p[dir][1]+index[dir]*p[dir][2]), 1:ndims(estimator))
 				 estimate = mean(filter(!isnan, estimates))
 				 if isnan(estimate)
-					 p = interpd(estimator, $sym)
+					 p = interpd(estimator, $f)
 					 return 2 .^(p[1]+sum(p[2:end].*index))
 				 else
 				   	 return estimate
@@ -53,7 +53,7 @@ for (f, sym) in zip([:var, :cost], [:β, :γ])
 end
 
 regress_var(estimator::Estimator{<:MI, <:MC}, index::Index) = _regress_var(estimator::Estimator{<:MI, <:MC}, index::Index)
-regress_cost(estimator::Estimator{<:MI, <:MC}, index::Index) = cost_model(estimator) isa EmtyFunction ? _regress_cost(estimator::Estimator{<:MI, <:MC}, index::Index) : cost_model(estimator, index)
+regress_cost(estimator::Estimator{<:MI, <:MC}, index::Index) = cost_model(estimator) isa EmptyFunction ? _regress_cost(estimator::Estimator{<:MI, <:MC}, index::Index) : cost_model(estimator, index)
 
 function _regress_nb_of_samples(estimator::Estimator{<:AbstractIndexSet, <:MC}, index_set::AbstractVector{<:Index}, ϵ::Real, θ::Real)
 	vars = Dict(index=>regress_var(estimator, index) for index in index_set)
