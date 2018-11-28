@@ -73,6 +73,8 @@ include("methods/monte_carlo.jl")
 
 include("methods/multilevel_monte_carlo.jl")
 
+include("methods/multiindex_monte_carlo.jl")
+
 # utils
 
 include("utils/report.jl")

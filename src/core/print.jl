@@ -126,15 +126,19 @@ function print_mse_analysis(estimator::Estimator, ϵ::Real, θ::Real)
     end
 end
 
-function print_rates(estimator::Estimator{<:AbstractML})
-    str = string("  ==> Rates: α ≈ ", short(α(estimator)))
-    str = string(str, ", β ≈ ", short(β(estimator)))
-    str = string(str, ", γ ≈ ", short(γ(estimator)), ".")
+function print_rates(estimator::Estimator)
+	str = string("  ==> Rates: α ≈ ", print_rate(estimator, α))
+	str = string(str, ", β ≈ ", print_rate(estimator, β))
+	str = string(str, ", γ ≈ ", print_rate(estimator, γ), ".")
     println(str)
 end
+
+print_rate(estimator::Estimator{<:AbstractML}, f::Function) = short(f(estimator))
+print_rate(estimator::Estimator{<:AbstractMI}, f::Function) = string("(", join(short.(f(estimator)), ", "), ")")
 
 ## warning when max level is reached ##
 warn_max_level(estimator::Estimator{<:AbstractML}) = @warn string("Maximum level L = ", max_index_set_param(estimator), " reached, no convergence yet.")
 
 ## print level ##
 print_level(estimator::Estimator{<:Union{SL, AbstractML}}, level::Integer) = println(string("Currently running on level ", level, "."))
+print_level(estimator::Estimator{<:AbstractMI}, L::Integer) = println(string("Currently running with L = ", L, "."))

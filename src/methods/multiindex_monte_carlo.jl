@@ -55,77 +55,31 @@ end
 regress_var(estimator::Estimator{<:MI, <:MC}, index::Index) = _regress_var(estimator::Estimator{<:MI, <:MC}, index::Index)
 regress_cost(estimator::Estimator{<:MI, <:MC}, index::Index) = cost_model(estimator) isa EmtyFunction ? _regress_cost(estimator::Estimator{<:MI, <:MC}, index::Index) : cost_model(estimator, index)
 
-# TODO also for ML
-function regress_nb_of_samples(estimator::Estimator{<:AbstractIndexSet, <:MC}, index_set::Set{Index}, ϵ::Real, θ::Real)
-	if do_regression(estimator) && L > 2
-		vars = Dict(index=>regress_var(estimator, index) for index in index_set)
-		costs = Dict(index=>regress_cost(estimator, index) for index in index_set)
-		Σ_estimate = Σ(estimator)
-		for index in keys(vars)
-			Σ_estimate += sqrt(vars[index] * costs[index])
-		end
-		ns = Dict(index=>max(2, min(optimal_nb_of_samples(ϵ, θ, vars[index], costs[index], Σ_estimate), nb_of_warm_up_samples(estimator))) for index in index_set)
+function _regress_nb_of_samples(estimator::Estimator{<:AbstractIndexSet, <:MC}, index_set::AbstractVector{<:Index}, ϵ::Real, θ::Real)
+	vars = Dict(index=>regress_var(estimator, index) for index in index_set)
+	costs = Dict(index=>regress_cost(estimator, index) for index in index_set)
+	Σ_estimate = Σ(estimator)
+	for index in keys(vars)
+		Σ_estimate += sqrt(vars[index] * costs[index])
+	end
+	Dict(index=>max(2, min(optimal_nb_of_samples(ϵ, θ, vars[index], costs[index], Σ_estimate), nb_of_warm_up_samples(estimator))) for index in index_set)
+end
+
+## bias ##
+bias(estimator::Estimator{<:AbstractMI}) = bias(estimator, sz(estimator))
+function bias(estimator::Estimator{<:AbstractMI}, sz::Integer)
+	if !isempty(boundary(estimator, sz+1) ∩ keys(estimator)) && !robustify_bias_estimate(estimator)
+		return abs(sum(mean.(estimator, boundary(estimator, sz+1))))
 	else
-		ict(index=>nb_of_warm_up_samples(estimator) index in index_set)
+		x = 1:sz
+		y = [log2(abs(sum(mean.(estimator, boundary(estimator, xᵢ))))) for xᵢ in x]
+		p = interp1(x, y)
+		return 2^(p[1]+(sz+1)*p[2])
 	end
 end
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-## bias ##
-bias(estimator::Estimator{<:AbstractMI}) = bias(estimator, L(estimator))
-function bias(estimator::Estimator{<:AbstractMI}, max_L)
-    y = [abs(sum(mean.(estimator, boundary(estimator, cntr)))) for cntr in 1:max_L]
-    start_L = robustify_bias_estimate(estimator) ? 1 : max_L-1
-    p = interp1(start_L:max_L, log2.(y))
-    2^(p[1]+(max_L+1)*p[2])
-end
-        
-## inspector functions ##
-function bias(estimator::MultiIndexTypeEstimator; use_maximum=false::Bool)
-
-
-    if length(x) > 1
-		if !estimator.conservative_bias_estimate
-			return y[end]
-		else
-        start_level = estimator.conservative_bias_estimate ? 1 : length(x) - 1
-        θ = straight_line_fit(x[start_level:end],log2.(abs.(y[start_level:end])))
-        return 2^(θ[1]+(x[end]+1)*θ[2])
-		end
-    else
-        return NaN
-    end
-end
-
-## rates ##
-
 ## adaptivity ##
-new_index_set(estimator::MultiIndexTypeEstimator, level::N where {N<:Integer}) = get_index_set(estimator.method,level)
-
+#=
 function new_index_set(estimator::AdaptiveMultiIndexTypeEstimator, level::N where {N<:Integer})
     d = ndims(estimator) # dimension of index set
     # empty index set
@@ -176,7 +130,6 @@ function log_adaptive_index_set(estimator,indices,max_index)
 	push!(estimator.adaptive_index_set,dict)
 end
 
-max_level_exceeded(estimator::MultiIndexTypeEstimator, level::N where {N<:Integer}, converged::Bool) = !converged && (level > estimator.max_level) 
 max_level_exceeded(estimator::AdaptiveMultiIndexTypeEstimator, level::N where {N<:Integer}, converged::Bool) = !converged && isempty(active_set(estimator))
 
 update_max_active(estimator::MultiIndexTypeEstimator) = nothing
@@ -203,3 +156,4 @@ function bias(estimator::AdaptiveMultiIndexTypeEstimator; use_maximum=false::Boo
     end
 	return length(boundary) < 2 ? NaN : abs.(sum(mean.(estimator,collect(boundary))))
 end
+=#

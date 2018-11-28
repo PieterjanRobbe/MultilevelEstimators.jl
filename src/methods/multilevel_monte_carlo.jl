@@ -70,14 +70,22 @@ for (f, g, sgn) in zip((:α, :β, :γ), (:mean, :var, :cost), (-1, -1, 1))
 end
 
 ## regression ##
-function regress_nb_of_samples(estimator::Estimator{<:ML, <:MC}, level::Level, ϵ::Real, θ::Real)
+function regress_nb_of_samples(estimator::Estimator, index_set::AbstractVector{<:Index}, ϵ::Real, θ::Real, L::Integer)
+	if do_regression(estimator) && L > 2
+		return _regress_nb_of_samples(estimator, index_set, ϵ, θ)
+	else
+		return Dict(index=>nb_of_warm_up_samples(estimator) for index in index_set)
+	end
+end
+_regress_nb_of_samples(estimator::Estimator{<:ML, <:MC}, index_set::AbstractVector{<:Level}, ϵ::Real, θ::Real) = _regress_nb_of_samples(estimator, first(collect(index_set)), ϵ, θ)
+function _regress_nb_of_samples(estimator::Estimator{<:ML, <:MC}, level::Level, ϵ::Real, θ::Real)
 	p1 = rates_β(estimator)
 	var_estimate = 2^(p1[1]+level[1]*p1[2])
 	p2 = rates_γ(estimator)
 	cost_estimate = 2^(p2[1]+level[1]*p2[2])
 	Σ_estimate = Σ(estimator)
 	Σ_estimate += sqrt(var_estimate * cost_estimate)
-	max(2, min(optimal_nb_of_samples(ϵ, θ, var_estimate, cost_estimate, Σ_estimate), nb_of_warm_up_samples(estimator)))
+	Dict(level=>max(2, min(optimal_nb_of_samples(ϵ, θ, var_estimate, cost_estimate, Σ_estimate), nb_of_warm_up_samples(estimator))))
 end
 
 ## bias ##
@@ -102,6 +110,3 @@ end
 Σ(estimator::Estimator) = sum(sqrt.(map(index -> var(estimator, index) * cost(estimator, index), keys(estimator))))
 optimal_nb_of_samples(estimator::Estimator, index::Index, ϵ::Real, θ::Real) = optimal_nb_of_samples(ϵ, θ, var(estimator, index), cost(estimator, index), Σ(estimator))
 optimal_nb_of_samples(ϵ::Real, θ::Real, var_estimate::Real, cost_estimate::Real, Σ_estimate::Real) = ceil(Int, 1/(θ*ϵ^2) * sqrt(var_estimate/cost_estimate) * Σ_estimate)
-
-## new index set ##
-new_index_set(estimator::Estimator{<:Union{SL, AbstractML}}, n::Integer) = Set((Level(n),))

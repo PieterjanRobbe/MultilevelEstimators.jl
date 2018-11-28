@@ -55,10 +55,10 @@ function _run(estimator::Estimator{T, <:MC}, ϵ::Real) where T<:AbstractIndexSet
 		verbose(estimator) && print_level(estimator, L)
 
 		# update index set
-		index_set = new_index_set(estimator, L)
+		index_set = boundary(estimator, L)
 
 		# obtain initial variance estimate
-		ns = regress_nb_of_samples(estimator, index_set, ϵ, θ) 
+		ns = regress_nb_of_samples(estimator, index_set, ϵ, θ, L) 
 		for index in index_set
 			if !contains_samples_at_index(estimator, index)
 				sample!(estimator, index, ns[index])

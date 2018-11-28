@@ -9,7 +9,7 @@ function sample_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::Gaussia
 
     # sample grf
     # TODO for QMC, reorden inputs!!!!
-    Z = sample(grf, xi=view(x, 1:randdim(grf)))
+    Z = my_grf_sample(grf, view(x, 1:randdim(grf)))
     k = exp.(Z)
     sz = size(k).-1
 
@@ -34,6 +34,23 @@ function sample_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::Gaussia
     end
 
     (dQ, Qf)
+end
+
+my_grf_sample(grf::GaussianRandomField, x::AbstractVector) = sample(grf, xi=x)
+function my_grf_sample(grf::GaussianRandomField{CirculantEmbedding}, x::AbstractVector)
+	v = grf.data[1]
+
+	# compute multiplication with square root of circulant embedding via FFT
+	y = v .* reshape(x, size(v))
+	w = fft!(complex(y))
+
+	# extract realization of random field
+	z = Array{eltype(grf.cov)}(undef, length.(grf.pts))
+	@inbounds for i in CartesianIndices(z)
+		wi = w[i]
+		z[i] = real(wi) + imag(wi)
+	end
+	z
 end
 
 function apply_qoi(x, ::Qoi1)

@@ -52,7 +52,7 @@ end
 
 compute_grf(cov_fun, grf_generator::GaussianRandomFieldGenerator, pts, p) = GaussianRandomField(cov_fun, grf_generator, pts...)
 
-compute_grf(cov_fun, grf_generator::CirculantEmbedding, pts, p) = GaussianRandomField(cov_fun, grf_generator, pts..., minpadding=p)
+compute_grf(cov_fun, grf_generator::CirculantEmbedding, pts, p) = GaussianRandomField(cov_fun, grf_generator, pts..., minpadding=p, measure=false)
 
 ## get_arg ##
 macro get_arg(key_name, default_value)

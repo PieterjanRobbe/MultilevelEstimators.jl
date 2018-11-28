@@ -147,7 +147,7 @@ current_index_set(estimator::Estimator) = estimator.internals.current_index_set
 
 get_index_set(estimator::Estimator, level) = get_index_set(estimator.index_set, level)
 
-boundary(estimator::Estimator{<:AbstractMI}, cntr) = setdiff(get_index_set(estimator, cntr), get_index_set(estimator, cntr-1))
+boundary(estimator::Estimator{<:AbstractMI}, cntr) = cntr == 0 ? get_index_set(estimator, cntr) : setdiff(get_index_set(estimator, cntr), get_index_set(estimator, cntr-1))
 
 sz(estimator::Estimator) = estimator.internals.index_set_size.sz
 function set_sz(estimator::Estimator, n)
