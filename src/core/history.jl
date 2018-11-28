@@ -53,10 +53,7 @@ end
 apply_f(estimator::Estimator, f::Function) = Dict(i => f(estimator, i) for i in keys(estimator))
 
 ## save history ##
-save(history::History) = jldopen(joinpath(history[:folder], history[:name]), "w") do file
-    addrequire(file, MultilevelEstimators)
-    write(file, "history", history)
-end
+save(history::History) = @save joinpath(history[:folder], history[:name]) history
 
 ## convenience functions ##
 getindex(history::History, s::Symbol) = history.data[end][s]

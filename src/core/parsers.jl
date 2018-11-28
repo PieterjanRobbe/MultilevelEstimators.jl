@@ -97,7 +97,8 @@ parse!(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, setting
         get_valid_filename(index_set, sample_method, settings),
         (check_type(to_string(key, val)..., String);
          parse!(index_set, sample_method, settings, Val(:folder));
-         val = endswith(val, ".jld") ? val : string(val, ".jld");
+		 occursin(".", val) && throw(ArgumentError("in Estimator, optional key name must not contain a ."));
+         val = endswith(val, ".jld2") ? val : string(val, ".jld2");
          settings[key] = val;
          isfile(joinpath(settings[:folder], val)) && @warn string("filename ", val, " exists, will be overwritten!"))
        )
@@ -106,13 +107,13 @@ function get_valid_filename(index_set::AbstractIndexSet, sample_method::Abstract
     parse!(index_set, sample_method, settings, Val(:folder))
     filename = "UntitledEstimator";
     cntr = 0;
-    if isfile(joinpath(settings[:folder], string(filename, ".jld")))
+    if isfile(joinpath(settings[:folder], string(filename, ".jld2")))
         cntr += 1
-        while isfile(joinpath(settings[:folder], string(filename, cntr, ".jld")))
+        while isfile(joinpath(settings[:folder], string(filename, cntr, ".jld2")))
             cntr = cntr+1;
         end
     end
-    string(filename, cntr == 0 ? "" : cntr, ".jld")
+    string(filename, cntr == 0 ? "" : cntr, ".jld2")
 end
 
 ## save_samples ##

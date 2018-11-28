@@ -6,7 +6,7 @@
 # Carlo Methods (c) Pieterjan Robbe, 2018
 
 ## report ##
-function report(h::History, folder::String=h[:name][1:end-4])
+function report(h::History, folder::AbstractString=first(split(h[:name], ".")))
 
     # make the required directories
     !isdir(folder) && mkdir(folder)
@@ -22,7 +22,7 @@ function report(h::History, folder::String=h[:name][1:end-4])
 end
 
 ## rates ##
-function write_data_rates(h::History, folder::String)
+function write_data_rates(h::History, folder::AbstractString)
     d = h[:ndims]
     for name in ["E", "dE", "V", "dV", "W"]
         for idx in Base.Iterators.drop(CartesianIndices(tuple(fill(0:1, d)...)), 1)
@@ -44,7 +44,7 @@ function write_data_rates(h::History, folder::String)
 end
 
 ## samples ##
-function write_data_samples(h::History, folder::String)
+function write_data_samples(h::History, folder::AbstractString)
     d = h[:ndims]
     if d == 1
         n = first(maximum(h[:index_set]))
@@ -61,7 +61,7 @@ function write_data_samples(h::History, folder::String)
 end             
 
 ## complexity ##
-function write_data_runtime(h::History, folder::String)
+function write_data_runtime(h::History, folder::AbstractString)
     x = [h[i][:tol] for i in 1:length(h)]
     y = cumsum([Dates.value(h[i][:time_stamp]-h.t_start)/1000 for i in 1:length(h)])
     open(joinpath(folder, "data", "runtime.txt"), "w") do f
@@ -71,7 +71,7 @@ function write_data_runtime(h::History, folder::String)
     end
 end
 
-function write_data_cost(h::History, folder::String)
+function write_data_cost(h::History, folder::AbstractString)
     x = [h[i][:tol] for i in 1:length(h)]
     y = [sum(h[:W][index]*h[i][:nb_of_samples][index] for index in h[i][:index_set]) for i in 1:length(h)]
     open(joinpath(folder, "data", "cost.txt"), "w") do f
@@ -82,7 +82,7 @@ function write_data_cost(h::History, folder::String)
 end
 
 # TODO maybe use @generated function with dispatch in h[:type]
-function write_figures_rates(h::History, folder::String)
+function write_figures_rates(h::History, folder::AbstractString)
     d = h[:ndims]
     if d == 1
         L = first(maximum(h[:index_set]))
@@ -113,7 +113,7 @@ function write_figures_rates(h::History, folder::String)
     end
 end
 
-function write_figure_samples(h::History, folder::String)
+function write_figure_samples(h::History, folder::AbstractString)
     d = h[:ndims]
     if d == 1
         L = first(maximum(h[:index_set]))
@@ -131,7 +131,7 @@ function write_figure_samples(h::History, folder::String)
     end
 end
 
-function write_figure_runtime(h::History, folder::String)
+function write_figure_runtime(h::History, folder::AbstractString)
     plots = LinePlot[]
     plot = LinePlot(linecolor(1, 2), linestyle(1), marker(1), "" , "runtime", "")
     push!(plots, plot)
@@ -141,7 +141,7 @@ function write_figure_runtime(h::History, folder::String)
     end
 end
 
-function write_figure_cost(h::History, folder::String)
+function write_figure_cost(h::History, folder::AbstractString)
     plots = LinePlot[]
     plot = LinePlot(linecolor(2, 2), linestyle(1), marker(1), "" , "cost", "")
     push!(plots, plot)

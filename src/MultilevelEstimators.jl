@@ -7,7 +7,7 @@ module MultilevelEstimators
 
 ## dependencies ##
 
-using Colors, Dates, DelimitedFiles, Distributed, JLD, LinearAlgebra, Printf, Random, SpecialFunctions, Statistics
+using Colors, Dates, DelimitedFiles, Distributed, JLD2, LinearAlgebra, Printf, Random, SpecialFunctions, Statistics
 
 ## import statements ##
 

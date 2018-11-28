@@ -129,7 +129,7 @@ struct Document
     contents::Vector{Figure}
 end
 
-function Document(h::History, folder::String)
+function Document(h::History, folder::AbstractString)
     
     packages = String[]
     push!(packages, "\\usepackage[margin=2cm]{geometry}")
