@@ -14,7 +14,8 @@ struct EstimatorOptions{N<:Integer, T<:Real}
 
     continuation_mul_factor::T
 	sample_mul_factor::T
-    splitting::T
+    min_splitting::T
+    max_splitting::T
 
     continuate::Bool
     save_samples::Bool
@@ -34,6 +35,6 @@ end
 EstimatorOptions(settings::Dict{Symbol,Any}) = 
 EstimatorOptions(
                  promote([settings[name] for name in fieldnames(EstimatorOptions)[1:4]]...)..., # promotion of N
-                 promote([settings[name] for name in fieldnames(EstimatorOptions)[5:7]]...)..., # promotion of T
-                 [settings[name] for name in fieldnames(EstimatorOptions)[8:end]]... # other fields
+                 promote([settings[name] for name in fieldnames(EstimatorOptions)[5:8]]...)..., # promotion of T
+                 [settings[name] for name in fieldnames(EstimatorOptions)[9:end]]... # other fields
                 )

@@ -46,7 +46,7 @@ function _run(estimator::Estimator{T, <:MC}, ϵ::Real) where T<:AbstractIndexSet
 	L = 0
 
 	# MSE splitting parameter
-	θ = splitting(estimator)
+	θ = min_splitting(estimator)
 
 	# main loop
 	while L ≤ 2 || !converged(estimator, ϵ, θ)
@@ -75,7 +75,7 @@ function _run(estimator::Estimator{T, <:MC}, ϵ::Real) where T<:AbstractIndexSet
 		verbose(estimator) && print_status(estimator)
 
 		# value of the MSE splitting parameter
-		θ = do_mse_splitting(estimator) ? compute_splitting(estimator, ϵ) : splitting(estimator)
+		θ = do_mse_splitting(estimator) ? compute_splitting(estimator, ϵ) : min_splitting(estimator)
 
 		# evaluate optimal number of samples
 		n_opt = Dict(τ => optimal_nb_of_samples(estimator, τ, ϵ, θ) for τ in keys(estimator))

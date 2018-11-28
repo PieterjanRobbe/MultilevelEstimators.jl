@@ -102,8 +102,7 @@ end
 ## compute optimal value of MSE splitting parameter ##
 function compute_splitting(estimator::Estimator, ϵ::Real)
 	bias_estimate = bias(estimator, max_sz(estimator))
-	θ = splitting(estimator)
-	isnan(bias_estimate) ? θ : min(0.99, max(θ, 1-bias_estimate^2/ϵ^2))
+	isnan(bias_estimate) ? min_splitting(estimator) : min(max_splitting(estimator), max(min_splitting(estimator), 1-bias_estimate^2/ϵ^2))
 end
 
 ## optimal nb of samples ##

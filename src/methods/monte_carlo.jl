@@ -25,7 +25,7 @@ end
 bias(estimator::Estimator{<:SL}) = 0.0
 
 ## splitting ##
-splitting(estimator::Estimator{<:SL}) = 1.0
+min_splitting(estimator::Estimator{<:SL}) = 1.0
 do_mse_splitting(estimator::Estimator{<:SL}) = false
 
 ## regression ##

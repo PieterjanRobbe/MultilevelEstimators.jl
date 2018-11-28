@@ -81,7 +81,8 @@ function valid_keys(::I, ::S) where {I<:AbstractIndexSet, S<:AbstractSampleMetho
 		 :nb_of_workers]
 	I <: Union{ML, MI} && push!(v,
 								:max_index_set_param,
-								:splitting,
+								:min_splitting,
+								:max_splitting,
 								:robustify_bias_estimate,
 								:do_mse_splitting,
 								:do_regression)
