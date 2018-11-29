@@ -23,7 +23,8 @@ function init_lognormal(index_set::AbstractIndexSet, sample_method::AbstractSamp
     # sample function
     damping = get_arg(args, :damping)
     qoi = get_arg(args, :qoi)
-    sample_function = (index, x) -> sample_lognormal(index, x, grfs[index], damping, qoi)
+    solver = get_arg(args, :solver)
+    sample_function = (index, x) -> sample_lognormal(index, x, grfs[index], damping, qoi, solver)
 
     # distributions
     s = maximum(randdim.(collect(values(grfs))))
@@ -92,5 +93,13 @@ struct Qoi3 <:AbstractQoi end
 
 @get_arg :qoi Qoi1()
 
+abstract type AbstractSolver end
+
+struct MGSolver <: AbstractSolver end
+
+struct MSGSolver <: AbstractSolver end
+
+@get_arg :solver MGSolver()
+
 # make sure all keys in args are valid keys for Estimator
-filter_keys!(args::Dict{Symbol, Any}) = isempty(args) || delete!.(Ref(args), [:nb_of_coarse_dofs, :covariance_function, :length_scale, :smoothness, :grf_generator, :minpadding, :index_set, :qoi])
+filter_keys!(args::Dict{Symbol, Any}) = isempty(args) || delete!.(Ref(args), [:nb_of_coarse_dofs, :covariance_function, :length_scale, :smoothness, :grf_generator, :minpadding, :index_set, :qoi, :damping, :solver])

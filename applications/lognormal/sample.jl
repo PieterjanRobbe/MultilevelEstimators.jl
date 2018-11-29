@@ -5,7 +5,7 @@
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
 # Carlo Methods (c) Pieterjan Robbe, 2018
 
-function sample_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::GaussianRandomField, damping::Real, qoi::AbstractQoi)
+function sample_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::GaussianRandomField, damping::Real, qoi::AbstractQoi, solver::AbstractSolver)
 
     # sample grf
     # TODO for QMC, reorden inputs!!!!
@@ -21,14 +21,14 @@ function sample_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::Gaussia
     end
 
     # solve
-    xf = FMG_solve(g, sz, damping)
+    xf = FMG_solve(g, sz, damping, solver)
     Qf = apply_qoi(reshape(xf, sz.-1), qoi)
 
     # compute difference
     dQ = Qf
     for (key, val) in diff(index)
         szc = div.(sz, max.(1, (index.-key).*2))
-        xc = FMG_solve(g, szc, damping)
+        xc = FMG_solve(g, szc, damping, solver)
         Qc = apply_qoi(reshape(xc, szc.-1), qoi)
         dQ += val*Qc
     end
