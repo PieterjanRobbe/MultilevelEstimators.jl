@@ -142,3 +142,23 @@ warn_max_level(estimator::Estimator{<:AbstractML}) = @warn string("Maximum level
 ## print level ##
 print_level(estimator::Estimator{<:Union{SL, AbstractML}}, level::Integer) = println(string("Currently running on level ", level, "."))
 print_level(estimator::Estimator{<:AbstractMI}, L::Integer) = println(string("Currently running with L = ", L, "."))
+
+## print_index_set ##
+print_index_set(estimator::Estimator, index_set) = nothing
+print_index_set(estimator::Estimator{<:AbstractMI}, index_set) = ndims(estimator) == 2 ? _print_index_set(union(keys(estimator), index_set)) : nothing
+
+function _print_index_set(index_set)
+	char = "\u25FC"
+	n = maximum(maximum.(index_set))
+	R = CartesianIndices(UnitRange.((0, 0), (n, n)))
+	A = map(i -> Index(i.I...) ∈ index_set, R)
+	str = "Shape of the index set:\n"
+	for j in n+1:-1:1
+		str = string(str, "  ")
+		for i in 1:n+1
+			str = A[i,j] ? string(str, char, " ") : str
+		end
+		str = string(str,"\n")
+	end
+	print(str)
+end

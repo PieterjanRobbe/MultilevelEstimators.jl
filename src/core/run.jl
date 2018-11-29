@@ -56,6 +56,7 @@ function _run(estimator::Estimator{T, <:MC}, ϵ::Real) where T<:AbstractIndexSet
 
 		# update index set
 		index_set = boundary(estimator, L)
+		verbose(estimator) && print_index_set(estimator, index_set)
 
 		# obtain initial variance estimate
 		ns = regress_nb_of_samples(estimator, index_set, ϵ, θ, L) 

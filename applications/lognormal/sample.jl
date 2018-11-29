@@ -1,6 +1,6 @@
 ## sample.jl : sample methods for lognormal diffusion problem
 #
-# Sample emthods for the 2d lognormal diffusion problem.
+# Sample methods for the 2d lognormal diffusion problem.
 #
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
 # Carlo Methods (c) Pieterjan Robbe, 2018

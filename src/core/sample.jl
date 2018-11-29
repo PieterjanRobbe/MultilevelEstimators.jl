@@ -16,7 +16,6 @@ end
 
 ## sample for MC index sets ##
 function parallel_sample!(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index, Istart::Integer, Iend::Integer)
-
     f(i) = estimator.sample_function(index, transform.(distributions(estimator), rand(stochastic_dim(estimator))))
     all_workers = workers()
     worker_idcs = 1:min(nb_of_workers(estimator, index), nworkers())
