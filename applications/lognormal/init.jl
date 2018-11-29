@@ -29,6 +29,9 @@ function init_lognormal(index_set::AbstractIndexSet, sample_method::AbstractSamp
     s = maximum(randdim.(collect(values(grfs))))
     distributions = [Normal() for i in 1:s]
 
+	# set nb_of_uncertainties for more efficient sampling
+	args[:nb_of_uncertainties] = index -> randdim(grfs[index])
+
     # estimator
     filter_keys!(args)
     Estimator(index_set, sample_method, sample_function, distributions; args...)

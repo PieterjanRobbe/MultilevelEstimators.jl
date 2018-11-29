@@ -205,5 +205,11 @@ struct EmptyFunction <: Function end
          check_ndims(to_string(key, val)..., ndims(index_set), "dimensions of search space and index set do not agree"))
        )
 
+## nb_of_uncertainties ##
+@parse!(:nb_of_uncertainties,
+		i -> length(settings[:distributions]),
+		check_type(to_string(key, val)..., Function)
+	   )
+
 to_string(key, val) = val, "Estimator", string("optional key ", key)
 eltype(::Type{<:Val{T}}) where {T} = T

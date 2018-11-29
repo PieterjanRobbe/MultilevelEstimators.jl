@@ -30,6 +30,7 @@ struct EstimatorOptions{N<:Integer, T<:Real}
     cost_model::Function
 	nb_of_shifts::Function
     nb_of_workers::Function
+	nb_of_uncertainties::Function
 end
 
 EstimatorOptions(settings::Dict{Symbol,Any}) = 

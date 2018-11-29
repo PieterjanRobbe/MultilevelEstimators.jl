@@ -78,7 +78,8 @@ function valid_keys(::I, ::S) where {I<:AbstractIndexSet, S<:AbstractSampleMetho
 		 :folder,
 		 :name,
 		 :cost_model,
-		 :nb_of_workers]
+		 :nb_of_workers,
+		 :nb_of_uncertainties]
 	I <: Union{ML, MI} && push!(v,
 								:max_index_set_param,
 								:min_splitting,
@@ -110,13 +111,16 @@ contains_samples_at_index(estimator::Estimator, index::Index) = isassigned(estim
 
 total_work(estimator::Estimator) = estimator.internals.total_work
 total_work(estimator::Estimator, index::Index) = get(total_work(estimator), index, NaN)
-update_total_work!(estimator::Estimator, index::Index, time::Real, n::Integer) = total_work(estimator)[index] += cost_model(estimator) isa EmptyFunction ? time : n * cost_model(estimator)(index)
+update_total_work!(estimator::Estimator, index::Index, time::Real, n::Integer) = total_work(estimator)[index] += cost_model(estimator) isa EmptyFunction ? time : n * cost_model(estimator, index)
 
 nb_of_samples(estimator::Estimator) = estimator.internals.nb_of_samples
 nb_of_samples(estimator::Estimator, index::Index) = get(nb_of_samples(estimator), index, 0)
 update_nb_of_samples!(estimator::Estimator, index::Index, nb_of_samples::Integer) = estimator.internals.nb_of_samples[index] += nb_of_samples
 
+# TODO: automate ?
 cost_model(estimator::Estimator, index::Index) = cost_model(estimator)(index)
+
+nb_of_uncertainties(estimator::Estimator, index::Index) = nb_of_uncertainties(estimator)(index)
 
 nb_of_workers(estimator::Estimator, index::Index) = nb_of_workers(estimator)(index)
 
@@ -125,8 +129,6 @@ nb_of_shifts(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index) = es
 shortname(estimator) = first(split(estimator.options.name, "."))
 
 distributions(estimator::Estimator) = estimator.distributions
-
-stochastic_dim(estimator::Estimator) = length(distributions(estimator::Estimator))
 
 get_tols(estimator::Estimator, tol::T) where T<:Real = continuate(estimator) ? continuation_mul_factor(estimator).^(nb_of_tols(estimator)-1:-1:0)*tol : T[tol] 
 
