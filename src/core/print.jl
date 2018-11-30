@@ -137,7 +137,9 @@ print_rate(estimator::Estimator{<:AbstractML}, f::Function) = short(f(estimator)
 print_rate(estimator::Estimator{<:AbstractMI}, f::Function) = string("(", join(short.(f(estimator)), ", "), ")")
 
 ## warning when max level is reached ##
-warn_max_level(estimator::Estimator{<:AbstractML}) = @warn string("Maximum level L = ", max_index_set_param(estimator), " reached, no convergence yet.")
+warn_max_level(estimator::Estimator{<:AbstractML}) = @warn string("Maximum ", _warn_max_level_name(estimator), " L = ", max_index_set_param(estimator), " reached, no convergence yet.")
+_warn_max_level_name(estimator::Estimator{<:AbstractML}) = "level"
+_warn_max_level_name(estimator::Estimator{<:AbstractMI}) = "index set parameter"
 
 ## print level ##
 print_level(estimator::Estimator{<:Union{SL, AbstractML}}, level::Integer) = println(string("Currently running on level ", level, "."))
