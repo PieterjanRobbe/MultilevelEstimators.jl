@@ -75,4 +75,6 @@ function diff(index::Index{d}) where d
 end
 
 zero(::Index{d}) where d = ntuple(i->0,d)
+zero(::Type{Index{d}}) where d = ntuple(i->0,d)
 one(::Index{d}) where d = ntuple(i->1,d)
+one(::Type{Index{d}}) where d = ntuple(i->1,d)

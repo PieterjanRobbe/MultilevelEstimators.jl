@@ -222,3 +222,6 @@ for name in ["TD" "FT" "HC" "AD"]
 end
 
 shortname(idxset::MG) = string("MG{", shortname(idxset.idxset), "}")
+
+## eltype ##
+eltype(::Type{<:AbstractIndexSet{d}}) where d = Index{d}
