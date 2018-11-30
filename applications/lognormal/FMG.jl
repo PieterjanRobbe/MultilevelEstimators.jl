@@ -12,8 +12,12 @@ function FMG_solve(f::Function, sz::Dims, damping::Real, solver::S) where S<:Abs
     	mg = NotSoSimpleMultigrid.MultigridMethod(f, sz, V(4,3), damping=damping)
 	end
     mg.grids[1].b .= fill(1, size(mg.grids[1].A, 1))
-    FMG!(mg, 1)
-    mg.grids[1].x
+    sol = FMG!(mg, 1)
+	if R <: NoReuse
+		return sol[1], size(mg.grids[1])
+	else
+		return sol, size.(mg.grids)
+	end
 end
 
 function FMG!(mg::MultigridIterable{C, G}, grid_ptr::Int) where {C, G<:AbstractVector}

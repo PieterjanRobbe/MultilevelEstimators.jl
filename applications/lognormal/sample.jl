@@ -5,7 +5,7 @@
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
 # Carlo Methods (c) Pieterjan Robbe, 2018
 
-function sample_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::GaussianRandomField, damping::Real, qoi::AbstractQoi, solver::AbstractSolver)
+function sample_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::GaussianRandomField, damping::Real, qoi::AbstractQoi, solver::AbstractSolver, reuse::R) where R<:AbstractReuse
 
     # sample grf
     # TODO for QMC, reorden inputs!!!!
@@ -21,17 +21,27 @@ function sample_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::Gaussia
     end
 
     # solve
-    xf = FMG_solve(g, sz, damping, solver)
-    Qf = apply_qoi(reshape(xf, sz.-1), qoi)
+    xfs, szs = FMG_solve(g, sz, damping, solver, reuse)
+    Qf = apply_qoi(xfs, szs, index, reuse, qoi)
 
     # compute difference
-    dQ = Qf
-    for (key, val) in diff(index)
-        szc = div.(sz, max.(1, (index.-key).*2))
-        xc = FMG_solve(g, szc, damping, solver)
-        Qc = apply_qoi(reshape(xc, szc.-1), qoi)
-        dQ += val*Qc
-    end
+	if R <: NoReuse
+		dQ = Qf
+		for (key, val) in diff(index)
+			szc = div.(sz, max.(1, (index.-key).*2))
+			xcs, szcs = FMG_solve(g, szc, damping, solver)
+			Qc = apply_qoi(xcs, szcs, index, reuse, qoi)
+			dQ += val*Qc
+		end
+	else
+		dQ = copy(dQ)
+		for i in CartesianIndices(dQ)
+			index_ = Index(i-one(i))
+			for (key, val) in diff(index_)
+				dQ[i] += val*Qf[(key.+1)...]
+			end
+		end
+	end
 
     (dQ, Qf)
 end
@@ -51,6 +61,15 @@ function my_grf_sample(grf::GaussianRandomField{CirculantEmbedding}, x::Abstract
 		z[i] = real(wi) + imag(wi)
 	end
 	z
+end
+
+apply_qoi(xfs, szs, index, ::NoReuse, qoi) = apply_qoi(reshape(xfs[1], szs[1].-1), qoi)
+
+function apply_qoi(xfs, szs, index, ::Reuse, qoi)
+	R = CartesianIndices(index)
+	xfs_view = view(xfs, R)
+	szs_view = view(szs, R)
+	map(i->apply_qoi(reshape(sol_view[i],szs_view[i].-1), qoi), eachindex(xf))
 end
 
 function apply_qoi(x, ::Qoi1)

@@ -24,6 +24,7 @@ function init_lognormal(index_set::AbstractIndexSet, sample_method::AbstractSamp
     damping = get_arg(args, :damping)
     qoi = get_arg(args, :qoi)
     solver = get_arg(args, :solver)
+	reuse = get_arg(args, :solver) ? Reuse() : NoReuse()
     sample_function = (index, x) -> sample_lognormal(index, x, grfs[index], damping, qoi, solver)
 
     # distributions
@@ -100,6 +101,14 @@ struct MGSolver <: AbstractSolver end
 struct MSGSolver <: AbstractSolver end
 
 @get_arg :solver MGSolver()
+
+abstract type AbstractReuse end
+
+struct Reuse <: AbstractReuse end
+
+struct NoReuse <: AbstractReuse end
+
+@get_arg :reuse false
 
 # make sure all keys in args are valid keys for Estimator
 filter_keys!(args::Dict{Symbol, Any}) = isempty(args) || delete!.(Ref(args), [:nb_of_coarse_dofs, :covariance_function, :length_scale, :smoothness, :grf_generator, :minpadding, :index_set, :qoi, :damping, :solver])

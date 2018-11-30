@@ -26,6 +26,7 @@ const Index{d} = NTuple{d,N} where {N<:Integer}
 
 Index(i::Integer...)= all(i .>= 0) ? ntuple(idx -> i[idx], length(i)) : throw(ArgumentError("in Index(i...), arguments i must be larger than or equal to 0"))
 Index(i::T...) where {T} = throw(MethodError(Index, i))
+Index(i::CartesianIndex) = Index(i.I)
 
 ## Level ##
 """
