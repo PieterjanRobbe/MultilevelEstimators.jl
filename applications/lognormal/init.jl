@@ -18,7 +18,7 @@ function init_lognormal(index_set::AbstractIndexSet, sample_method::AbstractSamp
     m0 = get_arg(args, :nb_of_coarse_dofs)
     p = get_arg(args, :minpadding)
     grf_generator = get_arg(args, :grf_generator)
-    grfs = Dict(index => compute_grf(cov_fun, grf_generator, m0, index, p) for index in indices)
+	grfs = Dict(index => compute_grf(cov_fun, grf_generator, m0, index, p(index)) for index in indices)
 
     # sample function
     damping = get_arg(args, :damping)
@@ -83,7 +83,7 @@ get_arg(args::Dict{Symbol,Any}, arg::Val{T}) where T = throw(ArgumentError(strin
 
 @get_arg :grf_generator CirculantEmbedding()
 
-@get_arg :minpadding 0
+@get_arg :minpadding index->0
 
 @get_arg :damping 0.8
 

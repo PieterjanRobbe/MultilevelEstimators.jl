@@ -112,3 +112,22 @@ end
     end
     B./(2(n-1))
 end
+
+# function used to analyze performance of Multigrid method
+function analyze_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::GaussianRandomField, damping::Real, qoi::AbstractQoi, solver::AbstractSolver)
+
+    # sample grf
+    Z = my_grf_sample(grf, view(x, 1:randdim(grf)))
+    k = exp.(Z)
+    sz = size(k).-1
+
+    # direct-discretization function
+    g(n, m) = begin
+        step = div.(size(k), (n, m))
+        range = StepRange.(1, step, size(k))
+        elliptic2d(view(k, range...))
+    end
+
+    # solve
+    V_cyle_solve(g, sz, damping, solver)
+end

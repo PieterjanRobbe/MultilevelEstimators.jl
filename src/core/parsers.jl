@@ -154,7 +154,7 @@ struct EmptyFunction <: Function end
 @parse!(:max_index_set_param,
         100,
         (check_type(to_string(key, val)..., Signed);
-         check_larger_than(to_string(key, val)..., 0)
+         check_larger_than(to_string(key, val)..., 0);
          haskey(settings, :min_index_set_param) || parse!(index_set, sample_method, settings, :min_index_set_param);
          check_ordered(settings[:min_index_set_param], val, "Estimator", "optional key min_index_set_param", "optional key max_index_set_param"))
        )
@@ -163,7 +163,7 @@ struct EmptyFunction <: Function end
 @parse!(:min_index_set_param,
         0,
         (check_type(to_string(key, val)..., Signed);
-         check_larger_than(to_string(key, val)..., 0)
+         check_larger_than(to_string(key, val)..., 0);
          haskey(settings, :max_index_set_param) || parse!(index_set, sample_method, settings, :max_index_set_param);
          check_ordered(val, settings[:max_index_set_param], "Estimator", "optional key min_index_set_param", "optional key max_index_set_param"))
        )
