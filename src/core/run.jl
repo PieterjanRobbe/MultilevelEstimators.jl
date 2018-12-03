@@ -171,27 +171,17 @@ function run2(estimator::Estimator{T, <:MC}, N::Integer) where T<:AbstractIndexS
         # compute r param
         r = 1/2*(β(estimator) + γ(estimator))
         r = map(rᵢ->isnan(rᵢ) || rᵢ ≤ 0 ? 1.5 : rᵢ, r)
-        @show r
-        #@show r = 3
-        w = Dict(index=>prod(map(i->exp(r[i]*(index[i])), 1:ndims(estimator))) for index in keys(estimator))
-        #w = Dict(index=>prod(map(i->exp(r[i]*index[i])*(1-exp(-r[i]))/r[i], 1:ndims(estimator)))  for index in keys(estimator))
-        p = Dict(index=>2.0^(-r*index[1]) for index in keys(estimator))
-        display(p)
+        P = Dict(index=>p(r, index) for index in keys(estimator))
+        display(P)
         println("")
-        #w = Dict(index=>sum(values(p))/p[index] for index in keys(estimator))
-        w = Dict(index=>1/r*(sum(values(p))/p[index]-(all(index.==0) ? 0 : sum(values(p))/p[index.-1])) for index in keys(estimator))
-        display(w)
+        W = Dict(index=>w(r, index) for index in keys(estimator))
+        display(W)
         println("")
         
         # compute indices where to take samples
-        # TODO in actual implementation, must take difference wrt samples already taken
         n_opt = Dict(i=>0 for i in keys(estimator))
         while sum(values(n_opt)) < n
-            idx = Index(floor.(Int, randexpr.(log(2)*r))...)
-            #if idx ∉ keys(estimator)
-            #    i_nearest = argmin([sum(abs.(idx_.-idx)) for idx_ in keys(estimator)])
-            #    idx = keys(estimator)[i_nearest]
-            #end
+            idx = Index(floor.(Int, randexpr.(r))...)
             if idx ∈ keys(estimator)
                 n_opt[idx] += 1
             end
@@ -219,8 +209,7 @@ function run2(estimator::Estimator{T, <:MC}, N::Integer) where T<:AbstractIndexS
             ϕ = T <: MG ? zero(eltype(T)) : τ
             R = CartesianIndices(UnitRange.(ϕ, τ))
             for I in R
-                acc[end-n_opt[τ]+1:end] += w[Index(I)]*samples_diff(estimator, 1, Index(I))[end-n_opt[τ]+1:end]
-                #acc[end-n_opt[τ]+1:end] += samples_diff(estimator, 1, Index(I))[end-n_opt[τ]+1:end]
+                acc[end-n_opt[τ]+1:end] += W[Index(I)]*samples_diff(estimator, 1, Index(I))[end-n_opt[τ]+1:end]
             end
         end
 

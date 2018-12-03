@@ -22,7 +22,6 @@ function varest(estimator::Estimator{I, <:MC}) where I<:MG
             ns = length(samples(estimator, idx, index))
             Ys[N-ns+1:N] .+= w*samples_diff(estimator, idx, index)
         end
-        println("plain Var0 is $(var(estimator, zero(eltype(I)))/length(samples_diff(estimator, idx, zero(eltype(I)))))")
         return var(Ys)/N
     end
 end
@@ -31,12 +30,8 @@ end
 function weight_factor(estimator::Estimator, index::Index)
     r = 1/2*(β(estimator) + γ(estimator))
     r = map(rᵢ->isnan(rᵢ) || rᵢ ≤ 0 ? 1.5 : rᵢ, r)
-    #r = log(2)*1.5
-    @show r
-    #prod(map(i->exp(r[i]*index[i])*(1-exp(-r[i]))/r[i], 1:ndims(estimator)))
-    #prod(map(i->exp(r[i]*(index[i])), 1:ndims(estimator)))
-        p = Dict(index=>2.0^(-r*index[1]) for index in keys(estimator))
-        display(p)
-        println("")
-        sum(values(p))/p[index]
+    w(r, index)
 end
+
+p(r, level::Level) = exp2(-r*level[1])
+w(r, level::Level) = 1/p(r, level)
