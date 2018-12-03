@@ -67,25 +67,25 @@ parse!(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, setting
 
 ## min_splitting ##
 @parse!(:min_splitting,
-		0.5,
+        0.5,
         (check_type(to_string(key, val)..., Real);
          check_finite(to_string(key, val)...);
          check_larger_than(to_string(key, val)..., 0);
          check_smaller_than_or_equal_to(to_string(key, val)..., 1);
-		 haskey(settings, :max_splitting) || parse!(index_set, sample_method, settings, :max_splitting);
-		 check_ordered(val, settings[:max_splitting], "Estimator", "optional key min_splitting", "optional key max_splitting"))
-)
+         haskey(settings, :max_splitting) || parse!(index_set, sample_method, settings, :max_splitting);
+         check_ordered(val, settings[:max_splitting], "Estimator", "optional key min_splitting", "optional key max_splitting"))
+       )
 
 ## max_splitting ##
 @parse!(:max_splitting,
-		0.99,
+        0.99,
         (check_type(to_string(key, val)..., Real);
          check_finite(to_string(key, val)...);
          check_larger_than(to_string(key, val)..., 0);
          check_smaller_than_or_equal_to(to_string(key, val)..., 1);
-		 haskey(settings, :min_splitting) || parse!(index_set, sample_method, settings, :min_splitting);
-		 check_ordered(settings[:min_splitting], val, "Estimator", "optional key min_splitting", "optional key max_splitting"))
-)
+         haskey(settings, :min_splitting) || parse!(index_set, sample_method, settings, :min_splitting);
+         check_ordered(settings[:min_splitting], val, "Estimator", "optional key min_splitting", "optional key max_splitting"))
+       )
 
 ## folder ##
 @parse!(:folder,
@@ -100,7 +100,7 @@ parse!(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, setting
         get_valid_filename(index_set, sample_method, settings),
         (check_type(to_string(key, val)..., String);
          parse!(index_set, sample_method, settings, Val(:folder));
-		 occursin(".", val) && throw(ArgumentError("in Estimator, optional key name must not contain a ."));
+         occursin(".", val) && throw(ArgumentError("in Estimator, optional key name must not contain a ."));
          val = endswith(val, ".jld2") ? val : string(val, ".jld2");
          settings[key] = val;
          isfile(joinpath(settings[:folder], val)) && @warn string("filename ", val, " exists, will be overwritten!"))
@@ -154,7 +154,18 @@ struct EmptyFunction <: Function end
 @parse!(:max_index_set_param,
         100,
         (check_type(to_string(key, val)..., Signed);
-         check_larger_than(to_string(key, val)..., 0))
+         check_larger_than(to_string(key, val)..., 0)
+         haskey(settings, :min_index_set_param) || parse!(index_set, sample_method, settings, :min_index_set_param);
+         check_ordered(settings[:min_index_set_param], val, "Estimator", "optional key min_index_set_param", "optional key max_index_set_param"))
+       )
+
+## min_index_set_param ##
+@parse!(:min_index_set_param,
+        0,
+        (check_type(to_string(key, val)..., Signed);
+         check_larger_than(to_string(key, val)..., 0)
+         haskey(settings, :max_index_set_param) || parse!(index_set, sample_method, settings, :max_index_set_param);
+         check_ordered(val, settings[:max_index_set_param], "Estimator", "optional key min_index_set_param", "optional key max_index_set_param"))
        )
 
 ## sample_mul_factor ##
@@ -207,9 +218,9 @@ struct EmptyFunction <: Function end
 
 ## nb_of_uncertainties ##
 @parse!(:nb_of_uncertainties,
-		i -> length(settings[:distributions]),
-		check_type(to_string(key, val)..., Function)
-	   )
+        i -> length(settings[:distributions]),
+check_type(to_string(key, val)..., Function)
+)
 
 to_string(key, val) = val, "Estimator", string("optional key ", key)
 eltype(::Type{<:Val{T}}) where {T} = T

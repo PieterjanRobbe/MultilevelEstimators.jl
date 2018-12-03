@@ -18,7 +18,7 @@ hline() = println(string("+", repeat("-", l()-2), "+"))
 table_hline(m) = println(string("+", repeat(string(repeat("-", n()), "+"), m)))
 
 ## print header ##
-function print_header(estimator::Estimator, ϵ::Real)
+function print_header(estimator::Estimator, x::T) where T<:Real
     hline()
     str = string("| *** MultilevelEstimators.jl @", now())
     end_table_row(str)
@@ -26,7 +26,11 @@ function print_header(estimator::Estimator, ϵ::Real)
     end_table_row(str)
     str = string("| *** Simulating ", shortname(estimator))
     end_table_row(str)
-    str = string("| *** Tolerance on RMSE ϵ = ", shorte(ϵ))
+    if T <: AbstractFloat
+        str = string("| *** Tolerance on RMSE ϵ =", shorte(x))
+    elseif T <: Integer
+        str = string("| *** Number of samples N =", @sprintf(" %i", x))
+    end
     end_table_row(str)
     hline()
 end
@@ -124,6 +128,11 @@ function print_mse_analysis(estimator::Estimator, ϵ::Real, θ::Real)
         println(string("No convergence yet. RMSE ≈", long(rmse(estimator)), " > ", shorte(ϵ), "."))
         println("Adding an extra level...")
     end
+end
+
+function print_mse_analysis(estimator::Estimator{<:MG}, ϵ::Real, θ::Real)
+    print_rates(estimator)
+    println(string("  ==> Variance of the estimator ≈", long(varest(estimator)), "."))
 end
 
 function print_rates(estimator::Estimator)

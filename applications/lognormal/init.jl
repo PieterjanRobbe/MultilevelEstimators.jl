@@ -24,15 +24,18 @@ function init_lognormal(index_set::AbstractIndexSet, sample_method::AbstractSamp
     damping = get_arg(args, :damping)
     qoi = get_arg(args, :qoi)
     solver = get_arg(args, :solver)
-	reuse = get_arg(args, :solver) ? Reuse() : NoReuse()
-    sample_function = (index, x) -> sample_lognormal(index, x, grfs[index], damping, qoi, solver)
+    reuse = get_arg(args, :reuse) ? Reuse() : NoReuse()
+    sample_function = (index, x) -> sample_lognormal(index, x, grfs[index], damping, qoi, solver, reuse)
 
     # distributions
     s = maximum(randdim.(collect(values(grfs))))
     distributions = [Normal() for i in 1:s]
 
-	# set nb_of_uncertainties for more efficient sampling
-	args[:nb_of_uncertainties] = index -> randdim(grfs[index])
+    # set nb_of_uncertainties for more efficient sampling
+    args[:nb_of_uncertainties] = index -> randdim(grfs[index])
+
+    # set max_index_set_param
+    args[:max_index_set_param] = get_arg(args, :max_index_set_param)
 
     # estimator
     filter_keys!(args)
@@ -100,7 +103,7 @@ struct MGSolver <: AbstractSolver end
 
 struct MSGSolver <: AbstractSolver end
 
-@get_arg :solver MGSolver()
+@get_arg :solver args[:index_set] isa MG{<:MultilevelEstimators.MI} ? MSGSolver() : MGSolver()
 
 abstract type AbstractReuse end
 
@@ -108,7 +111,7 @@ struct Reuse <: AbstractReuse end
 
 struct NoReuse <: AbstractReuse end
 
-@get_arg :reuse false
+@get_arg :reuse args[:index_set] isa MG ? true : false
 
 # make sure all keys in args are valid keys for Estimator
-filter_keys!(args::Dict{Symbol, Any}) = isempty(args) || delete!.(Ref(args), [:nb_of_coarse_dofs, :covariance_function, :length_scale, :smoothness, :grf_generator, :minpadding, :index_set, :qoi, :damping, :solver])
+filter_keys!(args::Dict{Symbol, Any}) = isempty(args) || delete!.(Ref(args), [:nb_of_coarse_dofs, :covariance_function, :length_scale, :smoothness, :grf_generator, :minpadding, :index_set, :qoi, :damping, :solver, :reuse])

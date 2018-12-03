@@ -43,8 +43,8 @@ end
 function append_samples!(estimator::Estimator{<:MG, <:MC}, index::Index, s_diff, s)
     for idx in CartesianIndices(UnitRange.(zero(index), index))
         for n_qoi in 1:nb_of_qoi(estimator)
-            append_samples_diff!(estimator, n_qoi, idx, getindex.(get_index.(s_diff, idx+one(idx)), n_qoi))
-            append_samples!(estimator, n_qoi, idx, getindex.(getindex.(s, idx+one(idx)), n_qoi))
+            append_samples_diff!(estimator, n_qoi, Index(idx), getindex.(getindex.(s_diff, Ref(idx+one(idx))), n_qoi))
+            append_samples!(estimator, n_qoi, Index(idx), getindex.(getindex.(s, Ref(idx+one(idx))), n_qoi))
         end
     end
 end

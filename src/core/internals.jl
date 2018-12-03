@@ -92,7 +92,7 @@ get_sample_ncols(index_set::AbstractIndexSet, ::MC, settings::Dict{Symbol, Any})
 function get_sample_ncols(index_set::AbstractIndexSet, ::QMC, settings::Dict{Symbol, Any})
     nbshifts = settings[:nb_of_shifts]
     L = settings[:max_index_set_param]
-	idx_set = get_max_index_set(index_set, settings, L)
+    idx_set = get_max_index_set(index_set, settings, L)
     maximum(nbshifts.(idx_set))
 end
 

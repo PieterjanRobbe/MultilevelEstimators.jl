@@ -33,11 +33,11 @@ function Estimator(index_set::AbstractIndexSet, sample_method::AbstractSampleMet
     check_valid_keys(settings, index_set, sample_method)
 
     # default settings
-	settings[:distributions] = distributions
-	for key in fieldnames(EstimatorOptions)
+    settings[:distributions] = distributions
+    for key in fieldnames(EstimatorOptions)
         parse!(index_set, sample_method, settings, key)
     end
-	parse_additional_options!(index_set, sample_method, settings)
+    parse_additional_options!(index_set, sample_method, settings)
 
     # create options and internals
     options = EstimatorOptions(settings)
@@ -58,41 +58,42 @@ end
 
 ## parse additional options ##
 function parse_additional_options!(index_set::T1, sample_method::T2, settings::Dict{Symbol, Any}) where {T1<:AbstractIndexSet, T2<:AbstractSampleMethod}
-	if T2 <: QMC 
-		parse!(index_set, sample_method, settings, :point_generator)
-	end
-	if T1 <: AbstractAD
-		parse!(index_set, sample_method, settings, :max_search_space)
-	end
+    if T2 <: QMC 
+        parse!(index_set, sample_method, settings, :point_generator)
+    end
+    if T1 <: AbstractAD
+        parse!(index_set, sample_method, settings, :max_search_space)
+    end
 end
 
 ## valid keys ##
 function valid_keys(::I, ::S) where {I<:AbstractIndexSet, S<:AbstractSampleMethod}
-	v = [:nb_of_warm_up_samples,
-		 :nb_of_qoi,
-		 :nb_of_tols,
-		 :continuation_mul_factor,
-		 :continuate,
-		 :save_samples,
-		 :verbose,
-		 :folder,
-		 :name,
-		 :cost_model,
-		 :nb_of_workers,
-		 :nb_of_uncertainties]
-	I <: Union{ML, MI} && push!(v,
-								:max_index_set_param,
-								:min_splitting,
-								:max_splitting,
-								:robustify_bias_estimate,
-								:do_mse_splitting,
-								:do_regression)
-	I <:AbstractAD && push!(v, :max_search_space)
-	I <:MG && push!(v, :sample_mul_factor)
-	S <: QMC && push!(v, :nb_of_shifts,
-					  :point_generator,
-					  :sample_mul_factor)
-	return v
+    v = [:nb_of_warm_up_samples,
+         :nb_of_qoi,
+         :nb_of_tols,
+         :continuation_mul_factor,
+         :continuate,
+         :save_samples,
+         :verbose,
+         :folder,
+         :name,
+         :cost_model,
+         :nb_of_workers,
+         :nb_of_uncertainties]
+    I <: Union{AbstractML, AbstractMI} && push!(v,
+                                :max_index_set_param,
+                                :min_index_set_param,
+                                :min_splitting,
+                                :max_splitting,
+                                :robustify_bias_estimate,
+                                :do_mse_splitting,
+                                :do_regression)
+    I <:AbstractAD && push!(v, :max_search_space)
+    I <:MG && push!(v, :sample_mul_factor)
+    S <: QMC && push!(v, :nb_of_shifts,
+                      :point_generator,
+                      :sample_mul_factor)
+    return v
 end
 
 ## print methods ##

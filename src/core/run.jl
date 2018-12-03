@@ -38,7 +38,7 @@ end
 run(estimator::Estimator, tol::Real) = run(estimator, get_tols(estimator, tol))
 
 ## Main routine ##
-function _run(estimator::Estimator{T, <:MC}, ϵ::Real) where T<:AbstractIndexSet
+function _run(estimator::Estimator{T, <:MC}, ϵ::Real) where T<:Union{SL, ML, MI}
     # print status
     verbose(estimator) && print_header(estimator, ϵ)
 
@@ -112,46 +112,130 @@ function _run(estimator::Estimator{T, <:MC}, ϵ::Real) where T<:AbstractIndexSet
     verbose(estimator) && print_convergence(estimator, converged(estimator, ϵ, θ))
 end
 
-## Main routine ##
-function _run(estimator::Estimator{<:MG, <:MC}, N::Integer)
+## Routine for N samples on the coarsest mesh ##
+function run2(estimator::Estimator, Ns::AbstractVector{<:Integer})
+
+    # input checking
+    all(Ns.>0) || throw(ArgumentError(string("supplied number of samples must be positive, got ", Ns)))
+
+    # make history
+    history = History()
+
+    # run the sequence of tolerances
+    for N in Ns
+        _run(estimator,N)
+        push!(history, estimator, N) # log the results in history
+        clear(estimator) # prepare new run
+    end
+
+    return history
+end
+
+# TODO in powers of 2
+run2(estimator::Estimator, N::Integer) = run2(estimator, fill(N, 1))
+
+function run2(estimator::Estimator{T, <:MC}, N::Integer) where T<:AbstractIndexSet
     # print status
-    verbose(estimator) && print_header(estimator, ϵ)
+    verbose(estimator) && print_header(estimator, N)
 
     # steps
     step = 1000
 
-    # push all levels to the index set
-    for index in get_index_set(estimator, mx_index_set_param(index_set))
-        push!(estimator, index)
+    # index set is maximum index set allowed
+    all_indices = get_index_set(estimator, max_index_set_param(estimator))
+
+    # take samples at boundary (warm-up)
+    if isempty(nb_of_samples(estimator))
+        for index in all_indices
+            add_index(estimator, index)
+        end
     end
 
-    # steps of 1000
+    # push all levels/indices to the index set
+    for index in all_indices
+        push!(estimator, index)
+    end
+    set_sz(estimator, max_index_set_param(estimator))
+
+    # accumulator
+    acc = Vector{Float64}(undef, 0)
+
+    # "step" samples at a time
     for m in 1:div(N, step)+1
-        n = N > step*wm ? step : N % step 
+        n = N > step*m ? step : N % step 
 
         # print status
         verbose(estimator) && print_status(estimator)
+        verbose(estimator) && print_index_set(estimator, all_indices)
 
         # compute r param
         r = 1/2*(β(estimator) + γ(estimator))
-        r[broadcast(|,isnan.(r),r.<=0)] = 1.5 # replace NaN's
+        r = map(rᵢ->isnan(rᵢ) || rᵢ ≤ 0 ? 1.5 : rᵢ, r)
+        @show r
+        #@show r = 3
+        w = Dict(index=>prod(map(i->exp(r[i]*(index[i])), 1:ndims(estimator))) for index in keys(estimator))
+        #w = Dict(index=>prod(map(i->exp(r[i]*index[i])*(1-exp(-r[i]))/r[i], 1:ndims(estimator)))  for index in keys(estimator))
+        p = Dict(index=>2.0^(-r*index[1]) for index in keys(estimator))
+        display(p)
+        println("")
+        #w = Dict(index=>sum(values(p))/p[index] for index in keys(estimator))
+        w = Dict(index=>1/r*(sum(values(p))/p[index]-(all(index.==0) ? 0 : sum(values(p))/p[index.-1])) for index in keys(estimator))
+        display(w)
+        println("")
         
         # compute indices where to take samples
+        # TODO in actual implementation, must take difference wrt samples already taken
         n_opt = Dict(i=>0 for i in keys(estimator))
         while sum(values(n_opt)) < n
             idx = Index(floor.(Int, randexpr.(log(2)*r))...)
-            if idx ∉ keys(estimator)
-                i_nearest = indmin([sum(abs.(idx_.-idx)) for idx_ in keys(estimator)])
-                idx = index_set[i_nearest]
+            #if idx ∉ keys(estimator)
+            #    i_nearest = argmin([sum(abs.(idx_.-idx)) for idx_ in keys(estimator)])
+            #    idx = keys(estimator)[i_nearest]
+            #end
+            if idx ∈ keys(estimator)
+                n_opt[idx] += 1
             end
-            n_opt[idx] += 1
         end
 
-        for τ in sort(keys(estimator))
+        # subtract
+        if T <: MG
+            for index in keys(estimator)
+                R = CartesianIndices(UnitRange.(zero(eltype(T)), index.-1))
+                for I in R
+                    n_opt[Index(I)] = max(0, n_opt[Index(I)] -  n_opt[index])
+                end
+            end
+        end
+
+        # print optimal number of samples
+        verbose(estimator) && print_optimal_nb_of_samples(estimator, n_opt)
+
+        # take samples and update accumulator
+        for τ in keys(estimator)
+            # take samples
             n_opt[τ] > 0 && sample!(estimator, τ, n_opt[τ])
+            # update accumulator
+            append!(acc, zeros(n_opt[τ]))
+            ϕ = T <: MG ? zero(eltype(T)) : τ
+            R = CartesianIndices(UnitRange.(ϕ, τ))
+            for I in R
+                acc[end-n_opt[τ]+1:end] += w[Index(I)]*samples_diff(estimator, 1, Index(I))[end-n_opt[τ]+1:end]
+                #acc[end-n_opt[τ]+1:end] += samples_diff(estimator, 1, Index(I))[end-n_opt[τ]+1:end]
+            end
         end
 
         # show status
-        estimator.verbose && print_mse_analysis(estimator,ϵ,θ)
+        verbose(estimator) && print_mse_analysis(estimator, NaN, NaN)
+
+        ve = sum(varest(estimator, index) for index in keys(estimator) if nb_of_samples(estimator, index) > 1)
+
+        # print var est
+        println("*****************")
+        println("*****************")
+        println("*****************")
+        println(" >>> variance of the estimator = ", T <: MG ? var(acc) / length(acc) : ve)
+        println("*****************")
+        println("*****************")
+        println("*****************")
     end
 end

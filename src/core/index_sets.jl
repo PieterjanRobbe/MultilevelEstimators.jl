@@ -149,17 +149,17 @@ MG{TD{2}}
 
 See also: [`SL`](@ref), [`ML`](@ref), [`FT`](@ref), [`TD`](@ref), [`HC`](@ref), [`AD`](@ref)
 """
-struct MG{d, I} <: AbstractIndexSet{d}
+struct MG{I, d} <: AbstractIndexSet{d}
     idxset::I
 end
 
-MG(idxset::I) where {I<:AbstractIndexSet} = idxset isa MG ? throw(ArgumentError("cannot create MG wrapper for type MG")) : idxset isa SL ? throw(ArgumentError("cannot create MG wrapper for type SL")) : MG{ndims(idxset), I}(idxset)
+MG(idxset::I) where {I<:AbstractIndexSet} = idxset isa MG ? throw(ArgumentError("cannot create MG wrapper for type MG")) : idxset isa SL ? throw(ArgumentError("cannot create MG wrapper for type SL")) : MG{I, ndims(idxset)}(idxset)
 
 ## Union types ##
 MI = Union{TD, FT, HC, AD}
-AbstractML = Union{ML, MG{ML}}
-AbstractMI = Union{TD, FT, HC, AD, MG{TD}, MG{FT}, MG{HC}, MG{AD}}
-AbstractAD = Union{AD, MG{AD}}
+AbstractML = Union{ML, MG{<:ML}}
+AbstractMI = Union{TD, FT, HC, AD, MG{<:TD}, MG{<:FT}, MG{<:HC}, MG{<:AD}}
+AbstractAD = Union{AD, MG{<:AD}}
 
 ## ndims ##
 ndims(::AbstractIndexSet{d}) where {d} = d

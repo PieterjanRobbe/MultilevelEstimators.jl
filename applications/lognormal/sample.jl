@@ -25,51 +25,50 @@ function sample_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::Gaussia
     Qf = apply_qoi(xfs, szs, index, reuse, qoi)
 
     # compute difference
-	if R <: NoReuse
-		dQ = Qf
-		for (key, val) in diff(index)
-			szc = div.(sz, max.(1, (index.-key).*2))
-			xcs, szcs = FMG_solve(g, szc, damping, solver)
-			Qc = apply_qoi(xcs, szcs, index, reuse, qoi)
-			dQ += val*Qc
-		end
-	else
-		dQ = copy(dQ)
-		for i in CartesianIndices(dQ)
-			index_ = Index(i-one(i))
-			for (key, val) in diff(index_)
-				dQ[i] += val*Qf[(key.+1)...]
-			end
-		end
-	end
+    dQ = copy(Qf)
+    if R <: NoReuse
+        for (key, val) in diff(index)
+            szc = div.(sz, max.(1, (index.-key).*2))
+            xcs, szcs = FMG_solve(g, szc, damping, solver, reuse)
+            Qc = apply_qoi(xcs, szcs, index, reuse, qoi)
+            dQ += val*Qc
+        end
+    else
+        for i in CartesianIndices(dQ)
+            index_ = Index(i-one(i))
+            for (key, val) in diff(index_)
+                dQ[i] += val*Qf[(key.+1)...]
+            end
+        end
+    end
 
-    (dQ, Qf)
+    dQ, Qf
 end
 
 my_grf_sample(grf::GaussianRandomField, x::AbstractVector) = sample(grf, xi=x)
 function my_grf_sample(grf::GaussianRandomField{CirculantEmbedding}, x::AbstractVector)
-	v = grf.data[1]
+    v = grf.data[1]
 
-	# compute multiplication with square root of circulant embedding via FFT
-	y = v .* reshape(x, size(v))
-	w = fft!(complex(y))
+    # compute multiplication with square root of circulant embedding via FFT
+    y = v .* reshape(x, size(v))
+    w = fft!(complex(y))
 
-	# extract realization of random field
-	z = Array{eltype(grf.cov)}(undef, length.(grf.pts))
-	@inbounds for i in CartesianIndices(z)
-		wi = w[i]
-		z[i] = real(wi) + imag(wi)
-	end
-	z
+    # extract realization of random field
+    z = Array{eltype(grf.cov)}(undef, length.(grf.pts))
+    @inbounds for i in CartesianIndices(z)
+        wi = w[i]
+        z[i] = real(wi) + imag(wi)
+    end
+    z
 end
 
-apply_qoi(xfs, szs, index, ::NoReuse, qoi) = apply_qoi(reshape(xfs[1], szs[1].-1), qoi)
+apply_qoi(xfs, szs, index, ::NoReuse, qoi) = apply_qoi(reshape(xfs, szs.-1), qoi)
 
 function apply_qoi(xfs, szs, index, ::Reuse, qoi)
-	R = CartesianIndices(index)
-	xfs_view = view(xfs, R)
-	szs_view = view(szs, R)
-	map(i->apply_qoi(reshape(sol_view[i],szs_view[i].-1), qoi), eachindex(xf))
+    R = CartesianIndices(index.+one(index))
+    xfs_view = view(xfs, R)
+    szs_view = view(szs, R)
+    map(i->apply_qoi(reshape(xfs_view[i],szs_view[i].-1), qoi), Base.Iterators.reverse(eachindex(xfs_view)))
 end
 
 function apply_qoi(x, ::Qoi1)

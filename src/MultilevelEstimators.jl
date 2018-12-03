@@ -31,7 +31,7 @@ export Estimator
 
 export LatticeRule32
 
-export run
+export run, run2
 
 export report
 
@@ -74,6 +74,8 @@ include("methods/monte_carlo.jl")
 include("methods/multilevel_monte_carlo.jl")
 
 include("methods/multiindex_monte_carlo.jl")
+
+include("methods/multiple_semicoarsened_multigrid_multiindex_monte_carlo.jl")
 
 # utils
 
