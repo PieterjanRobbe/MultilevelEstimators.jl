@@ -25,7 +25,11 @@ function init_lognormal(index_set::AbstractIndexSet, sample_method::AbstractSamp
     qoi = get_arg(args, :qoi)
     solver = get_arg(args, :solver)
     reuse = get_arg(args, :reuse) ? Reuse() : NoReuse()
-    sample_function = (index, x) -> sample_lognormal(index, x, grfs[index], damping, qoi, solver, reuse)
+	if get_arg(args, :analyze)
+    	sample_function = (index, x) -> analyze_lognormal(index, x, grfs[index], damping, qoi, solver)
+	else
+    	sample_function = (index, x) -> sample_lognormal(index, x, grfs[index], damping, qoi, solver, reuse)
+	end
 
     # distributions
     s = maximum(randdim.(collect(values(grfs))))
@@ -40,7 +44,6 @@ function init_lognormal(index_set::AbstractIndexSet, sample_method::AbstractSamp
     # estimator
     filter_keys!(args)
     Estimator(index_set, sample_method, sample_function, distributions; args...)
-
 end
 
 ## get_max_index_set ##
@@ -113,5 +116,7 @@ struct NoReuse <: AbstractReuse end
 
 @get_arg :reuse args[:index_set] isa MG ? true : false
 
+@get_arg :analyze false
+
 # make sure all keys in args are valid keys for Estimator
-filter_keys!(args::Dict{Symbol, Any}) = isempty(args) || delete!.(Ref(args), [:nb_of_coarse_dofs, :covariance_function, :length_scale, :smoothness, :grf_generator, :minpadding, :index_set, :qoi, :damping, :solver, :reuse])
+filter_keys!(args::Dict{Symbol, Any}) = isempty(args) || delete!.(Ref(args), [:nb_of_coarse_dofs, :covariance_function, :length_scale, :smoothness, :grf_generator, :minpadding, :index_set, :qoi, :damping, :solver, :reuse, :analyze])

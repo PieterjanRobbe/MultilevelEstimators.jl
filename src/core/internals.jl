@@ -18,6 +18,7 @@ struct EstimatorInternals{S, N, T, C, Z, T1, T2} <: AbstractEstimatorInternals
 
     sample_method_internals::T1
     index_set_internals::T2
+#	multigrid_internals::T3
 end
 
 function EstimatorInternals(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, settings::Dict{Symbol, Any})
@@ -37,8 +38,10 @@ function EstimatorInternals(index_set::AbstractIndexSet, sample_method::Abstract
     T1 = typeof(sample_method_internals)
     index_set_internals = IndexSetInternals(type_c, type_n, index_set, sample_method, settings) 
     T2  = typeof(index_set_internals)
+	#multigrid_internals = MultigridInternals()
+	#T3 = typeof(multigrid_internals)
 
-    EstimatorInternals{type_s, type_n, type_t, type_c, type_z, T1, T2}(type_s(undef, m, n), type_s(undef, m, n), type_n(), type_t(), type_c(), IndexSetSize(0, 0), sample_method_internals, index_set_internals)
+	EstimatorInternals{type_s, type_n, type_t, type_c, type_z, T1, T2}(type_s(undef, m, n), type_s(undef, m, n), type_n(), type_t(), type_c(), IndexSetSize(0, 0), sample_method_internals, index_set_internals)#, multigrid_internals)
 end
 
 ## IndexSetSize ##

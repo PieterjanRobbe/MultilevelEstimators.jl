@@ -84,14 +84,14 @@ end
 # function that returns residual norm after 50 multigrid V-cycles (used to analyze performance)
 function V_cycle_solve(f::Function, sz::Dims, damping::Real, ::S) where {S<:AbstractSolver}
     if S <: MGSolver
-        mg = SimpleMultigrid.MultigridMethod(f, sz, V(4,3), damping=damping)
+        mg = SimpleMultigrid.MultigridMethod(f, sz, V(6,4), damping=damping)
     else
-        mg = NotSoSimpleMultigrid.MultigridMethod(f, sz, V(4,3), damping=damping)
+        mg = NotSoSimpleMultigrid.MultigridMethod(f, sz, V(6,4), damping=damping)
     end
     mg.grids[1].b .= fill(1, size(mg.grids[1].A, 1))
 	push!(mg.resnorm, SimpleMultigrid.norm_of_residu(mg.grids[1]))
-	for i in 1:50
-		SimpleMultigrid.cycle!(iter)
+	for i in 1:100
+		SimpleMultigrid.cycle!(mg)
 		push!(mg.resnorm, SimpleMultigrid.norm_of_residu(mg.grids[1]))
 	end
 	mg.resnorm

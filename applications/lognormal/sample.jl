@@ -129,5 +129,5 @@ function analyze_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::Gaussi
     end
 
     # solve
-    V_cyle_solve(g, sz, damping, solver)
+    V_cycle_solve(g, sz, damping, solver)
 end

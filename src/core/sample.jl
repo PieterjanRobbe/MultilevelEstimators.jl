@@ -17,7 +17,7 @@ end
 ## sample for MC ##
 function parallel_sample!(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index, Istart::Integer, Iend::Integer)
 
-    m = nb_of_uncertainties(estimator ,index)
+    m = nb_of_uncertainties(estimator, index)
     f(i) = estimator.sample_function(index, transform.(view(distributions(estimator), 1:m), rand(m)))
     all_workers = workers()
     worker_idcs = 1:min(nb_of_workers(estimator, index), nworkers())
