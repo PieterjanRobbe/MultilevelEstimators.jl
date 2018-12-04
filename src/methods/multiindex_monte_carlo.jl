@@ -55,7 +55,7 @@ end
 regress_var(estimator::Estimator{<:MI, <:MC}, index::Index) = _regress_var(estimator::Estimator{<:MI, <:MC}, index::Index)
 regress_cost(estimator::Estimator{<:MI, <:MC}, index::Index) = cost_model(estimator) isa EmptyFunction ? _regress_cost(estimator::Estimator{<:MI, <:MC}, index::Index) : cost_model(estimator, index)
 
-function _regress_nb_of_samples(estimator::Estimator{<:AbstractIndexSet, <:MC}, index_set::AbstractVector{<:Index}, ϵ::Real, θ::Real)
+function _regress_nb_of_samples(estimator::Estimator{<:AbstractMI, <:MC}, index_set::AbstractVector{<:Index}, ϵ::Real, θ::Real)
 	vars = Dict(index=>regress_var(estimator, index) for index in index_set)
 	costs = Dict(index=>regress_cost(estimator, index) for index in index_set)
 	Σ_estimate = Σ(estimator)

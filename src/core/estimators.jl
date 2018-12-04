@@ -162,6 +162,13 @@ function set_sz(estimator::Estimator, n)
 end
 max_sz(estimator::Estimator) = estimator.internals.index_set_size.max_sz
 
+accumulator(estimator::Estimator{<:MG}) = estimator.internals.multigrid_internals.accumulator
+accumulator(estimator::Estimator{<:MG, <:MC}, idx::Integer) = estimator.internals.multigrid_internals.accumulator[idx]
+append_accumulator!(estimator::Estimator{<:MG, <:MC}, idx::Integer, acc) = append!(estimator.internals.multigrid_internals.accumulator[idx], acc)
+weights(estimator::Estimator{<:MG}) = estimator.internals.multigrid_internals.weights
+weight(estimator::Estimator{<:MG}, index::Index) = get(estimator.internals.multigrid_internals.weights, index, NaN)
+set_weight(estimator::Estimator{<:MG}, index::Index, w::Real) = estimator.internals.multigrid_internals.weights[index] = w
+
 ## clear ##
 function clear(estimator::Estimator)
     for index in keys(estimator)
@@ -172,7 +179,7 @@ end
 ## push index to estimator ##
 push!(estimator::Estimator, index::Index) = push!(estimator.internals.current_index_set, index)
 
-function add_index(estimator::Estimator, index::Index) # this is called in "sample"
+function add_index(estimator::Estimator{T}, index::Index) where T<:AbstractIndexSet # this is called in "sample"
     estimator.internals.nb_of_samples[index] = zero(valtype(nb_of_samples(estimator)))
     estimator.internals.total_work[index] = zero(valtype(total_work(estimator)))
     for S in [samples_diff(estimator), samples(estimator)]
@@ -183,4 +190,12 @@ function add_index(estimator::Estimator, index::Index) # this is called in "samp
             S[q][index] = valtype(S[q])(undef, 0)
         end
     end
+	if T <: MG
+		A = accumulator(estimator)
+		for q in 1:nb_of_qoi(estimator)
+			if !isassigned(A, q)
+				A[q] = eltype(A)(undef, 0)
+			end
+		end
+	end
 end

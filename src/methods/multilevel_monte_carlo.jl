@@ -77,8 +77,8 @@ function regress_nb_of_samples(estimator::Estimator, index_set::AbstractVector{<
         return Dict(index=>nb_of_warm_up_samples(estimator) for index in index_set)
     end
 end
-_regress_nb_of_samples(estimator::Estimator{<:ML, <:MC}, index_set::AbstractVector{<:Level}, ϵ::Real, θ::Real) = _regress_nb_of_samples(estimator, first(collect(index_set)), ϵ, θ)
-function _regress_nb_of_samples(estimator::Estimator{<:ML, <:MC}, level::Level, ϵ::Real, θ::Real)
+_regress_nb_of_samples(estimator::Estimator{<:AbstractML, <:MC}, index_set::AbstractVector{<:Level}, ϵ::Real, θ::Real) = _regress_nb_of_samples(estimator, first(collect(index_set)), ϵ, θ)
+function _regress_nb_of_samples(estimator::Estimator{<:AbstractML, <:MC}, level::Level, ϵ::Real, θ::Real)
     p1 = rates_β(estimator)
     var_estimate = 2^(p1[1]+level[1]*p1[2])
     p2 = rates_γ(estimator)

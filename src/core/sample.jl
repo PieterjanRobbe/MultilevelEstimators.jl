@@ -12,6 +12,8 @@ function sample!(estimator::Estimator, index::Index, n::Integer)
     t = @elapsed parallel_sample!(estimator, index, Istart, Iend)
     update_nb_of_samples!(estimator, index, n)
     update_total_work!(estimator, index, t, n)
+	
+	print_sample!_footer()
 end
 
 ## sample for MC ##
@@ -30,22 +32,26 @@ function parallel_sample!(estimator::Estimator{<:AbstractIndexSet, <:MC}, index:
     s_diff = first.(S)
     s = last.(S)
 
-    append_samples!(estimator, index, s_diff, s)
+    append_samples!(estimator, index, s_diff, s, Iend-Istart+1)
 end
 
-function append_samples!(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index, s_diff, s)
+function append_samples!(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index, s_diff, s, n::Integer)
     for n_qoi in 1:nb_of_qoi(estimator)
         append_samples_diff!(estimator, n_qoi, index, getindex.(s_diff, n_qoi))
         append_samples!(estimator, n_qoi, index, getindex.(s, n_qoi))
     end
 end
 
-function append_samples!(estimator::Estimator{<:MG, <:MC}, index::Index, s_diff, s)
-    for idx in CartesianIndices(UnitRange.(zero(index), index))
-        for n_qoi in 1:nb_of_qoi(estimator)
+function append_samples!(estimator::Estimator{<:MG, <:MC}, index::Index, s_diff, s, n::Integer)
+	R = CartesianIndices(UnitRange.(zero(index), index))
+	for n_qoi in 1:nb_of_qoi(estimator)
+		acc = fill(zero(eltype(eltype(s))), n)
+		for idx in R
             append_samples_diff!(estimator, n_qoi, Index(idx), getindex.(getindex.(s_diff, Ref(idx+one(idx))), n_qoi))
             append_samples!(estimator, n_qoi, Index(idx), getindex.(getindex.(s, Ref(idx+one(idx))), n_qoi))
-        end
+			acc += weight(estimator, Index(idx))*getindex.(getindex.(s_diff, Ref(idx+one(idx))), n_qoi)
+        end	
+		append_accumulator!(estimator, n_qoi, acc)
     end
 end
 

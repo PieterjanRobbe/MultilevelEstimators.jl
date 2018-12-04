@@ -26,11 +26,7 @@ function print_header(estimator::Estimator, x::T) where T<:Real
     end_table_row(str)
     str = string("| *** Simulating ", shortname(estimator))
     end_table_row(str)
-    if T <: AbstractFloat
-        str = string("| *** Tolerance on RMSE ϵ =", shorte(x))
-    elseif T <: Integer
-        str = string("| *** Number of samples N =", @sprintf(" %i", x))
-    end
+    str = string("| *** Tolerance on RMSE ϵ = ", shorte(x))
     end_table_row(str)
     hline()
 end
@@ -74,7 +70,7 @@ print_elname(::Estimator{<:AbstractML}) = "level"
 print_elname(::Estimator{<:AbstractMI}) = "index"
 
 ## print_nb_of_samples ##
-print_nb_of_samples(estimator::Estimator, index::Index) = print_nb_of_samples(estimator, nb_of_samples(estimator, index))
+print_nb_of_samples(estimator::Estimator, index::Index) = print_nb_of_samples(estimator, length(first(samples(estimator))[index]))
 print_nb_of_samples(estimator::Estimator{<:AbstractIndexSet, <:MC}, n::Integer) = string(n)
 
 ## print_optimal_nb_of_samples ##
@@ -102,6 +98,27 @@ function _print_optimal_nb_of_samples(estimator::Estimator, samples::Dict)
     end
 end
 
+## print_weights ##
+function print_weights(estimator::Estimator{<:MG})
+    println("Weight factors:")
+    table_hline(2)
+    header = "| "
+    for name in [print_elname(estimator) "weight"]
+        header = string(header, name, spaces(n()-length(name)-1), "| ")
+    end
+    println(header)
+    table_hline(2)
+    for index in sort(collect(keys(estimator)))
+        index_str = string(index)
+        str = "| "
+        str = string(str, index_str, spaces(n()-length(index_str)-2), " |")
+		weight_str = short(weight(estimator, index))
+        str = string(str, " ", weight_str, spaces(n()-length(weight_str)-2), " |")
+        println(str)
+    end
+    table_hline(2)
+end
+
 ## print_convergence ##
 function print_convergence(estimator::Estimator, converged::Bool)
     print_status(estimator)
@@ -110,7 +127,8 @@ function print_convergence(estimator::Estimator, converged::Bool)
 end
 
 ## print_sample!_header ##
-print_sample!_header(estimator::Estimator, index::Index, n::Integer, warm_up::Bool) = println(string("Taking ", print_nb_of_samples(estimator, n), print_warm_up(Val(warm_up)), " sample", print_with_s(n), " at ", print_elname(estimator), " ", index, "..."))
+print_sample!_header(estimator::Estimator, index::Index, n::Integer, warm_up::Bool) = print(string("Taking ", print_nb_of_samples(estimator, n), print_warm_up(Val(warm_up)), " sample", print_with_s(n), " at ", print_elname(estimator), " ", index, "..."))
+print_sample!_footer() = println("done")
 
 print_warm_up(::Val{true}) = " warm-up"
 print_warm_up(::Val{false}) = " additional"
@@ -130,11 +148,6 @@ function print_mse_analysis(estimator::Estimator, ϵ::Real, θ::Real)
     end
 end
 
-function print_mse_analysis(estimator::Estimator{<:MG}, ϵ::Real, θ::Real)
-    print_rates(estimator)
-    println(string("  ==> Variance of the estimator ≈", long(varest(estimator)), "."))
-end
-
 function print_rates(estimator::Estimator)
     str = string("  ==> Rates: α ≈ ", print_rate(estimator, α))
     str = string(str, ", β ≈ ", print_rate(estimator, β))
@@ -144,6 +157,8 @@ end
 
 print_rate(estimator::Estimator{<:AbstractML}, f::Function) = short(f(estimator))
 print_rate(estimator::Estimator{<:AbstractMI}, f::Function) = string("(", join(short.(f(estimator)), ", "), ")")
+
+print_rate_r(estimator::Estimator{<:MG}) = println(string("Using exponential rate r ≈ ", short(r(estimator)), "."))
 
 ## warning when max level is reached ##
 warn_max_level(estimator::Estimator) = @warn string("Maximum ", _warn_max_level_name(estimator), " L = ", max_index_set_param(estimator), " reached, no convergence yet.")
