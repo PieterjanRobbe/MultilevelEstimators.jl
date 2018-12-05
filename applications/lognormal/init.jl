@@ -89,11 +89,13 @@ get_arg(args::Dict{Symbol,Any}, arg::Val{T}) where T = throw(ArgumentError(strin
 
 abstract type AbstractQoi end
 
-struct Qoi1 <:AbstractQoi end
+struct Qoi1 <: AbstractQoi end
 
-struct Qoi2 <:AbstractQoi end
+struct Qoi2 <: AbstractQoi end
 
-struct Qoi3 <:AbstractQoi end
+struct Qoi3 <: AbstractQoi end
+
+struct Qoi4 <: AbstractQoi end
 
 @get_arg :qoi Qoi1()
 

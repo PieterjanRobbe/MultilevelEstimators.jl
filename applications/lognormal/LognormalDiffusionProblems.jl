@@ -5,7 +5,7 @@
 module LognormalDiffusionProblems
 
 # dependencies
-using Distributed, FFTW, GaussianRandomFields, Interpolations, MultilevelEstimators, NotSoSimpleMultigrid, PaddedViews, SimpleMultigrid, SpecialFunctions, Statistics
+using Distributed, FFTW, GaussianRandomFields, Interpolations, MultilevelEstimators, NotSoSimpleMultigrid, PaddedViews, Random, SimpleMultigrid, SpecialFunctions, Statistics
 
 # import statements
 import GaussianRandomFields: GaussianRandomFieldGenerator
@@ -13,7 +13,7 @@ import GaussianRandomFields: GaussianRandomFieldGenerator
 import SimpleMultigrid: MultigridIterable
 
 # export statements
-export init_lognormal, sample_lognormal, Qoi1, Qoi2, Qoi3, MGSolver, MSGSolver, NonIsotropicMatern, compute_grf, analyze_lognormal
+export init_lognormal, sample_lognormal, Qoi1, Qoi2, Qoi3, Qoi4, MGSolver, MSGSolver, NonIsotropicMatern, compute_grf, analyze_lognormal
 
 # include statements
 include("init.jl")

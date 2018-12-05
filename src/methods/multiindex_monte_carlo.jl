@@ -38,7 +38,7 @@ end
 for (f, sym) in zip([:var, :cost], [:β, :γ])
 	eval(
 		 quote
-			 function $(Symbol("_regress_", f))(estimator::Estimator{<:MI, <:MC}, index::Index)
+			 function $(Symbol("_regress_", f))(estimator::Estimator{<:AbstractMI, <:MC}, index::Index)
 				 p = broadcast(dir->$(Symbol("rates_", sym))(estimator, index, dir), 1:ndims(estimator))
 				 estimates = broadcast(dir->2^(p[dir][1]+index[dir]*p[dir][2]), 1:ndims(estimator))
 				 estimate = mean(filter(!isnan, estimates))
@@ -52,8 +52,8 @@ for (f, sym) in zip([:var, :cost], [:β, :γ])
 		 end)
 end
 
-regress_var(estimator::Estimator{<:MI, <:MC}, index::Index) = _regress_var(estimator::Estimator{<:MI, <:MC}, index::Index)
-regress_cost(estimator::Estimator{<:MI, <:MC}, index::Index) = cost_model(estimator) isa EmptyFunction ? _regress_cost(estimator::Estimator{<:MI, <:MC}, index::Index) : cost_model(estimator, index)
+regress_var(estimator::Estimator{<:AbstractMI, <:MC}, index::Index) = _regress_var(estimator::Estimator{<:AbstractMI, <:MC}, index::Index)
+regress_cost(estimator::Estimator{<:AbstractMI, <:MC}, index::Index) = cost_model(estimator) isa EmptyFunction ? _regress_cost(estimator::Estimator{<:AbstractMI, <:MC}, index::Index) : cost_model(estimator, index)
 
 function _regress_nb_of_samples(estimator::Estimator{<:AbstractMI, <:MC}, index_set::AbstractVector{<:Index}, ϵ::Real, θ::Real)
 	vars = Dict(index=>regress_var(estimator, index) for index in index_set)

@@ -137,11 +137,7 @@ print_with_s(n::Integer) = n > 1 ? "s" : ""
 
 ## print_mse_analysis
 function print_mse_analysis(estimator::Estimator, ϵ::Real, θ::Real)
-    println("Checking convergence...")
-    print_rates(estimator)
-    println(string("  ==> Variance of the estimator ≈", long(varest(estimator)), "."))
-    println(string("  ==> Bias of the estimator ≈", long(bias(estimator)), "."))
-    println(string("  ==> MSE splitting parameter ≈ ", short(θ), "."))
+	print_var_est(estimator, ϵ, θ)
     if !converged(estimator, ϵ, θ) > ϵ
         println(string("No convergence yet. RMSE ≈", long(rmse(estimator)), " > ", shorte(ϵ), "."))
         println("Adding an extra level...")
@@ -158,7 +154,7 @@ end
 print_rate(estimator::Estimator{<:AbstractML}, f::Function) = short(f(estimator))
 print_rate(estimator::Estimator{<:AbstractMI}, f::Function) = string("(", join(short.(f(estimator)), ", "), ")")
 
-print_rate_r(estimator::Estimator{<:MG}) = println(string("Using exponential rate r ≈ ", short(r(estimator)), "."))
+print_rate_r(estimator::Estimator{<:MG}) = println(string("Using exponential rate r ≈ ", print_rate(estimator, r), "."))
 
 ## warning when max level is reached ##
 warn_max_level(estimator::Estimator) = @warn string("Maximum ", _warn_max_level_name(estimator), " L = ", max_index_set_param(estimator), " reached, no convergence yet.")
@@ -168,6 +164,15 @@ _warn_max_level_name(estimator::Estimator{<:AbstractMI}) = "index set parameter"
 ## print level ##
 print_level(estimator::Estimator{<:Union{SL, AbstractML}}, level::Integer) = println(string("Currently running on level ", level, "."))
 print_level(estimator::Estimator{<:AbstractMI}, L::Integer) = println(string("Currently running with L = ", L, "."))
+
+## print_var_est ##
+function print_var_est(estimator::Estimator, ϵ::Real, θ::Real)
+    println("Checking convergence...")
+    print_rates(estimator)
+    println(string("  ==> Variance of the estimator ≈", long(varest(estimator)), "."))
+    println(string("  ==> Bias of the estimator ≈", long(bias(estimator)), "."))
+    println(string("  ==> MSE splitting parameter ≈ ", short(θ), "."))
+end
 
 ## print_index_set ##
 print_index_set(estimator::Estimator, index_set) = nothing

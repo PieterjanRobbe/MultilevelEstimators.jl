@@ -122,12 +122,12 @@ function _run(estimator::Estimator{T, <:MC}, ϵ::Real) where T<:AbstractIndexSet
 				# compute indices where to take samples
 				n_opt = Dict(i=>0 for i in keys(estimator))
 				if length(keys(estimator)) == 1 # catch level 0
-					n_opt[Index(zero(T))] = n_to_take
+					n_opt[first(keys(estimator))] = n_to_take
 				else
 					n_to_compute = n_to_take
 					while sum(values(n_opt)) < n_to_take
 						my_r = r(estimator)
-						lvls = map(i->floor.(Int, randexpr(my_r[i], n_to_compute)), 1:length(r)) 
+						lvls = map(i->floor.(Int, randexpr(my_r[i], n_to_compute)), 1:length(my_r)) 
 						idcs = map(i->Index(getindex.(lvls, i)...), 1:n_to_compute)
 						for idx in keys(estimator)
 							n_opt[idx] += sum(broadcast(i->i==idx, idcs))
@@ -157,7 +157,7 @@ function _run(estimator::Estimator{T, <:MC}, ϵ::Real) where T<:AbstractIndexSet
 			
 				# show status
 				verbose(estimator) && print_status(estimator)
-				verbose(estimator) && L ≥ 2 && print_mse_analysis(estimator, ϵ, θ)
+				verbose(estimator) && print_var_est(estimator, ϵ, θ)
 			end
 		else
 			# evaluate optimal number of samples

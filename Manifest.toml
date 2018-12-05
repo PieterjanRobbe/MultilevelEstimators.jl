@@ -173,7 +173,7 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
 [[NotSoSimpleMultigrid]]
 deps = ["LinearAlgebra", "Printf", "Requires", "SimpleMultigrid", "SparseArrays", "StaticArrays", "Statistics", "Test"]
-git-tree-sha1 = "71f0c928d972256ba2bcb5826cfb093592c1340d"
+git-tree-sha1 = "00d9d92ed7859eb6120ab5557ae5c7c8ecfb23f4"
 repo-rev = "master"
 repo-url = "https://github.com/PieterjanRobbe/NotSoSimpleMultigrid.jl"
 uuid = "bc769cb7-f249-5bba-802a-79f19cb249ec"
@@ -269,7 +269,7 @@ uuid = "1a1011a3-84de-559e-8e89-a11a2f7dc383"
 
 [[SimpleMultigrid]]
 deps = ["IterativeSolvers", "Printf", "Requires", "SparseArrays", "StaticArrays", "Test"]
-git-tree-sha1 = "8aa7886e959ae3c4f38f518df24a5d7f39f51fea"
+git-tree-sha1 = "911502dc35019d444c1efd15474b88001bd1298a"
 repo-rev = "master"
 repo-url = "https://github.com/PieterjanRobbe/SimpleMultigrid.jl"
 uuid = "bc769cb7-f249-5bba-802a-79f19cb247ec"

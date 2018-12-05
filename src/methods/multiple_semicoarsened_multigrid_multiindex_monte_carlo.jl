@@ -25,8 +25,16 @@ end
 
 ## r, p, w ##
 function r(estimator::Estimator{<:MG})
-	r = 1/2*(β(estimator) + γ(estimator))
-	r = map(rᵢ->isnan(rᵢ) || rᵢ ≤ 0 ? 1.5 : rᵢ, r)
+	# compute "optimal" r
+	r = isempty(keys(estimator)) ? ntuple(i->1.5, ndims(estimator)) : 1/2*(β(estimator) + γ(estimator))
+	# limit r to avoid catastrophic failure
+	for index in keys(estimator)
+		MQ = mean(estimator, ntuple(i->0, ndims(estimator)))
+		MY = mean(estimator, index)
+		max_r = log(abs(MQ/MY))./index
+		r = map(i->r[i] ≤ 0 || !isfinite(r[i]) ? 1.5 : min(max_r[i], r[i]), 1:ndims(estimator))
+	end
+	map(rᵢ->isnan(rᵢ) ? 1.5 : rᵢ, r)
 end
-p(r, level::Level) = exp2(-r*level[1])
-w(r, level::Level) = 1/p(r, level)
+p(r, index::Index) = prod(exp2.(.-r.*index))
+w(r, index::Index) = inv.(p(r, index))

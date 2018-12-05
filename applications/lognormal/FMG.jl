@@ -31,11 +31,11 @@ function FMG!(mg::MultigridIterable{C, G}, grid_ptr::Int) where {C, G<:AbstractV
         grids[grid_ptr].x .= SimpleMultigrid.P(SimpleMultigrid.Cubic(), grids[grid_ptr+1].sz...)*grids[grid_ptr+1].x
     end
     ν₀= 0
-    while SimpleMultigrid.norm_of_residu(grids[grid_ptr]) >= 1/prod(grids[grid_ptr].sz) && ν₀ < 15
+    while SimpleMultigrid.norm_of_residu(grids[grid_ptr]) ≥ 1/prod(grids[grid_ptr].sz) && ν₀ < 20
         SimpleMultigrid.μ_cycle!(grids, 1, mg.cycle_type.ν₁, mg.cycle_type.ν₂, grid_ptr, mg.smoother)
         ν₀ += 1
     end
-    if SimpleMultigrid.norm_of_residu(grids[grid_ptr]) >= 1/prod(grids[grid_ptr].sz) # safety
+    if SimpleMultigrid.norm_of_residu(grids[grid_ptr]) ≥ 1/prod(grids[grid_ptr].sz) # safety
         grids[grid_ptr].x .= grids[grid_ptr].A\grids[grid_ptr].b # exact solve
     end
     sol[grid_ptr] = copy(grids[grid_ptr].x)
@@ -67,7 +67,7 @@ function FMG!(mg::MultigridIterable{C, G}, grid_ptr::Int) where {C, G<:AbstractM
         end
     end
     ν₀= 0
-    while NotSoSimpleMultigrid.norm_of_residu(grids[grid_ptr]) >= 1/prod(grids[grid_ptr].sz) && ν₀ < 15
+    while NotSoSimpleMultigrid.norm_of_residu(grids[grid_ptr]) >= 1/prod(grids[grid_ptr].sz) && ν₀ < 20
         NotSoSimpleMultigrid.μ_cycle!(grids, 1, mg.cycle_type.ν₁, mg.cycle_type.ν₂, grid_ptr, mg.smoother)
         ν₀ += 1
     end
@@ -84,9 +84,9 @@ end
 # function that returns residual norm after 50 multigrid V-cycles (used to analyze performance)
 function V_cycle_solve(f::Function, sz::Dims, ::S) where {S<:AbstractSolver}
     if S <: MGSolver
-        mg = SimpleMultigrid.MultigridMethod(f, sz, V(6,4), damping=damping)
+        mg = SimpleMultigrid.MultigridMethod(f, sz, V(6,4))
     else
-        mg = NotSoSimpleMultigrid.MultigridMethod(f, sz, V(6,4), damping=damping)
+        mg = NotSoSimpleMultigrid.MultigridMethod(f, sz, V(6,4))
     end
     mg.grids[1].b .= fill(1, size(mg.grids[1].A, 1))
 	push!(mg.resnorm, SimpleMultigrid.norm_of_residu(mg.grids[1]))

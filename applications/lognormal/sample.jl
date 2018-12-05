@@ -7,44 +7,56 @@
 
 function sample_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::GaussianRandomField, qoi::AbstractQoi, solver::AbstractSolver, reuse::R) where R<:AbstractReuse
 
-    # sample grf
-    # TODO for QMC, reorden inputs!!!!
-    Z = my_grf_sample(grf, view(x, 1:randdim(grf)))
-    k = exp.(Z)
-    sz = size(k).-1
+	ntries = 0
+	while true && ntries < 3
 
-    # direct-discretization function
-    g(n, m) = begin
-        step = div.(size(k), (n, m))
-        range = StepRange.(1, step, size(k))
-        elliptic2d(view(k, range...))
-    end
+		# sample grf
+		# TODO for QMC, reorden inputs!!!!
+		Z = my_grf_sample(grf, view(x, 1:randdim(grf)))
+		k = exp.(Z)
+		sz = size(k).-1
 
-    # solve
-    xfs, szs = FMG_solve(g, sz, solver, reuse)
-    Qf = apply_qoi(xfs, szs, index, reuse, qoi)
+		# direct-discretization function
+		f(n, m) = begin
+			step = div.(size(k), (n, m))
+			range = StepRange.(1, step, size(k))
+			view(k, range...)
+		end
+		g(n, m) = elliptic2d(f(n, m))
 
-    # compute difference
-    dQ = copy(Qf)
-    if R <: NoReuse
-        for (key, val) in diff(index)
-            szc = div.(sz, max.(1, (index.-key).*2))
-            xcs, szcs = FMG_solve(g, szc, solver, reuse)
-            Qc = apply_qoi(xcs, szcs, index, reuse, qoi)
-            dQ += val*Qc
-        end
-    else
-        for i in CartesianIndices(dQ)
-            index_ = Index(i-one(i))
-            for (key, val) in diff(index_)
-                dQ[i] += val*Qf[(key.+1)...]
-            end
-        end
-    end
+		# solve
+		xfs, szs = FMG_solve(g, sz, solver, reuse)
+		Qf = apply_qoi(xfs, f, szs, index, reuse, qoi)
 
-    dQ, Qf
+		# compute difference
+		dQ = copy(Qf)
+		if R <: NoReuse
+			for (key, val) in diff(index)
+				szc = div.(sz, max.(1, (index.-key).*2))
+				xcs, szcs = FMG_solve(g, szc, solver, reuse)
+				Qc = apply_qoi(xcs, f, szcs, index, reuse, qoi)
+				dQ += val*Qc
+			end
+		else
+			for i in CartesianIndices(dQ)
+				index_ = Index(i-one(i))
+				for (key, val) in diff(index_)
+					dQ[i] += val*Qf[(key.+1)...]
+				end
+			end
+		end
+
+		if all(mean.(dQ) .< 100)
+			return dQ, Qf
+		else
+			randn!(x) # sample again	
+			ntries += 1
+		end
+	end
+	throw(ArgumentError("no useable solution found after 3 tries, exiting..."))
 end
 
+## custom GRF sampling ##
 my_grf_sample(grf::GaussianRandomField, x::AbstractVector) = sample(grf, xi=x)
 function my_grf_sample(grf::GaussianRandomField{CirculantEmbedding}, x::AbstractVector)
     v = grf.data[1]
@@ -62,32 +74,38 @@ function my_grf_sample(grf::GaussianRandomField{CirculantEmbedding}, x::Abstract
     z
 end
 
-apply_qoi(xfs, szs, index, ::NoReuse, qoi) = apply_qoi(reshape(xfs, szs.-1), qoi)
+## apply QOI ##
+apply_qoi(xfs, f, szs, index, ::NoReuse, qoi) = apply_qoi(reshape(xfs, szs.-1), f(szs...), qoi)
 
-function apply_qoi(xfs, szs, index, ::Reuse, qoi)
+function apply_qoi(xfs, f, szs, index, ::Reuse, qoi)
     R = CartesianIndices(index.+one(index))
     xfs_view = view(xfs, R)
     szs_view = view(szs, R)
-    map(i->apply_qoi(reshape(xfs_view[i],szs_view[i].-1), qoi), Base.Iterators.reverse(eachindex(xfs_view)))
+	map(i->apply_qoi(reshape(xfs_view[i], szs_view[i].-1), f(szs_view[i]), qoi), Base.Iterators.reverse(eachindex(xfs_view)))
 end
 
-function apply_qoi(x, ::Qoi1)
+function apply_qoi(x, k, ::Qoi1)
     sz = size(x) .+ 1
     x[div.(sz, 2)...]
 end
 
-function apply_qoi(x, ::Qoi2)
+function apply_qoi(x, k, ::Qoi2)
     sz = size(x) .+ 1
     i_end = div.(sz, 2)
     i_start = div.(i_end, 2)
     16*trapz(trapz(view(x, UnitRange.(i_start, i_end)...), 1), 2)[1]
 end
 
-function apply_qoi(x, ::Qoi3)
+function apply_qoi(x, k, ::Qoi3)
     xp = PaddedView(0, x, size(x).+2, (2,2))
     itp = interpolate(xp, BSpline(Linear()))
     sz = size(x) .+ 1
     itp(div(sz[1], 2), range(1, stop=size(xp,2), length=16))
+end
+
+function apply_qoi(x, k, ::Qoi4)
+    sz = size(x, 2) + 1
+	sz*trapz(view(x, :, sz-1).*view(k, 1, 2:sz), 1)
 end
 
 function trapz(A, dim)
