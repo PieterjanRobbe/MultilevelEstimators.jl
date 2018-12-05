@@ -121,10 +121,18 @@ function _run(estimator::Estimator{T, <:MC}, ϵ::Real) where T<:AbstractIndexSet
 
 				# compute indices where to take samples
 				n_opt = Dict(i=>0 for i in keys(estimator))
-				while sum(values(n_opt)) < n_to_take
-					idx = Index(floor.(Int, randexpr.(r(estimator)))...)
-					if idx ∈ keys(estimator)
-						n_opt[idx] += 1
+				if length(keys(estimator)) == 1 # catch level 0
+					n_opt[Index(zero(T))] = n_to_take
+				else
+					n_to_compute = n_to_take
+					while sum(values(n_opt)) < n_to_take
+						my_r = r(estimator)
+						lvls = map(i->floor.(Int, randexpr(my_r[i], n_to_compute)), 1:length(r)) 
+						idcs = map(i->Index(getindex.(lvls, i)...), 1:n_to_compute)
+						for idx in keys(estimator)
+							n_opt[idx] += sum(broadcast(i->i==idx, idcs))
+						end
+						n_to_compute = n_to_take - sum(values(n_opt))
 					end
 				end
 

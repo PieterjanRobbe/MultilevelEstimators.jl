@@ -5,7 +5,7 @@
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
 # Carlo Methods (c) Pieterjan Robbe, 2018
 
-function sample_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::GaussianRandomField, damping::Real, qoi::AbstractQoi, solver::AbstractSolver, reuse::R) where R<:AbstractReuse
+function sample_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::GaussianRandomField, qoi::AbstractQoi, solver::AbstractSolver, reuse::R) where R<:AbstractReuse
 
     # sample grf
     # TODO for QMC, reorden inputs!!!!
@@ -21,7 +21,7 @@ function sample_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::Gaussia
     end
 
     # solve
-    xfs, szs = FMG_solve(g, sz, damping, solver, reuse)
+    xfs, szs = FMG_solve(g, sz, solver, reuse)
     Qf = apply_qoi(xfs, szs, index, reuse, qoi)
 
     # compute difference
@@ -29,7 +29,7 @@ function sample_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::Gaussia
     if R <: NoReuse
         for (key, val) in diff(index)
             szc = div.(sz, max.(1, (index.-key).*2))
-            xcs, szcs = FMG_solve(g, szc, damping, solver, reuse)
+            xcs, szcs = FMG_solve(g, szc, solver, reuse)
             Qc = apply_qoi(xcs, szcs, index, reuse, qoi)
             dQ += val*Qc
         end
@@ -114,7 +114,7 @@ end
 end
 
 # function used to analyze performance of Multigrid method
-function analyze_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::GaussianRandomField, damping::Real, qoi::AbstractQoi, solver::AbstractSolver)
+function analyze_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::GaussianRandomField, qoi::AbstractQoi, solver::AbstractSolver)
 
     # sample grf
     Z = my_grf_sample(grf, view(x, 1:randdim(grf)))
@@ -129,5 +129,5 @@ function analyze_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::Gaussi
     end
 
     # solve
-    V_cycle_solve(g, sz, damping, solver)
+    V_cycle_solve(g, sz, solver)
 end

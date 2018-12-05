@@ -21,14 +21,13 @@ function init_lognormal(index_set::AbstractIndexSet, sample_method::AbstractSamp
 	grfs = Dict(index => compute_grf(cov_fun, grf_generator, m0, index, p(index)) for index in indices)
 
     # sample function
-    damping = get_arg(args, :damping)
     qoi = get_arg(args, :qoi)
     solver = get_arg(args, :solver)
     reuse = get_arg(args, :reuse) ? Reuse() : NoReuse()
 	if get_arg(args, :analyze)
-    	sample_function = (index, x) -> analyze_lognormal(index, x, grfs[index], damping, qoi, solver)
+    	sample_function = (index, x) -> analyze_lognormal(index, x, grfs[index], qoi, solver)
 	else
-    	sample_function = (index, x) -> sample_lognormal(index, x, grfs[index], damping, qoi, solver, reuse)
+    	sample_function = (index, x) -> sample_lognormal(index, x, grfs[index], qoi, solver, reuse)
 	end
 
     # distributions
@@ -88,8 +87,6 @@ get_arg(args::Dict{Symbol,Any}, arg::Val{T}) where T = throw(ArgumentError(strin
 
 @get_arg :minpadding index->0
 
-@get_arg :damping 0.8
-
 abstract type AbstractQoi end
 
 struct Qoi1 <:AbstractQoi end
@@ -119,4 +116,4 @@ struct NoReuse <: AbstractReuse end
 @get_arg :analyze false
 
 # make sure all keys in args are valid keys for Estimator
-filter_keys!(args::Dict{Symbol, Any}) = isempty(args) || delete!.(Ref(args), [:nb_of_coarse_dofs, :covariance_function, :length_scale, :smoothness, :grf_generator, :minpadding, :index_set, :qoi, :damping, :solver, :reuse, :analyze])
+filter_keys!(args::Dict{Symbol, Any}) = isempty(args) || delete!.(Ref(args), [:nb_of_coarse_dofs, :covariance_function, :length_scale, :smoothness, :grf_generator, :minpadding, :index_set, :qoi, :solver, :reuse, :analyze])
