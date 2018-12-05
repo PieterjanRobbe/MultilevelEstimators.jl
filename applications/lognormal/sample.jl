@@ -104,8 +104,10 @@ function apply_qoi(x, k, ::Qoi3)
 end
 
 function apply_qoi(x, k, ::Qoi4)
+	#@show size(k)
+	#@show size(x)
     sz = size(x, 2) + 1
-	sz*trapz(view(x, :, sz-1).*view(k, 1, 2:sz), 1)
+	sz*trapz(view(x, :, sz-1).*view(k, 2:sz, 1), 1)
 end
 
 function trapz(A, dim)
