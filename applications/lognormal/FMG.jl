@@ -32,7 +32,7 @@ function FMG!(mg::MultigridIterable{C, G}, grid_ptr::Int) where {C, G<:AbstractV
     end
     ν₀= 0
     while SimpleMultigrid.norm_of_residu(grids[grid_ptr]) ≥ 1/prod(grids[grid_ptr].sz) && ν₀ < 20
-        V_cycle!(grids, 1, mg.cycle_type.ν₁, mg.cycle_type.ν₂, grid_ptr, mg.smoother)
+        SimpleMultigrid.μ_cycle!(grids, 1, mg.cycle_type.ν₁, mg.cycle_type.ν₂, grid_ptr, mg.smoother)
         ν₀ += 1
     end
     if SimpleMultigrid.norm_of_residu(grids[grid_ptr]) ≥ 1/prod(grids[grid_ptr].sz) # safety

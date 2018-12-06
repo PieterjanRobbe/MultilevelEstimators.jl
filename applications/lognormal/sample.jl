@@ -105,10 +105,25 @@ end
 
 function apply_qoi(x, k, ::Qoi4)
 	#@show size(k)
+	#display(k)
+	#println("")
 	#@show size(x)
-    sz = size(x, 2) + 1
-	sz*trapz(view(x, :, sz-1).*view(k, 2:sz, 1), 1)
+	#display(x)
+	#println("")
+    #n, m = size(x)
+	px = PaddedView(zero(eltype(x)), x, size(x).+2, (2,2))
+    n, m = size(px)
+
+	trapz1d((m+1)*(view(px, :, m-1)-view(px, :, m-2)).*view(flipdim(k', 1), :, m-2))#, 1)
 end
+
+function trapz1d(f)
+	n = length(f)
+	Δx = 1/(n-1)
+	Δx/2*(f[1] + 2*sum(view(f, 2:n-1)) + f[n])
+end
+
+
 
 function trapz(A, dim)
     sz = size(A)
@@ -143,7 +158,7 @@ function analyze_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::Gaussi
 
     # direct-discretization function
     g(n, m) = begin
-        step = div.(size(k), (n, m)) # TODO m, n ????
+        step = div.(size(k), (n, m))
         range = StepRange.(1, step, size(k))
         elliptic2d(view(k, range...))
     end
