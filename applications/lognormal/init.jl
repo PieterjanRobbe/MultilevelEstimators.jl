@@ -101,11 +101,15 @@ struct Qoi4 <: AbstractQoi end
 
 abstract type AbstractSolver end
 
-struct MGSolver <: AbstractSolver end
+struct MGSolver{C} <: AbstractSolver
+	cycle::C
+end
 
-struct MSGSolver <: AbstractSolver end
+struct MSGSolver{C} <: AbstractSolver
+	cycle::C
+end
 
-@get_arg :solver args[:index_set] isa MG{<:MultilevelEstimators.MI} ? MSGSolver() : MGSolver()
+@get_arg :solver args[:index_set] isa MG{<:MultilevelEstimators.MI} ? MSGSolver(W(2, 2)) : MGSolver(W(2, 2))
 
 abstract type AbstractReuse end
 

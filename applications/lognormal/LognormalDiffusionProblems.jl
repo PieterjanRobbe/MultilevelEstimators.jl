@@ -10,7 +10,7 @@ using Distributed, FFTW, GaussianRandomFields, Interpolations, MultilevelEstimat
 # import statements
 import GaussianRandomFields: GaussianRandomFieldGenerator
 
-import SimpleMultigrid: MultigridIterable
+import SimpleMultigrid: MultigridIterable, MultigridCycle
 
 # export statements
 export init_lognormal, sample_lognormal, Qoi1, Qoi2, Qoi3, Qoi4, MGSolver, MSGSolver, NonIsotropicMatern, compute_grf, analyze_lognormal

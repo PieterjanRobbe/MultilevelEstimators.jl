@@ -143,7 +143,7 @@ function analyze_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::Gaussi
 
     # direct-discretization function
     g(n, m) = begin
-        step = div.(size(k), (n, m))
+        step = div.(size(k), (n, m)) # TODO m, n ????
         range = StepRange.(1, step, size(k))
         elliptic2d(view(k, range...))
     end
