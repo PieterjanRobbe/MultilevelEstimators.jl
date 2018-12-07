@@ -5,7 +5,7 @@
 module LognormalDiffusionProblems
 
 # dependencies
-using Distributed, FFTW, GaussianRandomFields, Interpolations, MultilevelEstimators, NotSoSimpleMultigrid, PaddedViews, Random, SimpleMultigrid, SpecialFunctions, Statistics
+using Distributed, FFTW, GaussianRandomFields, Interpolations, MultilevelEstimators, NotSoSimpleMultigrid, PaddedViews, Random, Retry, SimpleMultigrid, SpecialFunctions, Statistics
 
 # import statements
 import GaussianRandomFields: GaussianRandomFieldGenerator

@@ -173,7 +173,7 @@ uuid = "a63ad114-7e13-5084-954f-fe012c677804"
 
 [[NotSoSimpleMultigrid]]
 deps = ["LinearAlgebra", "Printf", "Requires", "SimpleMultigrid", "SparseArrays", "StaticArrays", "Statistics", "Test"]
-git-tree-sha1 = "00d9d92ed7859eb6120ab5557ae5c7c8ecfb23f4"
+git-tree-sha1 = "c32f2f42f1669e7ba6e5f23e0d7ed89d26ff9ce5"
 repo-rev = "master"
 repo-url = "https://github.com/PieterjanRobbe/NotSoSimpleMultigrid.jl"
 uuid = "bc769cb7-f249-5bba-802a-79f19cb249ec"
@@ -217,14 +217,6 @@ git-tree-sha1 = "777c48006c57c8bd322d2032267085983a5fd50f"
 uuid = "d330b81b-6aea-500a-939a-2ce795aea3ee"
 version = "2.6.3"
 
-[[QMC]]
-deps = ["DelimitedFiles", "Random", "Statistics", "Test"]
-git-tree-sha1 = "51271f378c29dce5d188a0278740c1bc2bf3da7e"
-repo-rev = "master"
-repo-url = "https://github.com/PieterjanRobbe/QMC.jl"
-uuid = "cb769cb7-f249-5bba-802a-79f19cb247ec"
-version = "0.0.0"
-
 [[REPL]]
 deps = ["InteractiveUtils", "Markdown", "Sockets"]
 uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
@@ -257,6 +249,12 @@ git-tree-sha1 = "f6fbf4ba64d295e146e49e021207993b6b48c7d1"
 uuid = "ae029012-a4dd-5104-9daa-d747884805df"
 version = "0.5.2"
 
+[[Retry]]
+deps = ["Test"]
+git-tree-sha1 = "de2c066886416190da2ab3dbaa0e89e09ccd03c2"
+uuid = "20febd7b-183b-5ae2-ac4a-720e7ce64774"
+version = "0.3.0"
+
 [[SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
 
@@ -269,7 +267,7 @@ uuid = "1a1011a3-84de-559e-8e89-a11a2f7dc383"
 
 [[SimpleMultigrid]]
 deps = ["IterativeSolvers", "Printf", "Requires", "SparseArrays", "StaticArrays", "Test"]
-git-tree-sha1 = "911502dc35019d444c1efd15474b88001bd1298a"
+git-tree-sha1 = "f3b4f32b89e385e3198fd3868c0a897fffe43474"
 repo-rev = "master"
 repo-url = "https://github.com/PieterjanRobbe/SimpleMultigrid.jl"
 uuid = "bc769cb7-f249-5bba-802a-79f19cb247ec"

@@ -151,7 +151,7 @@ function print_rates(estimator::Estimator)
     println(str)
 end
 
-print_rate(estimator::Estimator{<:AbstractML}, f::Function) = short(f(estimator))
+print_rate(estimator::Estimator{<:AbstractML}, f::Function) = short(f(estimator)[1])
 print_rate(estimator::Estimator{<:AbstractMI}, f::Function) = string("(", join(short.(f(estimator)), ", "), ")")
 
 print_rate_r(estimator::Estimator{<:MG}) = println(string("Using exponential rate r ≈ ", print_rate(estimator, r), "."))

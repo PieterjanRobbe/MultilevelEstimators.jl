@@ -7,63 +7,66 @@
 
 function sample_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::GaussianRandomField, qoi::AbstractQoi, solver::AbstractSolver, reuse::R) where R<:AbstractReuse
 
-	ntries = 0
-	while true && ntries < 3
+    # wrap the sample code in a try-catch  
+    @repeat 3 try
 
-		# sample grf
-		# TODO for QMC, reorden inputs!!!!
-		Z = my_grf_sample(grf, view(x, 1:randdim(grf)))
-		k = exp.(Z)
-		sz = size(k).-1
+        # sample grf
+        # TODO for QMC, reorden inputs!!!!
+        Z = my_grf_sample(grf, view(x, 1:randdim(grf)))
+        k = exp.(Z)
+        sz = size(k).-1
 
-		# direct-discretization function
-		f(n, m) = begin
-			step = div.(size(k), (n, m))
-			range = StepRange.(1, step, size(k))
-			view(k, range...)
-		end
-		g(n, m) = elliptic2d(f(n, m))
+        # direct-discretization function
+        f(n, m) = begin
+            step = div.(size(k), (n, m))
+            range = StepRange.(1, step, size(k))
+            view(k, range...)
+        end
+        g(n, m) = elliptic2d(f(n, m))
 
-		# solve
-		xfs, szs = FMG_solve(g, sz, solver, reuse)
-		Qf = apply_qoi(xfs, f, szs, index, reuse, qoi)
+        # solve
+        xfs, szs = FMG_solve(g, sz, solver, reuse)
+        Qf = apply_qoi(xfs, f, szs, index, reuse, qoi)
 
-		# compute difference
-		dQ = copy(Qf)
-		if R <: NoReuse
-			for (key, val) in diff(index)
-				szc = div.(sz, max.(1, (index.-key).*2))
-				xcs, szcs = FMG_solve(g, szc, solver, reuse)
-				Qc = apply_qoi(xcs, f, szcs, index, reuse, qoi)
-				dQ += val*Qc
-			end
-		else
-			for i in CartesianIndices(dQ)
-				index_ = Index(i-one(i))
-				for (key, val) in diff(index_)
-					dQ[i] += val*Qf[(key.+1)...]
-				end
-			end
-		end
+        # compute difference
+        dQ = copy(Qf)
+        if R <: NoReuse
+            for (key, val) in diff(index)
+                szc = div.(sz, max.(1, (index.-key).*2))
+                xcs, szcs = FMG_solve(g, szc, solver, reuse)
+                Qc = apply_qoi(xcs, f, szcs, index, reuse, qoi)
+                dQ += val*Qc
+            end
+        else
+            for i in CartesianIndices(dQ)
+                index_ = Index(i-one(i))
+                for (key, val) in diff(index_)
+                    dQ[i] += val*Qf[(key.+1)...]
+                end
+            end
+        end
 
-		if all(mean.(dQ) .< 100)
-			return dQ, Qf
-		else
-			randn!(x) # sample again	
-			ntries += 1
-		end
-	end
-	throw(ArgumentError("no useable solution found after 3 tries, exiting..."))
+        if all(mean.(dQ) .< 100)
+            return dQ, Qf
+        else
+            throw(ErrorException("Something went wrong computing this sample, rethrowing error after 3 tries :("))
+        end
+    catch e
+        @retry if true
+            randn!(x)
+        end
+    end
 end
 
 ## custom GRF sampling ##
+# NOTE: FFT plans cannot deal with pmap (unique C pointer cannot be serialized; afaik)
 my_grf_sample(grf::GaussianRandomField, x::AbstractVector) = sample(grf, xi=x)
 function my_grf_sample(grf::GaussianRandomField{CirculantEmbedding}, x::AbstractVector)
     v = grf.data[1]
 
     # compute multiplication with square root of circulant embedding via FFT
     y = v .* reshape(x, size(v))
-    w = fft!(complex(y))
+    w = fft!(complex(y)) # this is slower than using the plan, but works in parallel
 
     # extract realization of random field
     z = Array{eltype(grf.cov)}(undef, length.(grf.pts))
@@ -81,7 +84,7 @@ function apply_qoi(xfs, f, szs, index, ::Reuse, qoi)
     R = CartesianIndices(index.+one(index))
     xfs_view = view(xfs, R)
     szs_view = view(szs, R)
-	map(i->apply_qoi(reshape(xfs_view[i], szs_view[i].-1), f(szs_view[i]), qoi), Base.Iterators.reverse(eachindex(xfs_view)))
+    map(i->apply_qoi(reshape(xfs_view[i], szs_view[i].-1), f(szs_view[i]...), qoi), Base.Iterators.reverse(eachindex(xfs_view)))
 end
 
 function apply_qoi(x, k, ::Qoi1)
@@ -104,26 +107,11 @@ function apply_qoi(x, k, ::Qoi3)
 end
 
 function apply_qoi(x, k, ::Qoi4)
-	#@show size(k)
-	#display(k)
-	#println("")
-	#@show size(x)
-	#display(x)
-	#println("")
-    #n, m = size(x)
-	px = PaddedView(zero(eltype(x)), x, size(x).+2, (2,2))
+    px = PaddedView(zero(eltype(x)), x, size(x).+2, (2,2))
     n, m = size(px)
-
-	trapz1d((m+1)*(view(px, :, m-1)-view(px, :, m-2)).*view(flipdim(k', 1), :, m-2))#, 1)
+    # TODO k * \partial p / \partial x (effective permeability ) in FLOW CELL geometry
+    trapz((m-1)*view(px, :, m-1), 1)
 end
-
-function trapz1d(f)
-	n = length(f)
-	Δx = 1/(n-1)
-	Δx/2*(f[1] + 2*sum(view(f, 2:n-1)) + f[n])
-end
-
-
 
 function trapz(A, dim)
     sz = size(A)

@@ -12,8 +12,8 @@ function sample!(estimator::Estimator, index::Index, n::Integer)
     t = @elapsed parallel_sample!(estimator, index, Istart, Iend)
     update_nb_of_samples!(estimator, index, n)
     update_total_work!(estimator, index, t, n)
-	
-	print_sample!_footer()
+
+    print_sample!_footer()
 end
 
 ## sample for MC ##
@@ -43,15 +43,15 @@ function append_samples!(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::
 end
 
 function append_samples!(estimator::Estimator{<:MG, <:MC}, index::Index, s_diff, s, n::Integer)
-	R = CartesianIndices(UnitRange.(zero(index), index))
-	for n_qoi in 1:nb_of_qoi(estimator)
-		acc = fill(zero(eltype(eltype(s))), n)
-		for idx in R
+    R = CartesianIndices(UnitRange.(zero(index), index))
+    for n_qoi in 1:nb_of_qoi(estimator)
+        acc = fill(zero(eltype(eltype(eltype(s)))), n)
+        for idx in R
             append_samples_diff!(estimator, n_qoi, Index(idx), getindex.(getindex.(s_diff, Ref(idx+one(idx))), n_qoi))
             append_samples!(estimator, n_qoi, Index(idx), getindex.(getindex.(s, Ref(idx+one(idx))), n_qoi))
-			acc += weight(estimator, Index(idx))*getindex.(getindex.(s_diff, Ref(idx+one(idx))), n_qoi)
+            acc += weight(estimator, Index(idx))*getindex.(getindex.(s_diff, Ref(idx+one(idx))), n_qoi)
         end	
-		append_accumulator!(estimator, n_qoi, acc)
+        append_accumulator!(estimator, n_qoi, acc)
     end
 end
 
