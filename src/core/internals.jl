@@ -13,12 +13,13 @@ struct EstimatorInternals{S, N, T, C, Z, T1, T2, T3} <: AbstractEstimatorInterna
     samples::S
     nb_of_samples::N
     total_work::T
+    total_time::T
     current_index_set::C
     index_set_size::Z
 
     sample_method_internals::T1
     index_set_internals::T2
-	multigrid_internals::T3
+    multigrid_internals::T3
 end
 
 function EstimatorInternals(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, settings::Dict{Symbol, Any})
@@ -38,10 +39,10 @@ function EstimatorInternals(index_set::AbstractIndexSet, sample_method::Abstract
     T1 = typeof(sample_method_internals)
     index_set_internals = IndexSetInternals(type_c, type_n, index_set, sample_method, settings) 
     T2  = typeof(index_set_internals)
-	multigrid_internals = MultigridInternals(index_set, T, m, n, type_t)
-	T3 = typeof(multigrid_internals)
+    multigrid_internals = MultigridInternals(index_set, T, m, n, type_t)
+    T3 = typeof(multigrid_internals)
 
-	EstimatorInternals{type_s, type_n, type_t, type_c, type_z, T1, T2, T3}(type_s(undef, m, n), type_s(undef, m, n), type_n(), type_t(), type_c(), IndexSetSize(0, 0), sample_method_internals, index_set_internals, multigrid_internals)
+    EstimatorInternals{type_s, type_n, type_t, type_c, type_z, T1, T2, T3}(type_s(undef, m, n), type_s(undef, m, n), type_n(), type_t(), type_t(), type_c(), IndexSetSize(0, 0), sample_method_internals, index_set_internals, multigrid_internals)
 end
 
 ## IndexSetSize ##
@@ -95,16 +96,16 @@ abstract type AbstractMultigridInternals end
 struct EmptyMultigridInternals <: AbstractMultigridInternals end
 
 struct MultigridInternals{A, W} <: AbstractMultigridInternals
-	accumulator::A
-	weights::W
+    accumulator::A
+    weights::W
 end
 
 MultigridInternals(::AbstractIndexSet, ::DataType, ::Integer, ::Integer, ::DataType) = EmptyMultigridInternals()
 
 function MultigridInternals(::MG, T::DataType, m::Integer, n::Integer, type_t::DataType)
-	type_a = Matrix{Vector{T}}
+    type_a = Matrix{Vector{T}}
 
-	MultigridInternals{type_a, type_t}(type_a(undef, m, n), type_t())
+    MultigridInternals{type_a, type_t}(type_a(undef, m, n), type_t())
 end
 
 # dispatch on the size of the Matrix that holds the samples

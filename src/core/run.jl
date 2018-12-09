@@ -106,8 +106,6 @@ function _run(estimator::Estimator{T, <:MC}, ϵ::Real) where T<:AbstractIndexSet
                 set_weights(estimator)
 
                 # print weights
-                @show r(estimator)
-                @show typeof(r(estimator))
                 verbose(estimator) && print_rate_r(estimator)
                 verbose(estimator) && print_weights(estimator)
 

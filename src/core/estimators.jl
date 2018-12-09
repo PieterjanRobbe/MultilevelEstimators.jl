@@ -81,13 +81,13 @@ function valid_keys(::I, ::S) where {I<:AbstractIndexSet, S<:AbstractSampleMetho
          :nb_of_workers,
          :nb_of_uncertainties]
     I <: Union{AbstractML, AbstractMI} && push!(v,
-                                :max_index_set_param,
-                                :min_index_set_param,
-                                :min_splitting,
-                                :max_splitting,
-                                :robustify_bias_estimate,
-                                :do_mse_splitting,
-                                :do_regression)
+                                                :max_index_set_param,
+                                                :min_index_set_param,
+                                                :min_splitting,
+                                                :max_splitting,
+                                                :robustify_bias_estimate,
+                                                :do_mse_splitting,
+                                                :do_regression)
     I <:AbstractAD && push!(v, :max_search_space)
     I <:MG && push!(v, :sample_mul_factor)
     S <: QMC && push!(v, :nb_of_shifts,
@@ -112,10 +112,16 @@ contains_samples_at_index(estimator::Estimator, index::Index) = isassigned(estim
 
 total_work(estimator::Estimator) = estimator.internals.total_work
 total_work(estimator::Estimator, index::Index) = get(total_work(estimator), index, NaN)
-update_total_work!(estimator::Estimator, index::Index, time::Real, n::Integer) = total_work(estimator)[index] += cost_model(estimator) isa EmptyFunction ? time : n * cost_model(estimator, index)
+update_total_work!(estimator::Estimator, index::Index, n::Integer) = total_work(estimator)[index] += n * cost_model(estimator, index)
 
-nb_of_samples(estimator::Estimator) = estimator.internals.nb_of_samples
-nb_of_samples(estimator::Estimator, index::Index) = get(nb_of_samples(estimator), index, 0)
+total_time(estimator::Estimator) = estimator.internals.total_time
+total_time(estimator::Estimator, index::Index) = get(total_time(estimator), index, NaN)
+update_total_time!(estimator::Estimator, index::Index, time::Real) = total_time(estimator)[index] += time
+
+nb_of_orig_samples(estimator::Estimator) = estimator.internals.nb_of_samples
+nb_of_orig_samples(estimator::Estimator, index::Index) = get(nb_of_samples(estimator), index, 0)
+nb_of_samples(estimator::Estimator) = Dict(index=>nb_of_samples(estimator, index) for index in keys(first(samples(estimator))))
+nb_of_samples(estimator::Estimator, index::Index) = length(get(first(samples(estimator)), index, 0))
 update_nb_of_samples!(estimator::Estimator, index::Index, nb_of_samples::Integer) = estimator.internals.nb_of_samples[index] += nb_of_samples
 
 # TODO: automate ?
@@ -180,8 +186,9 @@ end
 push!(estimator::Estimator, index::Index) = push!(estimator.internals.current_index_set, index)
 
 function add_index(estimator::Estimator{T}, index::Index) where T<:AbstractIndexSet # this is called in "sample"
-    estimator.internals.nb_of_samples[index] = zero(valtype(nb_of_samples(estimator)))
+    estimator.internals.nb_of_samples[index] = zero(valtype(nb_of_orig_samples(estimator)))
     estimator.internals.total_work[index] = zero(valtype(total_work(estimator)))
+    estimator.internals.total_time[index] = zero(valtype(total_time(estimator)))
     for S in [samples_diff(estimator), samples(estimator)]
         for q in 1:nb_of_qoi(estimator)
             if !isassigned(S, q)
@@ -190,12 +197,12 @@ function add_index(estimator::Estimator{T}, index::Index) where T<:AbstractIndex
             S[q][index] = valtype(S[q])(undef, 0)
         end
     end
-	if T <: MG
-		A = accumulator(estimator)
-		for q in 1:nb_of_qoi(estimator)
-			if !isassigned(A, q)
-				A[q] = eltype(A)(undef, 0)
-			end
-		end
-	end
+    if T <: MG
+        A = accumulator(estimator)
+        for q in 1:nb_of_qoi(estimator)
+            if !isassigned(A, q)
+                A[q] = eltype(A)(undef, 0)
+            end
+        end
+    end
 end

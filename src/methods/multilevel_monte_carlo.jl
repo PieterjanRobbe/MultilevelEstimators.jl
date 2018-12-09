@@ -24,7 +24,8 @@ for f in [:mean, :var]
 end
 
 ## cost at index ##
-cost(estimator::Estimator, index::Index) = total_work(estimator, index)/nb_of_samples(estimator, index)
+cost(estimator::Estimator, index::Index) = (cost_model(estimator) isa EmptyFunction ? total_time(estimator, index)/nb_of_orig_samples(estimator, index) : cost_model(estimator, index))
+time(estimator::Estimator, index::Index) = total_time(estimator, index)/nb_of_orig_samples(estimator, index)
 
 ## mean and var at index ##
 for f in [:mean, :var]
@@ -51,7 +52,7 @@ function interp1(x::AbstractVector{<:Real}, y::AbstractVector{<:Real})
     A\y
 end
 
-for (f, g, sgn) in zip((:α, :β, :γ), (:mean, :var, :cost), (-1, -1, 1))
+for (f, g, sgn) in zip((:α, :β, :γ, :δ), (:mean, :var, :cost, :time), (-1, -1, 1, 1))
     eval(
          quote
              $f(estimator::Estimator{<:AbstractML}) = $sgn*$(Symbol("rates_", f))(estimator)[2]

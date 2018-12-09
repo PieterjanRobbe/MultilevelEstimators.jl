@@ -11,7 +11,8 @@ function sample!(estimator::Estimator, index::Index, n::Integer)
     Iend = Istart + n - 1
     t = @elapsed parallel_sample!(estimator, index, Istart, Iend)
     update_nb_of_samples!(estimator, index, n)
-    update_total_work!(estimator, index, t, n)
+    update_total_work!(estimator, index, n)
+    update_total_time!(estimator, index, t)
 
     print_sample!_footer()
 end

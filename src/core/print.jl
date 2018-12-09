@@ -70,7 +70,7 @@ print_elname(::Estimator{<:AbstractML}) = "level"
 print_elname(::Estimator{<:AbstractMI}) = "index"
 
 ## print_nb_of_samples ##
-print_nb_of_samples(estimator::Estimator, index::Index) = print_nb_of_samples(estimator, length(first(samples(estimator))[index]))
+print_nb_of_samples(estimator::Estimator, index::Index) = print_nb_of_samples(estimator, nb_of_samples(estimator, index))
 print_nb_of_samples(estimator::Estimator{<:AbstractIndexSet, <:MC}, n::Integer) = string(n)
 
 ## print_optimal_nb_of_samples ##

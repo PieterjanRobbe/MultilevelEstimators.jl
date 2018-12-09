@@ -18,17 +18,19 @@ function init_lognormal(index_set::AbstractIndexSet, sample_method::AbstractSamp
     m0 = get_arg(args, :nb_of_coarse_dofs)
     p = get_arg(args, :minpadding)
     grf_generator = get_arg(args, :grf_generator)
-	grfs = Dict(index => compute_grf(cov_fun, grf_generator, m0, index, p(index)) for index in indices)
+    grfs = Dict(index => compute_grf(cov_fun, grf_generator, m0, index, p(index)) for index in indices)
 
     # sample function
     qoi = get_arg(args, :qoi)
     solver = get_arg(args, :solver)
     reuse = get_arg(args, :reuse) ? Reuse() : NoReuse()
-	if get_arg(args, :analyze)
-    	sample_function = (index, x) -> analyze_lognormal(index, x, grfs[index], qoi, solver)
-	else
-    	sample_function = (index, x) -> sample_lognormal(index, x, grfs[index], qoi, solver, reuse)
-	end
+    if get_arg(args, :analyze) isa AnalyzeV
+        sample_function = (index, x) -> analyze_lognormal_V_cycle(index, x, grfs[index], qoi, solver)
+    elseif get_arg(args, :analyze) isa AnalyzeFMG 
+        sample_function = (index, x) -> analyze_lognormal_FMG(index, x, grfs[index], qoi, solver)
+    else
+        sample_function = (index, x) -> sample_lognormal(index, x, grfs[index], qoi, solver, reuse)
+    end
 
     # distributions
     s = maximum(randdim.(collect(values(grfs))))
@@ -102,11 +104,11 @@ struct Qoi4 <: AbstractQoi end
 abstract type AbstractSolver end
 
 struct MGSolver{C} <: AbstractSolver
-	cycle::C
+    cycle::C
 end
 
 struct MSGSolver{C} <: AbstractSolver
-	cycle::C
+    cycle::C
 end
 
 @get_arg :solver args[:index_set] isa MG{<:MultilevelEstimators.MI} ? MSGSolver(W(2, 2)) : MGSolver(W(2, 2))
@@ -119,7 +121,15 @@ struct NoReuse <: AbstractReuse end
 
 @get_arg :reuse args[:index_set] isa MG ? true : false
 
-@get_arg :analyze false
+abstract type AbstractAnalyze end
+
+struct NoAnalyze <: AbstractAnalyze end
+
+struct AnalyzeV <: AbstractAnalyze end
+
+struct AnalyzeFMG <: AbstractAnalyze end
+
+@get_arg :analyze NoAnalyze()
 
 # make sure all keys in args are valid keys for Estimator
 filter_keys!(args::Dict{Symbol, Any}) = isempty(args) || delete!.(Ref(args), [:nb_of_coarse_dofs, :covariance_function, :length_scale, :smoothness, :grf_generator, :minpadding, :index_set, :qoi, :solver, :reuse, :analyze])

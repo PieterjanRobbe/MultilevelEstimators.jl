@@ -133,6 +133,7 @@ end
 
 ## cost_model ##
 struct EmptyFunction <: Function end
+(::EmptyFunction)() = NaN
 @parse!(:cost_model,
         EmptyFunction(),
         check_type(to_string(key, val)..., Function)

@@ -18,14 +18,14 @@ function sample_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::Gaussia
 
         # direct-discretization function
         f(n, m) = begin
-            step = div.(size(k), (n, m))
+            step = div.(sz, (n, m))
             range = StepRange.(1, step, size(k))
             view(k, range...)
         end
         g(n, m) = elliptic2d(f(n, m))
 
         # solve
-        xfs, szs = FMG_solve(g, sz, solver, reuse)
+        xfs, szs = FMG_solve(g, sz, index, solver, reuse)
         Qf = apply_qoi(xfs, f, szs, index, reuse, qoi)
 
         # compute difference
@@ -34,7 +34,7 @@ function sample_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::Gaussia
             for (key, val) in diff(index)
                 szc = div.(sz, max.(1, (index.-key).*2))
                 xcs, szcs = FMG_solve(g, szc, solver, reuse)
-                Qc = apply_qoi(xcs, f, szcs, index, reuse, qoi)
+                Qc = apply_qoi(xcs, f, szcs, key, reuse, qoi)
                 dQ += val*Qc
             end
         else
@@ -52,6 +52,7 @@ function sample_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::Gaussia
             throw(ErrorException("Something went wrong computing this sample, rethrowing error after 3 tries :("))
         end
     catch e
+        println("caught!")
         @retry if true
             randn!(x)
         end
@@ -80,12 +81,7 @@ end
 ## apply QOI ##
 apply_qoi(xfs, f, szs, index, ::NoReuse, qoi) = apply_qoi(reshape(xfs, szs.-1), f(szs...), qoi)
 
-function apply_qoi(xfs, f, szs, index, ::Reuse, qoi)
-    R = CartesianIndices(index.+one(index))
-    xfs_view = view(xfs, R)
-    szs_view = view(szs, R)
-    map(i->apply_qoi(reshape(xfs_view[i], szs_view[i].-1), f(szs_view[i]...), qoi), Base.Iterators.reverse(eachindex(xfs_view)))
-end
+apply_qoi(xfs, f, szs, index, ::Reuse, qoi) = map(i->apply_qoi(reshape(xfs[i], szs[i].-1), f(szs[i]...), qoi), Base.Iterators.reverse(eachindex(xfs)))
 
 function apply_qoi(x, k, ::Qoi1)
     sz = size(x) .+ 1
@@ -110,7 +106,7 @@ function apply_qoi(x, k, ::Qoi4)
     px = PaddedView(zero(eltype(x)), x, size(x).+2, (2,2))
     n, m = size(px)
     # TODO k * \partial p / \partial x (effective permeability ) in FLOW CELL geometry
-    trapz((m-1)*view(px, :, m-1), 1)
+    trapz((m-1)*view(px, :, m-1), 1) # bottom
 end
 
 function trapz(A, dim)
@@ -136,8 +132,8 @@ end
     B./(2(n-1))
 end
 
-# function used to analyze performance of Multigrid method
-function analyze_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::GaussianRandomField, qoi::AbstractQoi, solver::AbstractSolver)
+# function used to analyze performance of Multigrid (V- or W-cycle) method
+function analyze_lognormal_V_cycle(index::Index, x::Vector{<:AbstractFloat}, grf::GaussianRandomField, qoi::AbstractQoi, solver::AbstractSolver)
 
     # sample grf
     Z = my_grf_sample(grf, view(x, 1:randdim(grf)))
@@ -146,11 +142,31 @@ function analyze_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::Gaussi
 
     # direct-discretization function
     g(n, m) = begin
-        step = div.(size(k), (n, m))
+        step = div.(sz, (n, m))
         range = StepRange.(1, step, size(k))
         elliptic2d(view(k, range...))
     end
 
     # solve
     V_cycle_solve(g, sz, solver)
+end
+
+# function used to analyze performance of FMG method
+function analyze_lognormal_FMG(index::Index, x::Vector{<:AbstractFloat}, grf::GaussianRandomField, qoi::AbstractQoi, solver::AbstractSolver)
+
+    # sample grf
+    Z = my_grf_sample(grf, view(x, 1:randdim(grf)))
+    k = exp.(Z)
+    sz = size(k).-1
+
+    # direct-discretization function
+    g(n, m) = begin
+        step = div.(sz, (n, m))
+        range = StepRange.(1, step, size(k))
+        elliptic2d(view(k, range...))
+    end
+
+    # solve
+    xfs, szs, ν₀s = FMG_solve(g, sz, index, solver, Reuse())
+    return ν₀s
 end
