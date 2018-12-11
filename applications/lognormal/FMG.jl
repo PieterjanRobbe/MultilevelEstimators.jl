@@ -78,13 +78,20 @@ function FMG!(mg::MultigridIterable{C, G}, grid_ptr::Int) where {C, G<:AbstractM
             #grids[I].x .= c
         end
     end
-    for I in NotSoSimpleMultigrid.grids_at_level(R, grid_ptr)
         ν₀ = 0
-        while !converged(grids[I]) && ν₀ < 20
-            R2 = CartesianIndices(UnitRange.(I.I, Iend.I))
-            NotSoSimpleMultigrid.μ_cycle!(grids[R2], 2, mg.cycle_type.ν₁, mg.cycle_type.ν₂, 1, mg.smoother)
+        while !converged(grids, grid_ptr, R) && ν₀ < 20
+            #R2 = CartesianIndices(UnitRange.(I.I, Iend.I))
+            #NotSoSimpleMultigrid.μ_cycle!(grids[R2], 2, mg.cycle_type.ν₁, mg.cycle_type.ν₂, 1, mg.smoother)
+            NotSoSimpleMultigrid.μ_cycle!(grids, 2, mg.cycle_type.ν₁, mg.cycle_type.ν₂, 1, mg.smoother)
             ν₀ += 1
         end
+    for I in NotSoSimpleMultigrid.grids_at_level(R, grid_ptr)
+        #ν₀ = 0
+        #while !converged(grids[I]) && ν₀ < 20
+            #R2 = CartesianIndices(UnitRange.(I.I, Iend.I))
+            #NotSoSimpleMultigrid.μ_cycle!(grids[R2], 2, mg.cycle_type.ν₁, mg.cycle_type.ν₂, 1, mg.smoother)
+            #ν₀ += 1
+        #end
         if !converged(grids[I]) # safety
             grids[I].x .= grids[I].A\grids[I].b # exact solve
         end
