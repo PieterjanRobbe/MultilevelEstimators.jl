@@ -14,7 +14,7 @@ function FMG_solve(f::Function, sz::Dims, index::Index, solver::S, ::R) where {S
     mg.grids[1].b .= fill(1, size(mg.grids[1].A, 1))
     sol, ν₀s = FMG!(mg, 1)
     Rn = R <: Reuse ? CartesianIndices(index.+one(index)) : 1
-    view(sol, Rn), view(size.(mg.grids), Rn), view(ν₀s, Rn)
+    view(sol, Rn), view(size.(mg.grids), Rn), ν₀s
 end
 
 function FMG!(mg::MultigridIterable{C, G}, grid_ptr::Integer) where {C, G<:AbstractVector}
@@ -62,15 +62,20 @@ function FMG!(mg::MultigridIterable{C, G}, grid_ptr::Int) where {C, G<:AbstractM
         for I in NotSoSimpleMultigrid.grids_at_level(R, grid_ptr)
             R_parent = NotSoSimpleMultigrid.parent_iter(R, I1, I)
             # matrix-dependent prolongation
+            #=
             λ = map(i->grids[I].A * NotSoSimpleMultigrid.high_freq_mode(first(i), grids[I].sz), R_parent)
             λ² = broadcast(i->broadcast(j->j^2, i), λ)
             ω = map(i->λ²[i]./sum(λ²),1:length(λ)) # weight factors from [Naik, Van Rosendale]
             ip = map(i->NotSoSimpleMultigrid.P̃(first(i), SimpleMultigrid.Cubic(), grids[last(i)].sz...) * grids[last(i)].x, R_parent)
-            c = sum(map(i->ω[i].*ip[i], 1:length(ω)))
+            =#
+            #c = sum(map(i->ω[i].*ip[i], 1:length(ω)))
+            ip = map(i->NotSoSimpleMultigrid.P̃(first(i), SimpleMultigrid.Cubic(), grids[last(i)].sz...) * grids[last(i)].x, R_parent)
+            c = sum(ip)#length(ω)))
             d = SimpleMultigrid.residu(grids[I])
             α = c'*d/(c'*grids[I].A*c)
             α = isnan(α) ? one(eltype(c)) : min(1.1, max(0.7, α))
             grids[I].x .= α * c
+            #grids[I].x .= c
         end
     end
     for I in NotSoSimpleMultigrid.grids_at_level(R, grid_ptr)
