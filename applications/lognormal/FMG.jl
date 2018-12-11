@@ -61,37 +61,21 @@ function FMG!(mg::MultigridIterable{C, G}, grid_ptr::Int) where {C, G<:AbstractM
         sol, ν₀s = FMG!(mg, grid_ptr+1)
         for I in NotSoSimpleMultigrid.grids_at_level(R, grid_ptr)
             R_parent = NotSoSimpleMultigrid.parent_iter(R, I1, I)
-            # matrix-dependent prolongation
-            #=
-            λ = map(i->grids[I].A * NotSoSimpleMultigrid.high_freq_mode(first(i), grids[I].sz), R_parent)
-            λ² = broadcast(i->broadcast(j->j^2, i), λ)
-            ω = map(i->λ²[i]./sum(λ²),1:length(λ)) # weight factors from [Naik, Van Rosendale]
             ip = map(i->NotSoSimpleMultigrid.P̃(first(i), SimpleMultigrid.Cubic(), grids[last(i)].sz...) * grids[last(i)].x, R_parent)
-            =#
-            #c = sum(map(i->ω[i].*ip[i], 1:length(ω)))
-            ip = map(i->NotSoSimpleMultigrid.P̃(first(i), SimpleMultigrid.Cubic(), grids[last(i)].sz...) * grids[last(i)].x, R_parent)
-            c = sum(ip)#length(ω)))
+            c = sum(ip)
             d = SimpleMultigrid.residu(grids[I])
             α = c'*d/(c'*grids[I].A*c)
             α = isnan(α) ? one(eltype(c)) : min(1.1, max(0.7, α))
-            grids[I].x .= α * c
-            #grids[I].x .= c
+            #grids[I].x .= α * c
+            grids[I].x .= c
         end
     end
         ν₀ = 0
         while !converged(grids, grid_ptr, R) && ν₀ < 20
-            #R2 = CartesianIndices(UnitRange.(I.I, Iend.I))
-            #NotSoSimpleMultigrid.μ_cycle!(grids[R2], 2, mg.cycle_type.ν₁, mg.cycle_type.ν₂, 1, mg.smoother)
             NotSoSimpleMultigrid.μ_cycle!(grids, 2, mg.cycle_type.ν₁, mg.cycle_type.ν₂, 1, mg.smoother)
             ν₀ += 1
         end
     for I in NotSoSimpleMultigrid.grids_at_level(R, grid_ptr)
-        #ν₀ = 0
-        #while !converged(grids[I]) && ν₀ < 20
-            #R2 = CartesianIndices(UnitRange.(I.I, Iend.I))
-            #NotSoSimpleMultigrid.μ_cycle!(grids[R2], 2, mg.cycle_type.ν₁, mg.cycle_type.ν₂, 1, mg.smoother)
-            #ν₀ += 1
-        #end
         if !converged(grids[I]) # safety
             grids[I].x .= grids[I].A\grids[I].b # exact solve
         end
