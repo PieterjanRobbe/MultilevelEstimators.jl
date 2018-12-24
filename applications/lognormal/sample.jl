@@ -81,7 +81,7 @@ end
 ## apply QOI ##
 apply_qoi(xfs, f, szs, index, ::NoReuse, qoi) = apply_qoi(reshape(xfs, szs.-1), f(szs...), qoi)
 
-apply_qoi(xfs, f, szs, index, ::Reuse, qoi) = map(i->apply_qoi(reshape(xfs[i], szs[i].-1), f(szs[i]...), qoi), Base.Iterators.reverse(eachindex(xfs)))
+apply_qoi(xfs, f, szs, index, ::Reuse, qoi) = map(i->apply_qoi(reshape(xfs[i], szs[i].-1), f(szs[i]...), qoi), CartesianIndices(xfs))
 
 function apply_qoi(x, k, ::Qoi1)
     sz = size(x) .+ 1
@@ -138,12 +138,12 @@ function analyze_lognormal_V_cycle(index::Index, x::Vector{<:AbstractFloat}, grf
     # sample grf
     Z = my_grf_sample(grf, view(x, 1:randdim(grf)))
     k = exp.(Z)
-    sz = size(k).-1
+    sz = size(k).+1
 
     # direct-discretization function
     g(n, m) = begin
         step = div.(sz, (n, m))
-        range = StepRange.(1, step, size(k))
+        range = StepRange.(step, step, size(k))
         elliptic2d(view(k, range...))
     end
 

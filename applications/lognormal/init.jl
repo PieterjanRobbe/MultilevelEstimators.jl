@@ -58,7 +58,7 @@ grid_size(level::Level) = (2^level[1], 2^level[1])
 
 function compute_grf(cov_fun::CovarianceFunction, grf_generator::GaussianRandomFieldGenerator, m0, index::Index, p)
     n = m0 .* grid_size(index)
-    pts = broadcast(i -> range(0, stop=1, length=i+1), n)
+    pts = broadcast(i -> range(1/i, stop=1-1/i, length=i-1), n)
     compute_grf(cov_fun, grf_generator, pts, p)
 end
 

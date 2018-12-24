@@ -91,11 +91,11 @@ converged(grids::Matrix{<:SimpleMultigrid.Grid}, grid_ptr, R) = all([converged(g
 # function that returns residual norm after 50 multigrid V-cycles (used to analyze performance)
 function V_cycle_solve(f::Function, sz::Dims, solver::S) where {S<:AbstractSolver}
     if S <: MGSolver
-        mg = SimpleMultigrid.MultigridMethod(f, sz, solver.cycle)
+        mg = SimpleMultigrid.MultigridMethod(f, sz, solver.cycle, smoother=RedBlackGaussSeidel())
     else
-        mg = NotSoSimpleMultigrid.MultigridMethod(f, sz, solver.cycle)
+        mg = NotSoSimpleMultigrid.MultigridMethod(f, sz, solver.cycle, smoother=RedBlackGaussSeidel())
     end
-    mg.grids[1].b .= fill(1, size(mg.grids[1].A, 1))
+    mg.grids[1].b .= fill(1., size(mg.grids[1].A, 1))
     push!(mg.resnorm, SimpleMultigrid.norm_of_residu(mg.grids[1]))
     for i in 1:50
         SimpleMultigrid.cycle!(mg)
