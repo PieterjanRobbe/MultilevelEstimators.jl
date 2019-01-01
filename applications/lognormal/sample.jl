@@ -11,15 +11,15 @@ function sample_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::Gaussia
     @repeat 3 try
 
         # sample grf
-        # TODO for QMC, reorden inputs!!!!
+        # TODO for QMC, reorder inputs!!!!
         Z = my_grf_sample(grf, view(x, 1:randdim(grf)))
         k = exp.(Z)
-        sz = size(k).-1
+        sz = size(k).+1
 
         # direct-discretization function
         f(n, m) = begin
             step = div.(sz, (n, m))
-            range = StepRange.(1, step, size(k))
+            range = StepRange.(step, step, size(k))
             view(k, range...)
         end
         g(n, m) = elliptic2d(f(n, m))
@@ -46,7 +46,13 @@ function sample_lognormal(index::Index, x::Vector{<:AbstractFloat}, grf::Gaussia
             end
         end
 
-        if all(mean.(dQ) .< 100)
+        #display(Qf)
+        #println("")
+
+        #display(dQ)
+        #println("")
+
+        if all(abs.(mean.(dQ)) .< 10)
             return dQ, Qf
         else
             throw(ErrorException("Something went wrong computing this sample, rethrowing error after 3 tries :("))
@@ -81,7 +87,8 @@ end
 ## apply QOI ##
 apply_qoi(xfs, f, szs, index, ::NoReuse, qoi) = apply_qoi(reshape(xfs, szs.-1), f(szs...), qoi)
 
-apply_qoi(xfs, f, szs, index, ::Reuse, qoi) = map(i->apply_qoi(reshape(xfs[i], szs[i].-1), f(szs[i]...), qoi), CartesianIndices(xfs))
+apply_qoi(xfs, f, szs, index, ::Reuse, qoi) = map(i->apply_qoi(reshape(xfs[i], szs[i].-1), f(szs[i]...), qoi), Base.Iterators.reverse(eachindex(xfs)))
+#apply_qoi(xfs, f, szs, index, ::Reuse, qoi) = map(i->apply_qoi(reshape(xfs[i], szs[i].-1), f(szs[i]...), qoi), eachindex(xfs))
 
 function apply_qoi(x, k, ::Qoi1)
     sz = size(x) .+ 1
@@ -157,12 +164,12 @@ function analyze_lognormal_FMG(index::Index, x::Vector{<:AbstractFloat}, grf::Ga
     # sample grf
     Z = my_grf_sample(grf, view(x, 1:randdim(grf)))
     k = exp.(Z)
-    sz = size(k).-1
+    sz = size(k).+1
 
     # direct-discretization function
     g(n, m) = begin
         step = div.(sz, (n, m))
-        range = StepRange.(1, step, size(k))
+        range = StepRange.(step, step, size(k))
         elliptic2d(view(k, range...))
     end
 

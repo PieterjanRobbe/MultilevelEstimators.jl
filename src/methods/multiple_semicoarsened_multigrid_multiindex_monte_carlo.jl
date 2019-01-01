@@ -15,6 +15,9 @@ function varest(estimator::Estimator{<:MG, <:MC})
     length(acc) < 2 ? Inf : var(acc)/length(acc)
 end
 
+## bias ##
+bias(estimator::Estimator{<:MG, <:MC}) = 0.
+
 ## set_weights ##
 set_weights(estimator::Estimator{<:MG}) = set_weights(estimator, keys(estimator))
 function set_weights(estimator::Estimator{<:MG}, index_set)
@@ -26,16 +29,25 @@ end
 ## r, p, w ##
 function r(estimator::Estimator{<:MG})
     # compute "optimal" r
-    r = isempty(keys(estimator)) ? ntuple(i->1.5, ndims(estimator)) : 1/2*(β(estimator) + γ(estimator))
-    r = map(rᵢ->isnan(rᵢ) || rᵢ≤0 ? 1.5 : rᵢ, r)
+    p_β = interpd(estimator, var) 
+    my_β = -p_β[2:end]
+    p_γ = interpd(estimator, cost) 
+    my_γ = p_γ[2:end]
+    r = isempty(keys(estimator)) ? ntuple(i->1.5, ndims(estimator)) : 1/2*(my_β + my_γ)
+    # TODO check this... >>> Qoi4 is ok, check Qoi2
+    # TODO check Qoi4 again
+    # TODO check sample method for correct grids ==> GO! Qoi2 and Qoi4
+    r = map(rᵢ->isnan(rᵢ) || rᵢ≤0 ? 1.5 : max(rᵢ, 1.0), r)
+    #@show r
     # limit r to avoid catastrophic failure
     for index in keys(estimator)
         MQ = mean(estimator, ntuple(i->0, ndims(estimator)))
         MY = mean(estimator, index)
         max_r = log(abs(MQ/MY))./index
-        r = map(i->max_r[i] ≤ 0 || !isfinite(max_r[i]) ? r[i] : min(max_r[i], r[i]), 1:ndims(estimator))
+        r = map(i->max_r[i] ≤ 0 || !isfinite(max_r[i]) ? r[i] : min(max(max_r[i], 1.0), max(r[i], 1.0)), 1:ndims(estimator))
     end
     r
+    
 end
 p(r, index::Index) = prod(exp2.(.-r.*index))
 w(r, index::Index) = inv.(p(r, index))

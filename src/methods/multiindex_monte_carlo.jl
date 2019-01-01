@@ -32,7 +32,11 @@ function interpd(estimator::Estimator{I}, f::Function) where I<:AbstractMI
     A = [getindex(idx_set[i], j) for i in 2:length(idx_set), j in 1:ndims(estimator)]
     A = hcat(ones(eltype(A), size(A, 1)), A)
     y = map(index->log2(f(estimator, index)), view(idx_set, 2:length(idx_set)))
-    A\y
+
+    A2 = hcat([A[i, :] for i in 1:size(A, 1) if !isnan(y[i]) && isfinite(y[i])]...)'
+    y2 = [y[i] for i in 1:size(A, 1) if !isnan(y[i]) && isfinite(y[i])]
+
+    A2\y2
 end
 
 for (f, sym) in zip([:var, :cost], [:β, :γ])
@@ -66,7 +70,7 @@ function _regress_nb_of_samples(estimator::Estimator{<:AbstractMI, <:MC}, index_
 end
 
 ## bias ##
-bias(estimator::Estimator{<:AbstractMI}) = bias(estimator, sz(estimator))
+bias(estimator::Estimator{<:MI}) = bias(estimator, sz(estimator))
 function bias(estimator::Estimator{<:AbstractMI}, sz::Integer)
     if !isempty(boundary(estimator, sz+1) ∩ keys(estimator)) && !robustify_bias_estimate(estimator)
         return abs(sum(broadcast(i->mean(estimator, i), boundary(estimator, sz+1))))

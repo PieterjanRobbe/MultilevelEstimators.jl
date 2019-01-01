@@ -125,7 +125,7 @@ nb_of_samples(estimator::Estimator, index::Index) = length(get(first(samples(est
 update_nb_of_samples!(estimator::Estimator, index::Index, nb_of_samples::Integer) = estimator.internals.nb_of_samples[index] += nb_of_samples
 
 # TODO: automate ?
-cost_model(estimator::Estimator, index::Index) = cost_model(estimator)(index)
+cost_model(estimator::Estimator, index::Index) = cost_model(estimator) isa EmptyFunction ? 0. : cost_model(estimator)(index)
 
 nb_of_uncertainties(estimator::Estimator, index::Index) = nb_of_uncertainties(estimator)(index)
 
