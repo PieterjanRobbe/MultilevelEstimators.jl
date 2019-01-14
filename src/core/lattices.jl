@@ -15,11 +15,9 @@ mutable struct LatticeRule32{s} <: AbstractLatticeRule{s}
 end
 
 """
-```julia
-LatticeRule32(z, s, n)
-LatticeRule32(z, s)
-LatticeRule32(z)
-```
+    LatticeRule32(z, s, n)
+    LatticeRule32(z, s)
+    LatticeRule32(z)
 
 Returns a rank-1 lattice rule in `s` dimensions with generating vector `z` and at most `n` points.
 
@@ -50,11 +48,9 @@ check_ordered(n, 2^32, "LatticeRule32", "maximum number of points n", "or equal 
 LatticeRule32{s}(view(z, 1:s), convert(UInt32, n))
 
 """
-```julia
-LatticeRule32(str, s, n)
-LatticeRule32(str, s)
-LatticeRule32(str)
-```
+    LatticeRule32(str, s, n)
+    LatticeRule32(str, s)
+    LatticeRule32(str)
 
 Returns a rank-1 lattice rule in `s` dimensions with generating vector `z` read from the file `str` and at most `n` points.
 

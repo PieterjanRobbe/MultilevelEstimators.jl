@@ -1,27 +1,17 @@
-## sample_methods.jl : collection of probability density functions
+## sample_methods.jl : types to represent sample methods (MC and QMC)
 #
 # Representation of a sampling method.
 #
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
-# Carlo Methods (c) Pieterjan Robbe, 2018
+# Carlo Methods (c) Pieterjan Robbe, 2019
 
-## AbstractSamplemethod ##
-"""
-```julia
-AbstractSampleMethod
-```
-
-Represents an abstract sample method.
-"""
 abstract type AbstractSampleMethod end
 
 ## MC ##
 """
-```julia
-MC()
-```
+    MC()
 
-Returns a Monte Carlo sample method.
+Return a Monte Carlo sample method.
 
 See also: [`QMC`](@ref)
 """
@@ -29,11 +19,9 @@ struct MC <: AbstractSampleMethod end
 
 ## QMC ##
 """
-```julia
-QMC()
-```
+    QMC()
 
-Returns a Quasi-Monte Carlo sample method.
+Return a Quasi-Monte Carlo sample method.
 
 See also: [`MC`](@ref)
 """

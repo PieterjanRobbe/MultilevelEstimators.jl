@@ -204,7 +204,7 @@ See also: [`SL`](@ref), [`ML`](@ref), [`FT`](@ref), [`TD`](@ref), [`HC`](@ref), 
 """
 struct AD{d} <: AbstractIndexSet{d} end
 
-AD(d::Integer) = check_larger_than(AD, d, 1, "dimension") && AD{d}()
+AD(d::Integer) = check_larger_than(AD, d, "dimension", 1) && AD{d}()
 
 ## U ##
 """
@@ -221,7 +221,7 @@ See also: [`SL`](@ref), [`ML`](@ref), [`FT`](@ref), [`TD`](@ref), [`HC`](@ref), 
 """
 struct U{d} <: AbstractIndexSet{d} end
 
-U(d::Integer) = check_larger_than(U, d, 0, "dimension") && U{d}()
+U(d::Integer) = check_larger_than(U, d, "dimension", 0) && U{d}()
 
 ## MG ##
 """
@@ -347,7 +347,7 @@ shortname(idxset::MG) = string("MG{", shortname(idxset.idxset), "}")
 
 ## input checking ##
 function check_args(δ::NTuple{d, <:Real}, name) where d
-    check_larger_than(name, d, 1, "dimension")
-    check_larger_than(string("weighted ", name), δ, 0, "weights δ")
-    check_smaller_than_or_equal_to(string("weighted ", name), δ, 1, "weights δ")
+    check_larger_than(name, d, "dimension", 1)
+    check_larger_than(string("weighted ", name), δ, "weights δ", 0)
+    check_smaller_than_or_equal_to(string("weighted ", name), δ, "weights δ", 1)
 end

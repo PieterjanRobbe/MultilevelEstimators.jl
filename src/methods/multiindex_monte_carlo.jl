@@ -77,3 +77,9 @@ function bias(estimator::Estimator{<:AbstractMI}, sz::Integer)
 		return 2^(p[1]+(sz+1)*p[2])
 	end
 end
+
+
+
+## TODO
+
+boundary(estimator::Estimator, cntr) = cntr == 0 ? get_index_set(estimator, cntr) : setdiff(get_index_set(estimator, cntr), get_index_set(estimator, cntr-1))

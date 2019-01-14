@@ -3,98 +3,157 @@
 # A type that stores estimator internals for specific Estimators.
 #
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
-# Carlo Methods (c) Pieterjan Robbe, 2018
+# Carlo Methods (c) Pieterjan Robbe, 2019
 
-## EstimatorInternals ##
 abstract type AbstractEstimatorInternals end
 
-struct EstimatorInternals{S, N, T, C, Z, T1, T2} <: AbstractEstimatorInternals
-    samples_diff::S
-    samples::S
-    nb_of_samples::N
-    total_work::T
-    current_index_set::C
-    index_set_size::Z
-
-    sample_method_internals::T1
-    index_set_internals::T2
+# estimator internals
+struct EstimatorInternals{T1, T2, T3} <: AbstractEstimatorInternals
+	default_internals::T1
+	index_set_indernals::T2
+	sample_method_internals::T3
 end
 
-function EstimatorInternals(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, settings::Dict{Symbol, Any})
-    N = Int64
-    T = Float64
-    type_i = Index{ndims(index_set), N}
-    type_d = Dict{type_i, Vector{T}}
-    type_s = Matrix{type_d}
-    m = settings[:nb_of_qoi]
-    n = get_sample_ncols(index_set, sample_method, settings)
-    type_n = Dict{type_i, N}
-    type_t = Dict{type_i, T}
-    type_c = Set{type_i}
-    type_z = IndexSetSize{N}
+EstimatorInternals(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, options) =
+EstimatorInternals(
+				   DefaultInternals(index_set, sample_method, options), 
+				   IndexSetInternals(index_set, sample_method, options),
+				   SampleMethodInternals(index_set, sample_method, options)
+				   )
 
-    sample_method_internals = SampleMethodInternals(type_i, index_set, sample_method, settings) 
-    T1 = typeof(sample_method_internals)
-    index_set_internals = IndexSetInternals(type_c, type_n, index_set, sample_method, settings) 
-    T2  = typeof(index_set_internals)
-
-    EstimatorInternals{type_s, type_n, type_t, type_c, type_z, T1, T2}(type_s(undef, m, n), type_s(undef, m, n), type_n(), type_t(), type_c(), IndexSetSize(0, 0), sample_method_internals, index_set_internals)
+# default internals are shared by all Estimators
+struct DefaultInternals{T1, T2, T3, T4, T5} <: AbstractEstimatorInternals
+	samples::T1
+	samples_diff::T1
+	nb_of_samples::T2
+	total_work::T3
+	total_time::T3
+	current_index_set::T4
+	index_set_size::T5
 end
 
-## IndexSetSize ##
+function DefaultInternals(index_set, sample_method, options)
+	max_search_space = index_set isa Union{AD, U} ? options[:max_search_space] : index_set
+	indices = get_index_set(max_search_space, options[:max_index_set_param])
+
+	sz = maximum(indices)
+	m = options[:nb_of_qoi] 
+	n = sample_method isa MC ? 1 : maximum(options[:nbofshifts].(collect(indices))) 
+
+	T = Float64
+	samples = [[Vector{T}(undef, 0) for index in CartesianIndices(sz)] for i in 1:m, j in 1:n]
+	samples_diff = [[Vector{T}(undef, 0) for index in CartesianIndices(sz)] for i in 1:m, j in 1:n]
+
+	nb_of_samples = [0 for index in CartesianIndices(sz)]
+	total_work = [0. for index in CartesianIndices(sz)]
+	total_time = [0. for index in CartesianIndices(sz)]
+	current_index_set = Set{Index{ndims(index_set)}}
+	index_set_size = IndexSetSize(0, 0) 
+
+	DefaultInternals(samples, samples_diff, nb_of_samples, total_work, total_time, current_index_set, index_set_size)
+end
+
+samples(estimator::Estimator) = estimator.internals.default_internals.samples
+samples(estimator::Estimator, n_qoi) = estimator.internals.default_internals.samples[n_qoi]
+samples(estimator::Estimator, n_qoi, index::Index) = estimator.internals.default_internals.samples[n_qoi][index]
+append_samples!(estimator::Estimator, n_qoi, index::Index, samples_to_append) = append!(estimator.internals.default_internals.samples[n_qoi][index], samples_to_append)
+
+samples_diff(estimator::Estimator) = estimator.internals.default_internals.samples_diff
+samples_diff(estimator::Estimator, n_qoi) = estimator.internals.default_internals.samples_diff[n_qoi]
+samples_diff(estimator::Estimator, n_qoi, index::Index) = estimator.internals.default_internals.samples_diff[n_qoi][index]
+append_samples_diff!(estimator::Estimator, n_qoi, index::Index, samples_to_append) = append!(estimator.internals.default_internals.samples_diff[n_qoi][index], samples_to_append)
+
+has_samples_at_index(estimator::Estimator, index::Index) = !isempty(estimator.internals.default_internals.samples_diff[1][index])
+
+nb_of_samples(estimator::Estimator) = estimator.internals.default_internals.nb_of_samples
+nb_of_samples(estimator::Estimator, index::Index) = estimator.internals.default_internals.nb_of_samples[index]
+add_to_nb_of_samples(estimator::Estimator, index::Index, amount::Integer) = estimator.internals.default_internals.nb_of_samples[index] += amount
+
+total_work(estimator::Estimator) = estimator.internals.default_internals.total_work
+total_work(estimator::Estimator, index::Index) = estimator.internals.default_internals.total_work[index]
+add_to_total_work(estimator::Estimator, index::Index, amount::Real) = estimator.internals.default_internals.total_work[index] += amount
+
+total_time(estimator::Estimator) = estimator.internals.default_internals.total_time
+total_time(estimator::Estimator, index::Index) = estimator.internals.default_internals.total_time[index]
+add_to_total_time(estimator::Estimator, index::Index, amount::Real) = estimator.internals.default_internals.total_time[index] += amount
+
+current_index_set(estimator::Estimator) = estimator.internals.default_internals.current_index_set
+keys(estimator::Estimator) = sort(collect(current_index_set(estimator)))
+all_keys(estimator::Estimator) = [index for index in CartesianIndices(samples(estimator)[1]) if !isempty(samples(estimator)[1][index])]
+push!(estimator::Estimator, index::Index) = push!(estimator.internals.default_internals.current_index_set, index)
+clear(estimator::Estimator) = empty!(current_index_set(estimator))
+
+# specific internals related to the sample method
+abstract type SampleMethodInternals <: AbstractEstimatorInternals end
+
+struct MCInternals <: SampleMethodInternals end
+
+SampleMethodInternals(index_set, sample_method, options) = MCInternals()
+
+struct QMCInternals{T1} <: SampleMethodInternals
+	generators::T1
+end
+
+function SampleMethodInternals(index_set, sample_method::QMC, options)
+	max_search_space = options[:max_search_space]
+	indices = get_index_set(max_search_space, options[:max_index_set_param])
+
+	sz = maximum(indices)
+	generators = [ShiftedLatticeRule(settings[:point_generator]) for I in CartesianIndices(sz)]
+
+    QMCInternals(generators)
+end
+
+# specific internals related to the index set
+abstract type IndexSetInternals <: AbstractEstimatorInternals end
+
+struct GenericIndexSetInternals <: SampleMethodInternals end
+
+IndexSetInternals(index_set, sample_method, options) = GenericIndexSetInternals()
+
+struct ADInternals{T1, T2, T3} <: SampleMethodInternals
+    old_index_set::T1
+    spill_index_set::T1
+    boundary::T1
+    adaptive_index_set_log::T2
+    max_search_space::T3
+end
+
+function IndexSetInternals(index_set::AD, sample_method, options)
+	current_index_set = Set{Index{ndims(index_set)}}
+	old_index_set = Set{Index{ndims(index_set)}}
+	boundary = Set{Index{ndims(index_set)}}
+
+	ADInternals(old_index_set, spill_index_set, boundary, options[:max_search_space])
+end
+
+struct UInternals{T1, T2} <: SampleMethodInternals
+	accumulator::T1
+	max_search_space::T2
+end
+
+function IndexSetInternals(index_set::U, sample_method, options)
+	max_search_space = options[:max_search_space]
+	indices = get_index_set(max_search_space, options[:max_index_set_param])
+
+	m = options[:nb_of_qoi] 
+	n = sample_method isa MC ? 1 : maximum(options[:nbofshifts].(collect(indices))) 
+
+	accumulator = [Vector{Float64}(undef, 0) for i in 1:m, j in 1:n]
+
+	UInternals(accumulator, max_search_space)
+end
+
+# keeps track of max index size parameter sz
 mutable struct IndexSetSize{N}
     sz::N
     max_sz::N
 end
 
-## SampleMethodInternals ##
-abstract type AbstractSampleMethodInternals <: AbstractEstimatorInternals end
+sz(estimator::Estimator) = estimator.internals.default_internals.index_set_size.sz
+max_sz(estimator::Estimator) = estimator.internals.default_internals.index_set_size.max_sz
 
-struct EmptySampleMethodInternals <: AbstractSampleMethodInternals end
-
-struct QMCInternals{G} <: AbstractSampleMethodInternals
-    generators::G
+set_sz(estimator::Estimator, n) = begin
+    estimator.internals.default_internals.index_set_size.sz = n
+    estimator.internals.default_internals.index_set_size.max_sz = max(sz(estimator), max_sz(estimator))
 end
-
-SampleMethodInternals(::DataType, index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, settings::Dict{Symbol, Any}) = EmptySampleMethodInternals()
-
-function SampleMethodInternals(type_i::DataType, index_set::AbstractIndexSet, sample_method::QMC, settings::Dict{Symbol, Any})
-    type_l = typeof(ShiftedLatticeRule(settings[:point_generator]))
-    type_v = Vector{type_l}
-    type_g = Dict{type_i, type_v}
-    QMCInternals{type_g}(type_g())
-end
-
-## IndexSetInternals ##
-abstract type AbstractIndexSetInternals <: AbstractEstimatorInternals end
-
-struct EmptyIndexSetInternals <: AbstractIndexSetInternals end
-
-struct ADInternals{C, A, M} <: AbstractIndexSetInternals
-    old_index_set::C
-    spill_index_set::C
-    boundary::C
-    adaptive_index_set_log::A
-    max_search_space::M
-end
-
-IndexSetInternals(::DataType, ::DataType, index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, settings::Dict{Symbol, Any}) = EmptyIndexSetInternals()
-
-function IndexSetInternals(type_c::DataType, type_n::DataType, index_set::AbstractAD, sample_method::AbstractSampleMethod, settings::Dict{Symbol, Any})
-    type_a = Vector{type_n}
-    type_m = typeof(settings[:max_search_space])
-    ADInternals{type_c, type_a, type_m}(type_c(), type_c(), type_c(), type_a(undef, 0), settings[:max_search_space])
-end
-
-# dispatch on the size of the Matrix that holds the samples
-get_sample_ncols(index_set::AbstractIndexSet, ::MC, settings::Dict{Symbol, Any}) = 1
-
-function get_sample_ncols(index_set::AbstractIndexSet, ::QMC, settings::Dict{Symbol, Any})
-    nbshifts = settings[:nb_of_shifts]
-    L = settings[:max_index_set_param]
-	idx_set = get_max_index_set(index_set, settings, L)
-    maximum(nbshifts.(idx_set))
-end
-
-get_max_index_set(index_set::AbstractIndexSet, settings::Dict{Symbol, Any}, L::Integer) = get_index_set(index_set, L)
-get_max_index_set(index_set::AbstractAD, settings::Dict{Symbol, Any}, L::Integer) = get_index_set(settings[:max_search_space], L)

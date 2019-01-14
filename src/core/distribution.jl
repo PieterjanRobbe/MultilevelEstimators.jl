@@ -41,6 +41,21 @@ Uniform{promote_type(T1, T2)}(a, b)
 
 show(io::IO, distr::Uniform{T}) where T = print(io, string("Uniform{", T, "}(a=", distr.a, ", b=", distr.b, ")"))
 
+"""
+    transform(D::AbstractDistribution, x::Real)
+
+Apply a transformation to the uniformly distributed number `x` such that it is distributed according to `D`.
+
+The transform is implemented by applyibg the inverse CDF of the distribution `D`. Note, this is currently only limited to distributions with an analytic expression for the inverse CDF.
+
+# Examples
+```jldoctest
+julia> x = rand(10);
+
+julia> transform.(Normal(), x)
+[...]
+```
+"""
 transform(T::Uniform, x::Number) = T.a + (T.b - T.a)*x
 
 ## Normal ##
@@ -64,7 +79,7 @@ end
 Normal(μ::T1=0, σ::T2=1) where {T1<:Real, T2<:Real} =
 check_finite(Normal, μ, "μ") &&
 check_finite(Normal, σ, "σ") &&
-check_larger_than(Normal, σ, 0, "σ") &&
+check_larger_than(Normal, σ, "σ", 0) &&
 Normal{promote_type(T1, T2)}(μ, σ)
 
 show(io::IO, distr::Normal{T}) where T = print(io, string("Normal{", T, "}(μ=", distr.μ, ", σ=", distr.σ, ")"))
@@ -96,7 +111,7 @@ check_finite(TruncatedNormal, μ, "μ") &&
 check_finite(TruncatedNormal, σ, "σ") &&
 check_finite(TruncatedNormal, a, "a") &&
 check_finite(TruncatedNormal, b, "b") &&
-check_larger_than(TruncatedNormal, σ, 0, "σ") &&
+check_larger_than(TruncatedNormal, σ, "σ", 0) &&
 check_ordered(TruncatedNormal, a, b, "a", "b") &&
 TruncatedNormal{promote_type(T1, T2, T3, T4)}(μ, σ, a, b)
 
@@ -133,8 +148,8 @@ end
 Weibull(k::T1=2, λ::T2=√2) where {T1<:Real, T2<:Real} =
 check_finite(Weibull, k, "k") &&
 check_finite(Weibull, λ, "λ") &&
-check_larger_than(Weibull, k, 0, "k") &&
-check_larger_than(Weibull, λ, 0, "λ") &&
+check_larger_than(Weibull, k, "k", 0) &&
+check_larger_than(Weibull, λ, "λ", 0) &&
 Weibull{promote_type(T1, T2)}(k, λ)
 
 show(io::IO, distr::Weibull{T}) where T = print(io, string("Weibull{", T, "}(k=", distr.k, ", λ=", distr.λ, ")"))

@@ -3,7 +3,7 @@
 # A type that stores estimator options shared for all Estimators.
 #
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
-# Carlo Methods (c) Pieterjan Robbe, 2018
+# Carlo Methods (c) Pieterjan Robbe, 2019
 
 # valid options
 default_options(::AbstractIndexSet, ::AbstractSampleMethod) = [:nb_of_warm_up_samples,

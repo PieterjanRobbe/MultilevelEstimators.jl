@@ -6,12 +6,10 @@
 module MultilevelEstimators
 
 ## dependencies ##
-
 using Colors, Dates, DelimitedFiles, Distributed, JLD2, LinearAlgebra, Printf, Random, SpecialFunctions, Statistics
 
 ## import statements ##
-
-import Base: show, diff, getindex, filter, ndims, eltype, run, push!, keys, zero, isless, >, <, ≥, ≤, +, length, one
+import Base: filter, ndims, eltype, show, diff, sum, :, print, length, getindex, run, push!, isless, >, <, ≥, ≤, +, zero, one, keys 
 
 import Random: GLOBAL_RNG
 
@@ -21,64 +19,64 @@ import Statistics: mean, var
 
 export Level, Index
 
-export AbstractIndexSet, SL, ML, FT, TD, HC, AD, MG, get_index_set
+export AbstractIndexSet, SL, ML, FT, TD, HC, ZC, AD, U, MG, get_index_set
 
-export AbstractDistribution, Uniform, Normal, TruncatedNormal, Weibull 
+export AbstractDistribution, Uniform, Normal, TruncatedNormal, Weibull , transform
 
 export AbstractSampleMethod, MC, QMC
 
 export Estimator
 
-export LatticeRule32
+#export LatticeRule32
 
-export run
+#export run
 
-export report
+#export report
 
 ## include statements ##
 
 # core
 
-include("core/check_inputs.jl")
+include("core/check_input.jl")
 
 include("core/index.jl")
 
-include("core/index_sets.jl")
+include("core/index_set.jl")
 
-include("core/distributions.jl")
+include("core/distribution.jl")
 
 include("core/sample_methods.jl")
 
 include("core/options.jl")
 
-include("core/internals.jl")
+#include("core/internals.jl")
 
 include("core/estimators.jl")
 
 include("core/parsers.jl")
 
-include("core/lattices.jl")
+#include("core/lattices.jl")
 
-include("core/print.jl")
+#include("core/print.jl")
 
-include("core/sample.jl")
+#include("core/sample.jl")
 
-include("core/history.jl")
+#include("core/history.jl")
 
-include("core/run.jl")
+#include("core/run.jl")
 
 # methods
 
-include("methods/monte_carlo.jl")
+#include("methods/monte_carlo.jl")
 
-include("methods/multilevel_monte_carlo.jl")
+#include("methods/multilevel_monte_carlo.jl")
 
-include("methods/multiindex_monte_carlo.jl")
+#include("methods/multiindex_monte_carlo.jl")
 
 # utils
 
-include("utils/report.jl")
+#include("utils/report.jl")
 
-include("utils/tex.jl")
+#include("utils/tex.jl")
 
 end # module
