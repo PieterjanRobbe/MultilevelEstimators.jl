@@ -7,9 +7,8 @@
 
 ## Estimator ##
 """
-```julia
-Estimator(index_set, sample_method, sample_function, distributions; kwargs...)
-```
+    Estimator(index_set, sample_method, sample_function, distributions; kwargs...)
+
 Create an `Estimator` with index set `index_set` and sample method `sample_method` for the expected value of the quantity of interest returned by `sample_function`, and where `distributions` is the uncertainty on the input parameters.
 
 # Examples
@@ -28,84 +27,48 @@ end
 
 function Estimator(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, sample_function::Function, distributions::AbstractVector{<:AbstractDistribution}; kwargs...)
 
-    # read optional arguments
-    settings = Dict{Symbol,Any}(kwargs)
-    check_valid_keys(settings, index_set, sample_method)
-
-    # default settings
-	settings[:distributions] = distributions
-	for key in fieldnames(EstimatorOptions)
-        parse!(index_set, sample_method, settings, key)
+    # read options
+    options = Dict{Symbol, Any}(kwargs)
+    valid_options = get_valid_options(index_set, sample_method)
+    for option in keys(options)
+        if option ∉ valid_options
+            throw(ArgumentError(string("in Estimator, invalid option ", option, " found")))
+        end
     end
-	parse_additional_options!(index_set, sample_method, settings)
+    for option in valid_options
+        parse!(index_set, sample_method, options, option)
+    end
 
-    # create options and internals
-    options = EstimatorOptions(settings)
-    internals = EstimatorInternals(index_set, sample_method, settings)
+    # create estimator internals
+    internals = EstimatorInternals(index_set, sample_method, options)
 
-    Estimator{typeof(index_set), typeof(sample_method), typeof(distributions), typeof(options), typeof(internals)}(index_set, sample_function, distributions, options, internals)
+    Estimator(index_set, sample_function, distributions, options, internals)
 end
 
-# for a single uncertain parameter
-Estimator(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, sample_function::Function, distribution::AbstractDistribution; kwargs...) = Estimator(index_set, sample_method, sample_function, [distribution]; kwargs...)
+Estimator(index_set, sample_method, sample_function, distribution::AbstractDistribution; kwargs...) = Estimator(index_set, sample_method, sample_function, [distribution]; kwargs...)
 
-## check valid keys ##
-function check_valid_keys(settings::Dict, index_set::AbstractIndexSet, sample_method::AbstractSampleMethod)
-    for key in keys(settings)
-        key ∉ valid_keys(index_set, sample_method) && throw(ArgumentError(string("in Estimator, invalid key ", key, " found")))
+for f in fieldnames(estimator)
+    @eval begin
+        $f(estimator::Estimator) = estimator.$f
     end
 end
 
-## parse additional options ##
-function parse_additional_options!(index_set::T1, sample_method::T2, settings::Dict{Symbol, Any}) where {T1<:AbstractIndexSet, T2<:AbstractSampleMethod}
-	if T2 <: QMC 
-		parse!(index_set, sample_method, settings, :point_generator)
-	end
-	if T1 <: AbstractAD
-		parse!(index_set, sample_method, settings, :max_search_space)
-	end
-end
+## output formatting ##
+show(io::IO, estimator::Estimator{I, S}) where {I, S} = print(io, string("Estimator{", index_set(estimator), ", ", S, "}"))
 
-## valid keys ##
-function valid_keys(::I, ::S) where {I<:AbstractIndexSet, S<:AbstractSampleMethod}
-	v = [:nb_of_warm_up_samples,
-		 :nb_of_qoi,
-		 :nb_of_tols,
-		 :continuation_mul_factor,
-		 :continuate,
-		 :save_samples,
-		 :verbose,
-		 :folder,
-		 :name,
-		 :cost_model,
-		 :nb_of_workers,
-		 :nb_of_uncertainties]
-	I <: Union{ML, MI} && push!(v,
-								:max_index_set_param,
-								:min_splitting,
-								:max_splitting,
-								:robustify_bias_estimate,
-								:do_mse_splitting,
-								:do_regression)
-	I <:AbstractAD && push!(v, :max_search_space)
-	I <:MG && push!(v, :sample_mul_factor)
-	S <: QMC && push!(v, :nb_of_shifts,
-					  :point_generator,
-					  :sample_mul_factor)
-	return v
-end
 
-## print methods ##
-show(io::IO, estimator::Estimator{I,S}) where {I<:AbstractIndexSet, S<:AbstractSampleMethod} = print(io, string("Estimator{", estimator.index_set, ", ", S, "}"))
 
-## getters for options ##
-for f in fieldnames(EstimatorOptions)
-    eval(
-         quote
-             $f(estimator::Estimator) = estimator.options.$f
-         end)
-end
 
+
+
+
+
+
+
+
+#
+# XXX XXX XXX XXX
+#
 ## getters and setters for internals ##
 contains_samples_at_index(estimator::Estimator, index::Index) = isassigned(estimator.internals.samples_diff, 1) && haskey(estimator.internals.samples_diff[1], index)
 
@@ -128,7 +91,6 @@ nb_of_shifts(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index) = es
 
 shortname(estimator) = first(split(estimator.options.name, "."))
 
-distributions(estimator::Estimator) = estimator.distributions
 
 get_tols(estimator::Estimator, tol::T) where T<:Real = continuate(estimator) ? continuation_mul_factor(estimator).^(nb_of_tols(estimator)-1:-1:0)*tol : T[tol] 
 
@@ -183,3 +145,8 @@ function add_index(estimator::Estimator, index::Index) # this is called in "samp
         end
     end
 end
+
+function clear(estimator::Estimator)
+    empty!(current_index_set(estimator))
+end
+
