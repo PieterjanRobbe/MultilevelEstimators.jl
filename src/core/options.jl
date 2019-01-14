@@ -13,7 +13,7 @@ struct EstimatorOptions{N<:Integer, T<:Real}
     nb_of_tols::N
 
     continuation_mul_factor::T
-	sample_mul_factor::T
+    sample_mul_factor::T
     min_splitting::T
     max_splitting::T
 
@@ -21,16 +21,16 @@ struct EstimatorOptions{N<:Integer, T<:Real}
     save_samples::Bool
     robustify_bias_estimate::Bool
     do_mse_splitting::Bool
-	do_regression::Bool
+    do_regression::Bool
     verbose::Bool
 
     folder::String
     name::String
 
     cost_model::Function
-	nb_of_shifts::Function
+    nb_of_shifts::Function
     nb_of_workers::Function
-	nb_of_uncertainties::Function
+    nb_of_uncertainties::Function
 end
 
 EstimatorOptions(settings::Dict{Symbol,Any}) = 
