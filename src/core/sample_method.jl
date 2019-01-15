@@ -1,4 +1,4 @@
-## sample_methods.jl : types to represent sample methods (MC and QMC)
+## sample_method.jl : types to represent sample methods (MC and QMC)
 #
 # Representation of a sampling method.
 #

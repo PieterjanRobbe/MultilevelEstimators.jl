@@ -1,9 +1,9 @@
-## parsers.jl : functions to parse input arguments of the Estimator
+## parse.jl : functions to parse input arguments of the Estimator
 #
 # Parse inputs passed to the Estimator type.
 #
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
-# Carlo Methods (c) Pieterjan Robbe, 2018
+# Carlo Methods (c) Pieterjan Robbe, 2019
 
 ## parse! ##
 # Make a function parse! for the key key_name.
@@ -13,19 +13,19 @@
 #  - an expression with the checks to perform on this input argument.
 macro parse!(key_name, default_value, checks_to_perform)
 	@eval begin
-		function parse!(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, settings::Dict{Symbol, T} where T, symbol::Val{$key_name})
+		function parse!(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, options::Dict{Symbol, T} where T, symbol::Val{$key_name})
 			key = eltype(symbol)
-			if !haskey(settings, key)
-				settings[key] = $default_value
+			if !haskey(options, key)
+				options[key] = $default_value
 			else
-				val = settings[key]
+				val = options[key]
 				$checks_to_perform
 			end
 		end
 	end
 end
 
-parse!(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, settings::Dict{Symbol, T} where T, symbol::Symbol) = parse!(index_set, sample_method, settings, Val(symbol))
+parse!(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, options::Dict{Symbol, T} where T, symbol::Symbol) = parse!(index_set, sample_method, options, Val(symbol))
 
 to_string(key, val) = Estimator, val, string("optional key ", key)
 
@@ -82,8 +82,8 @@ eltype(::Type{<:Val{T}}) where {T} = T
 			check_finite(to_string(key, val)...)
 			check_larger_than(to_string(key, val)..., 0)
 			check_smaller_than_or_equal_to(to_string(key, val)..., 1)
-			haskey(settings, :max_splitting) || parse!(index_set, sample_method, settings, :max_splitting)
-			check_ordered(Estimator, val, settings[:max_splitting], "optional key min_splitting", "optional key max_splitting")
+			haskey(options, :max_splitting) || parse!(index_set, sample_method, options, :max_splitting)
+			check_ordered(Estimator, val, options[:max_splitting], "optional key min_splitting", "optional key max_splitting")
 		end
 	   )
 
@@ -95,8 +95,8 @@ eltype(::Type{<:Val{T}}) where {T} = T
 			check_finite(to_string(key, val)...)
 			check_larger_than(to_string(key, val)..., 0)
 			check_smaller_than_or_equal_to(to_string(key, val)..., 1)
-			haskey(settings, :min_splitting) || parse!(index_set, sample_method, settings, :min_splitting)
-			check_ordered(Estimator, val, settings[:min_splitting], "optional key min_splitting", "optional key max_splitting")
+			haskey(options, :min_splitting) || parse!(index_set, sample_method, options, :min_splitting)
+			check_ordered(Estimator, options[:min_splitting], val, "optional key min_splitting", "optional key max_splitting")
 		end
 	   )
 
@@ -112,24 +112,24 @@ eltype(::Type{<:Val{T}}) where {T} = T
 
 ## name ##
 @parse!(:name,
-		get_valid_filename(index_set, sample_method, settings),
+		get_valid_filename(index_set, sample_method, options),
 		begin
 			check_type(to_string(key, val)..., String)
-			parse!(index_set, sample_method, settings, Val(:folder))
+			parse!(index_set, sample_method, options, Val(:folder))
 			!endswith(val, ".jld2") && occursin(".", val) && throw(ArgumentError("in Estimator, optional key name must not contain a ."))
 			val = endswith(val, ".jld2") ? val : string(val, ".jld2")
-			settings[key] = val
-			isfile(joinpath(settings[:folder], val)) && @warn string("filename ", val, " exists, will be overwritten!")
+			options[key] = val
+			isfile(joinpath(options[:folder], val)) && @warn string("filename ", val, " exists, will be overwritten!")
 		end
 	   )
 
-function get_valid_filename(index_set, sample_method, settings)
-    parse!(index_set, sample_method, settings, Val(:folder))
+function get_valid_filename(index_set, sample_method, options)
+    parse!(index_set, sample_method, options, Val(:folder))
     filename = "UntitledEstimator"
     cntr = 0
-    if isfile(joinpath(settings[:folder], string(filename, ".jld2")))
+    if isfile(joinpath(options[:folder], string(filename, ".jld2")))
         cntr += 1
-        while isfile(joinpath(settings[:folder], string(filename, cntr, ".jld2")))
+        while isfile(joinpath(options[:folder], string(filename, cntr, ".jld2")))
             cntr = cntr+1
         end
     end
@@ -193,8 +193,8 @@ struct EmptyFunction <: Function end
 			check_type(to_string(key, val)..., Union{Integer, Function})
 			if val isa Integer
 				check_larger_than(to_string(key, val)..., 0)
-				delete!(settings, val)
-				settings[key] = i -> val
+				delete!(options, val)
+				options[key] = i -> val
 			end
 		end
 	   )
@@ -206,15 +206,15 @@ struct EmptyFunction <: Function end
 			check_type(to_string(key, val)..., Union{Integer, Function})
 			if val isa Integer
 				check_larger_than(to_string(key, val)..., 0)
-				delete!(settings, val)
-				settings[key] = i -> val
+				delete!(options, val)
+				options[key] = i -> val
 			end
 		end
 	   )
 
 ## point_generator ##
 @parse!(:point_generator,
-        LatticeRule32(length(settings[:distributions])),
+        LatticeRule32(length(options[:distributions])),
         check_type(to_string(key, val)..., AbstractRNG)
        )
 
@@ -229,12 +229,12 @@ struct EmptyFunction <: Function end
 		TD(ndims(index_set)),
 		begin
 			check_type(to_string(key, val)..., AbstractIndexSet)
-			check_equal_to(Estimator, val, "dimensions of max_search_space", ndims(index_set))
+			check_equal_to(Estimator, ndims(val), "dimensions of max_search_space", ndims(index_set))
 		end
 	   )
 
 ## nb_of_uncertainties ##
 @parse!(:nb_of_uncertainties,
-		i -> length(settings[:distributions]),
+		i -> length(options[:distributions]),
 		check_type(to_string(key, val)..., Function)
 		)

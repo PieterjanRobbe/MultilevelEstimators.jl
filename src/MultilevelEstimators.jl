@@ -6,9 +6,11 @@
 module MultilevelEstimators
 
 ## dependencies ##
+
 using Colors, Dates, DelimitedFiles, Distributed, JLD2, LinearAlgebra, Printf, Random, SpecialFunctions, Statistics
 
 ## import statements ##
+
 import Base: filter, ndims, eltype, show, diff, sum, :, print, length, getindex, run, push!, isless, >, <, ≥, ≤, +, zero, one, keys 
 
 import Random: GLOBAL_RNG
@@ -25,9 +27,9 @@ export AbstractDistribution, Uniform, Normal, TruncatedNormal, Weibull , transfo
 
 export AbstractSampleMethod, MC, QMC
 
-export Estimator
+export LatticeRule32, get_point
 
-#export LatticeRule32
+export Estimator
 
 #export run
 
@@ -45,17 +47,17 @@ include("core/index_set.jl")
 
 include("core/distribution.jl")
 
-include("core/sample_methods.jl")
+include("core/sample_method.jl")
+
+include("core/lattice.jl")
+
+include("core/estimator.jl")
 
 include("core/options.jl")
 
-#include("core/internals.jl")
+include("core/parse.jl")
 
-include("core/estimators.jl")
-
-include("core/parsers.jl")
-
-#include("core/lattices.jl")
+include("core/internals.jl")
 
 #include("core/print.jl")
 

@@ -1,4 +1,4 @@
-## estimators.jl : main Estimator type
+## estimator.jl : main Estimator type
 #
 # Representation of the main Estimator type.
 #
@@ -17,12 +17,12 @@ julia>
 
 ```
 """
-struct Estimator{I<:AbstractIndexSet, S<:AbstractSampleMethod, D, O, N}
+struct Estimator{I<:AbstractIndexSet, S<:AbstractSampleMethod, T1, T2, T3}
     index_set::I
     sample_function::Function
-    distributions::D
-    options::O
-    internals::N
+    distributions::T1
+    options::T2
+    internals::T3
 end
 
 function Estimator(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, sample_function::Function, distributions::AbstractVector{<:AbstractDistribution}; kwargs...)
@@ -35,6 +35,7 @@ function Estimator(index_set::AbstractIndexSet, sample_method::AbstractSampleMet
             throw(ArgumentError(string("in Estimator, invalid option ", option, " found")))
         end
     end
+	options[:distributions] = distributions
     for option in valid_options
         parse!(index_set, sample_method, options, option)
     end
@@ -42,10 +43,10 @@ function Estimator(index_set::AbstractIndexSet, sample_method::AbstractSampleMet
     # create estimator internals
     internals = EstimatorInternals(index_set, sample_method, options)
 
-	Estimator(index_set, sample_function, distributions, options, internals)
+	Estimator{typeof(index_set), typeof(sample_method), typeof(distributions), typeof(options), typeof(internals)}(index_set, sample_function, distributions, options, internals)
 end
 
-Estimator(index_set, sample_method, sample_function, distribution::AbstractDistribution; kwargs...) = Estimator(index_set, sample_method, sample_function, [distribution]; kwargs...)
+Estimator(index_set::AbstractIndexSet, sample_method::AbstractSampleMethod, sample_function::Function, distribution::AbstractDistribution; kwargs...) = Estimator(index_set, sample_method, sample_function, [distribution]; kwargs...)
 
 for f in fieldnames(Estimator)
     @eval begin

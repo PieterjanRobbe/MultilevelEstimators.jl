@@ -38,7 +38,7 @@ function DefaultInternals(index_set, sample_method, options)
 
 	sz = maximum(indices)
 	m = options[:nb_of_qoi] 
-	n = sample_method isa MC ? 1 : maximum(options[:nbofshifts].(collect(indices))) 
+	n = sample_method isa MC ? 1 : maximum(options[:nb_of_shifts].(collect(indices))) 
 
 	T = Float64
 	samples = [[Vector{T}(undef, 0) for index in CartesianIndices(sz)] for i in 1:m, j in 1:n]
@@ -95,11 +95,11 @@ struct QMCInternals{T1} <: SampleMethodInternals
 end
 
 function SampleMethodInternals(index_set, sample_method::QMC, options)
-	max_search_space = options[:max_search_space]
+	max_search_space = index_set isa Union{AD, U} ? options[:max_search_space] : index_set
 	indices = get_index_set(max_search_space, options[:max_index_set_param])
 
 	sz = maximum(indices)
-	generators = [ShiftedLatticeRule(settings[:point_generator]) for I in CartesianIndices(sz)]
+	generators = [ShiftedLatticeRule(options[:point_generator]) for I in CartesianIndices(sz)]
 
     QMCInternals(generators)
 end
@@ -111,17 +111,16 @@ struct GenericIndexSetInternals <: SampleMethodInternals end
 
 IndexSetInternals(index_set, sample_method, options) = GenericIndexSetInternals()
 
-struct ADInternals{T1, T2, T3} <: SampleMethodInternals
+struct ADInternals{T1, T2} <: SampleMethodInternals
     old_index_set::T1
     spill_index_set::T1
     boundary::T1
-    adaptive_index_set_log::T2
-    max_search_space::T3
+    max_search_space::T2
 end
 
 function IndexSetInternals(index_set::AD, sample_method, options)
-	current_index_set = Set{Index{ndims(index_set)}}
 	old_index_set = Set{Index{ndims(index_set)}}
+	spill_index_set = Set{Index{ndims(index_set)}}
 	boundary = Set{Index{ndims(index_set)}}
 
 	ADInternals(old_index_set, spill_index_set, boundary, options[:max_search_space])
@@ -137,7 +136,7 @@ function IndexSetInternals(index_set::U, sample_method, options)
 	indices = get_index_set(max_search_space, options[:max_index_set_param])
 
 	m = options[:nb_of_qoi] 
-	n = sample_method isa MC ? 1 : maximum(options[:nbofshifts].(collect(indices))) 
+	n = sample_method isa MC ? 1 : maximum(options[:nb_of_shifts].(collect(indices))) 
 
 	accumulator = [Vector{Float64}(undef, 0) for i in 1:m, j in 1:n]
 

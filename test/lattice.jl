@@ -1,12 +1,12 @@
-## lattices.jl : unit testing for lattices.jl
+## lattice.jl : unit testing for lattice.jl
 #
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
-# Carlo Methods (c) Pieterjan Robbe, 2018
+# Carlo Methods (c) Pieterjan Robbe, 2019
 
 @testset "LatticeRule32                " begin
 
 lattice_rule = LatticeRule32([0x00000001,0x00000022], 2, 0x00000037)
-point = MultilevelEstimators.get_point(lattice_rule, 2)
+point = get_point(lattice_rule, 2)
 @test lattice_rule isa LatticeRule32
 @test length(point) == 2
 @test all(0 .≤ point .< 1)
@@ -14,7 +14,7 @@ point = MultilevelEstimators.get_point(lattice_rule, 2)
 z_file_1 = joinpath(dirname(pathof(MultilevelEstimators)), "core", "generating_vectors", "K_3600_32.txt")
 z_file_2 = joinpath(dirname(pathof(MultilevelEstimators)), "core", "generating_vectors", "CKN_250_20.txt")
 lattice_rule = LatticeRule32(z_file_1, 101)
-point = MultilevelEstimators.get_point(lattice_rule, 100_000)
+point = get_point(lattice_rule, 100_000)
 @test lattice_rule isa LatticeRule32
 @test length(point) == 101
 @test all(0 .≤ point .< 1)
@@ -23,7 +23,7 @@ function approx_π(n::Integer)
     lattice_rule = LatticeRule32(z_file_2, 2)
     count = 0
     for i in 0:n-1
-        x = MultilevelEstimators.get_point(lattice_rule, i)
+        x = get_point(lattice_rule, i)
         if x[1]*x[1] + x[2]*x[2] < 1
             count += 1
         end
