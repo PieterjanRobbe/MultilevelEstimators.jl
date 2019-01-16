@@ -174,7 +174,7 @@ struct ZC{d, T} <: AbstractIndexSet{d}
     δ::T
 end
 
-filter(idxset::ZC, sz) = itr -> prod(max.(1, itr.I ./ idxset.δ)) ≤ sz
+filter(idxset::ZC, sz) = itr -> sz == 0 ? all(itr.I .== 0) : prod(max.(1, itr.I ./ idxset.δ)) ≤ sz
 
 ## constructors ##
 for T in ["FT" "TD" "HC" "ZC"]
@@ -270,11 +270,7 @@ julia> collect(get_index_set(TD(2), 2))
 (0, 2)
 ```
 """
-function get_index_set(idxset::AbstractIndexSet{d}, sz::Integer) where d
-    sz ≥ 0 || throw(ArgumentError("index set size parameter cannot be negative"))
-    tensor_grid = CartesianIndices(ntuple(i -> 0:sz + 1, d))
-    Base.Iterators.filter(filter(idxset, sz), tensor_grid)
-end
+get_index_set(idxset::AbstractIndexSet{d}, sz::Integer) where d = Base.Iterators.filter(filter(idxset, sz), CartesianIndices(ntuple(i -> 0:sz + 1, d)))
 
 get_index_set(idxset::MG, sz::Integer) = get_index_set(idxset.idxset, sz)
 
@@ -316,19 +312,21 @@ julia> collect(get_index_set(TD(2), 3))
 print(idxset::AbstractIndexSet, sz::Integer) = print(collect(get_index_set(idxset, sz)))
 
 function print(idxset::Vector{<:Index{2}})
-    char = "\u25FC"
-    n = maximum(idxset).I
-    R = CartesianIndices(ntuple(i -> 0:n[i], 2))
-    A = map(i -> i ∈ idxset, R)
-    str = ""
-    for j in n[2]+1:-1:1
-        str = string(str, "  ")
-        for i in 1:n[1]+1
-            str = A[i,j] ? string(str, char, " ") : str
-        end
-        str = string(str,"\n")
-    end
-    print(str)
+	if !isempty(idxset)
+		char = "\u25FC"
+		n = maximum(idxset).I
+		R = CartesianIndices(ntuple(i -> 0:n[i], 2))
+		A = map(i -> i ∈ idxset, R)
+		str = ""
+		for j in n[2]+1:-1:1
+			str = string(str, "  ")
+			for i in 1:n[1]+1
+				str = A[i,j] ? string(str, char, " ") : str
+			end
+			str = string(str,"\n")
+		end
+		print(str)
+	end
 end
 
 print(::Vector{<:Index}) = throw(ArgumentError("print only available for index sets with d = 2"))

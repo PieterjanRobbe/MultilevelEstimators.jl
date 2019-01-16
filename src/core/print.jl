@@ -24,7 +24,7 @@ function print_header(estimator::Estimator, ϵ::Real)
     end_table_row(str)
     str = string("| *** This is a ", estimator)
     end_table_row(str)
-    str = string("| *** Simulating ", first(split(estimator.options.name, ".")))
+	str = string("| *** Simulating ", first(split(estimator[:name], ".")))
     end_table_row(str)
     str = string("| *** Tolerance on RMSE ϵ = ", shorte(ϵ))
     end_table_row(str)
@@ -133,34 +133,19 @@ function print_rates(estimator::Estimator)
     println(str)
 end
 
-print_rate(estimator::Estimator{<:AbstractML}, f::Function) = short(f(estimator))
+print_rate(estimator::Estimator{<:AbstractML}, f::Function) = short(f(estimator)[1])
 print_rate(estimator::Estimator{<:AbstractMI}, f::Function) = string("(", join(short.(f(estimator)), ", "), ")")
 
 ## warning when max level is reached ##
-warn_max_level(estimator::Estimator) = @warn string("Maximum ", _warn_max_level_name(estimator), " L = ", max_index_set_param(estimator), " reached, no convergence yet.")
+warn_max_level(estimator::Estimator) = @warn string("Maximum ", _warn_max_level_name(estimator), " L = ", estimator[:max_index_set_param], " reached, no convergence yet.")
 _warn_max_level_name(estimator::Estimator{<:AbstractML}) = "level"
 _warn_max_level_name(estimator::Estimator{<:AbstractMI}) = "index set parameter"
 
 ## print level ##
-print_level(estimator::Estimator{<:Union{SL, AbstractML}}, level::Integer) = println(string("Currently running on level ", level, "."))
-print_level(estimator::Estimator{<:AbstractMI}, L::Integer) = println(string("Currently running with L = ", L, "."))
+print_level(estimator::Estimator{<:SL}, L) = println(string("Currently running on finest level."))
+print_level(estimator::Estimator{<:ML}, L) = println(string("Currently running on level ", L, "."))
+print_level(estimator::Estimator, L) = println(string("Currently running with L = ", L, "."))
 
 ## print_index_set ##
 print_index_set(estimator::Estimator, index_set) = nothing
-print_index_set(estimator::Estimator{<:AbstractMI}, index_set) = ndims(estimator) == 2 ? _print_index_set(union(keys(estimator), index_set)) : nothing
-
-function _print_index_set(index_set)
-    char = "\u25FC"
-    n = maximum(maximum.(index_set))
-    R = CartesianIndices(UnitRange.((0, 0), (n, n)))
-    A = map(i -> Index(i.I...) ∈ index_set, R)
-    str = "Shape of the index set:\n"
-    for j in n+1:-1:1
-        str = string(str, "  ")
-        for i in 1:n+1
-            str = A[i,j] ? string(str, char, " ") : str
-        end
-        str = string(str,"\n")
-    end
-    print(str)
-end
+print_index_set(estimator::Estimator{<:AbstractMI}, index_set) = ndims(estimator) == 2 ? print(union(keys(estimator), index_set)) : nothing

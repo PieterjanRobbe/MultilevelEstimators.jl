@@ -84,6 +84,7 @@ eltype(::Type{<:Val{T}}) where {T} = T
 			check_smaller_than_or_equal_to(to_string(key, val)..., 1)
 			haskey(options, :max_splitting) || parse!(index_set, sample_method, options, :max_splitting)
 			check_ordered(Estimator, val, options[:max_splitting], "optional key min_splitting", "optional key max_splitting")
+
 		end
 	   )
 
@@ -164,7 +165,7 @@ struct EmptyFunction <: Function end
 
 ## do_mse_splitting ##
 @parse!(:do_mse_splitting,
-        true,
+		true,
         check_type(to_string(key, val)..., Bool)
        )
 

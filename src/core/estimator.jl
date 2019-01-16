@@ -54,11 +54,5 @@ for f in fieldnames(Estimator)
     end
 end
 
-ndims(::Estimator{<:AbstractIndexSet{d}}) where d = d 
-
-get_index_set(estimator::Estimator, sz) = get_index_set(estimator.index_set, sz)
-
-get_tols(estimator::Estimator, tol::T) where T<:Real = continuate(estimator) ? continuation_mul_factor(estimator).^(nb_of_tols(estimator)-1:-1:0)*tol : T[tol] 
-
 ## output formatting ##
 show(io::IO, estimator::Estimator{I, S}) where {I, S} = print(io, string("Estimator{", index_set(estimator), ", ", S, "}"))

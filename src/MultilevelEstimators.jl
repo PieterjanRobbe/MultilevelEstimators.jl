@@ -7,7 +7,7 @@ module MultilevelEstimators
 
 ## dependencies ##
 
-using Colors, Dates, DelimitedFiles, Distributed, JLD2, LinearAlgebra, Printf, Random, SpecialFunctions, Statistics
+using Dates, Distributed, JLD2, LinearAlgebra, Printf, Random, SpecialFunctions, Statistics
 
 ## import statements ##
 
@@ -31,9 +31,7 @@ export LatticeRule32, get_point
 
 export Estimator
 
-#export run
-
-#export report
+export run
 
 ## include statements ##
 
@@ -59,13 +57,15 @@ include("core/parse.jl")
 
 include("core/internals.jl")
 
-#include("core/print.jl")
+include("core/print.jl")
 
-#include("core/sample.jl")
+include("core/sample.jl")
 
-#include("core/history.jl")
+include("core/history.jl")
 
-#include("core/run.jl")
+include("core/run.jl")
+
+include("core/methods.jl")
 
 # methods
 
@@ -74,11 +74,5 @@ include("core/internals.jl")
 #include("methods/multilevel_monte_carlo.jl")
 
 #include("methods/multiindex_monte_carlo.jl")
-
-# utils
-
-#include("utils/report.jl")
-
-#include("utils/tex.jl")
 
 end # module

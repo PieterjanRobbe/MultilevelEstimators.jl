@@ -28,11 +28,15 @@ default_options(::AbstractIndexSet) = [:min_splitting,
                                        :do_mse_splitting,
                                        :do_regression]
 get_valid_options(index_set::AbstractIndexSet) = default_options(index_set)
+get_valid_options(::SL) = Symbol[]
 get_valid_options(index_set::AD) = push!(default_options(index_set), :max_search_space)
-get_valid_options(::U) = :max_search_space
+get_valid_options(::U) = [:max_search_space]
 
 # additional valid options for SampleMethod
 get_valid_options(::AbstractSampleMethod) = Vector{Symbol}(undef, 0)
 get_valid_options(::QMC) = [:nb_of_shifts,
                             :point_generator,
                             :sample_mul_factor]
+
+# easy access to options fields
+getindex(estimator::Estimator, s::Symbol) = estimator.options[s]

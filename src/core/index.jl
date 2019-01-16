@@ -49,7 +49,8 @@ function diff(index::Index{d}) where d
     D = Dict{Index{d}, Int}()
     Istart = max(zero(index), index - one(index))
     Iend = index
-    for I in Istart:Iend
+	R = Istart:Iend
+	for I in Base.Iterators.take(R, length(R)-1)
         D[I] = isodd(sum(I - index)) ? -1 : 1  
     end
     return D
