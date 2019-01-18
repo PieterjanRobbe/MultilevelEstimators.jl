@@ -5,19 +5,32 @@
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
 # Carlo Methods (c) Pieterjan Robbe, 2018
 
-## convenience functions ##
+#
+# convenience functions
+#
 l() = 81
+
 l_short() = 29
+
 n() = 15
+
 spaces(n) = repeat(" ", n)
+
 short(num) = @sprintf("%5.3f", num)
+
 shorte(num) = @sprintf("%5.3e", num)
+
 long(num) = @sprintf("%12.5e", num)
+
 end_table_row(str) = println(string(str, spaces(l()-length(str)-1), "|")) 
+
 hline() = println(string("+", repeat("-", l()-2), "+"))
+
 table_hline(m) = println(string("+", repeat(string(repeat("-", n()), "+"), m)))
 
-## print header ##
+#
+# header and footer
+#
 function print_header(estimator::Estimator, ϵ::Real)
     hline()
     str = string("| *** MultilevelEstimators.jl @", now())
@@ -31,17 +44,18 @@ function print_header(estimator::Estimator, ϵ::Real)
     hline()
 end
 
-## print footer ##
 function print_footer()
     hline()
     str = string("| *** MultilevelEstimators.jl @", now())
     end_table_row(str)
-    str = "| *** Successfull termination"
+    str = "| *** Successfull termination."
     end_table_row(str)
     hline()
 end
 
-## print status ##
+#
+# status
+#
 function print_status(estimator::Estimator)
     table_hline(5)
     header = "| "
@@ -64,16 +78,18 @@ function print_status(estimator::Estimator)
     table_hline(5)
 end
 
-## index or level ##
+#
+# index or level
+#
 print_elname(::Estimator{<:SL}) = "level"
+
 print_elname(::Estimator{<:AbstractML}) = "level"
+
 print_elname(::Estimator{<:AbstractMI}) = "index"
 
-## print_nb_of_samples ##
-print_nb_of_samples(estimator::Estimator, index::Index) = print_nb_of_samples(estimator, nb_of_samples(estimator, index))
-print_nb_of_samples(estimator::Estimator{<:AbstractIndexSet, <:MC}, n::Integer) = string(n)
-
-## print_optimal_nb_of_samples ##
+#
+# optimal number of samples
+#
 function print_optimal_nb_of_samples(estimator::Estimator, samples)
     println("Samples will be updated to")
     table_hline(2)
@@ -92,28 +108,51 @@ function _print_optimal_nb_of_samples(estimator::Estimator, samples::Dict)
         index_str = string(index)
         str = "| "
         str = string(str, index_str, spaces(n()-length(index_str)-2), " |")
-        samples_str = print_nb_of_samples(estimator, samples[index])
+        samples_str = print_nb_of_samples(estimator, index, samples[index])
         str = string(str, " ", samples_str, spaces(n()-length(samples_str)-2), " |")
         println(str)
     end
 end
 
-## print_convergence ##
+print_nb_of_samples(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index, n::Integer) = string(n)
+
+print_nb_of_samples(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index, n::Integer) = string(estimator[:nb_of_shifts](index), " x ", n)
+
+print_nb_of_samples(estimator::Estimator, index::Index) = print_nb_of_samples(estimator, index, nb_of_samples(estimator, index))
+
+#
+# profits
+#
+function print_largest_profit(estimator, max_index, max_profit, indices, profits)
+	println("Profit indicators:")
+    table_hline(2)
+    header = "| "
+    for name in [print_elname(estimator) "profit"]
+        header = string(header, name, spaces(n()-length(name)-1), "| ")
+    end
+    println(header)
+    table_hline(2)
+	for i in 1:length(indices)
+		index_str = string(indices[i])
+        str = "| "
+        str = string(str, index_str, spaces(n()-length(index_str)-2), " |")
+		profit_str = shorte(profits[i])
+        str = string(str, " ", profit_str, spaces(n()-length(profit_str)-2), " |")
+        println(str)
+    end
+    table_hline(2)
+	println("Index with max profit is ", max_index, " (value = ", long(max_profit), ").")
+end
+
+#
+# convergence
+#
 function print_convergence(estimator::Estimator, converged::Bool)
     print_status(estimator)
     converged && println(string("Convergence reached. RMSE ≈", long(rmse(estimator)), "."))
     print_footer() 
 end
 
-## print_sample!_header ##
-print_sample!_header(estimator::Estimator, index::Index, n::Integer, warm_up::Bool) = println(string("Taking ", print_nb_of_samples(estimator, n), print_warm_up(Val(warm_up)), " sample", print_with_s(n), " at ", print_elname(estimator), " ", index, "..."))
-
-print_warm_up(::Val{true}) = " warm-up"
-print_warm_up(::Val{false}) = " additional"
-
-print_with_s(n::Integer) = n > 1 ? "s" : ""
-
-## print_mse_analysis
 function print_mse_analysis(estimator::Estimator, ϵ::Real, θ::Real)
     println("Checking convergence...")
     print_rates(estimator)
@@ -126,6 +165,26 @@ function print_mse_analysis(estimator::Estimator, ϵ::Real, θ::Real)
     end
 end
 
+function print_qmc_convergence(estimator::Estimator{<:AbstractIndexSet, <:QMC}, ϵ::Real, θ::Real)
+    println(string("Checking if variance of estimator is larger than θ*ϵ^2..."))
+    converged = !(varest(estimator) > θ*ϵ^2)
+	println(string("  ==> ", converged ? "no!" : "yes", " (", long(varest(estimator))[2:end], converged ? " < " : " > ", short(θ), " *", long(ϵ^2), ")"))
+end
+
+#
+# taking ...
+#
+print_sample!_header(estimator::Estimator, index::Index, n::Integer, warm_up::Bool) = println(string("Taking ", print_nb_of_samples(estimator, index, n), print_warm_up(Val(warm_up)), " sample", print_with_s(n), " at ", print_elname(estimator), " ", index, "..."))
+
+print_warm_up(::Val{true}) = " warm-up"
+
+print_warm_up(::Val{false}) = " additional"
+
+print_with_s(n::Integer) = n > 1 ? "s" : ""
+
+#
+# rates
+# 
 function print_rates(estimator::Estimator)
     str = string("  ==> Rates: α ≈ ", print_rate(estimator, α))
     str = string(str, ", β ≈ ", print_rate(estimator, β))
@@ -134,18 +193,44 @@ function print_rates(estimator::Estimator)
 end
 
 print_rate(estimator::Estimator{<:AbstractML}, f::Function) = short(f(estimator)[1])
+
 print_rate(estimator::Estimator{<:AbstractMI}, f::Function) = string("(", join(short.(f(estimator)), ", "), ")")
 
-## warning when max level is reached ##
+#
+# max level/index
+#
 warn_max_level(estimator::Estimator) = @warn string("Maximum ", _warn_max_level_name(estimator), " L = ", estimator[:max_index_set_param], " reached, no convergence yet.")
+
 _warn_max_level_name(estimator::Estimator{<:AbstractML}) = "level"
+
 _warn_max_level_name(estimator::Estimator{<:AbstractMI}) = "index set parameter"
 
-## print level ##
+warn_max_index(estimator::Estimator{<:AD}, index) = @warn string("Trying to add index ", index, " outside search space to index set, ignoring...")
+
+#
+# level parameter
+#
 print_level(estimator::Estimator{<:SL}, L) = println(string("Currently running on finest level."))
+
 print_level(estimator::Estimator{<:ML}, L) = println(string("Currently running on level ", L, "."))
+
 print_level(estimator::Estimator, L) = println(string("Currently running with L = ", L, "."))
 
-## print_index_set ##
+#
+# index set
+#
 print_index_set(estimator::Estimator, index_set) = nothing
-print_index_set(estimator::Estimator{<:AbstractMI}, index_set) = ndims(estimator) == 2 ? print(union(keys(estimator), index_set)) : nothing
+
+print_index_set(estimator::Estimator{<:AbstractMI}, index_set) = begin
+	if ndims(estimator) == 2
+		println("Shape of the index set:")
+		print(union(keys(estimator), index_set))
+	end
+end
+
+print_index_set(estimator::Estimator{<:AD}, index_set) = begin
+	if ndims(estimator) == 2
+		println("Shape of the index set (\u25A3 = active set):")
+		print(collect(old_set(estimator)), collect(active_set(estimator)))
+	end
+end

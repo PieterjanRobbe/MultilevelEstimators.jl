@@ -10,7 +10,7 @@ abstract type AbstractEstimatorInternals end
 # estimator internals
 struct EstimatorInternals{T1, T2, T3} <: AbstractEstimatorInternals
 	default_internals::T1
-	index_set_indernals::T2
+	index_set_internals::T2
 	sample_method_internals::T3
 end
 
@@ -54,14 +54,22 @@ function DefaultInternals(index_set, sample_method, options)
 end
 
 samples(estimator::Estimator) = estimator.internals.default_internals.samples
-samples(estimator::Estimator, n_qoi) = estimator.internals.default_internals.samples[n_qoi]
-samples(estimator::Estimator, n_qoi, index::Index) = estimator.internals.default_internals.samples[n_qoi][index + one(index)]
-append_samples!(estimator::Estimator, n_qoi, index::Index, samples_to_append) = append!(estimator.internals.default_internals.samples[n_qoi][index + one(index)], samples_to_append)
+samples(estimator::Estimator, n_qoi, n_shift) = estimator.internals.default_internals.samples[n_qoi, n_shift]
+samples(estimator::Estimator, n_qoi) = samples(estimator, n_qoi, 1)
+samples(estimator::Estimator, n_qoi, n_shift, index::Index) = estimator.internals.default_internals.samples[n_qoi, n_shift][index + one(index)]
+samples(estimator::Estimator, n_qoi, index::Index) = samples(estimator, n_qoi, 1, index)
+
+append_samples!(estimator::Estimator, n_qoi, n_shift, index::Index, samples_to_append) = append!(estimator.internals.default_internals.samples[n_qoi, n_shift][index + one(index)], samples_to_append)
+append_samples!(estimator::Estimator, n_qoi, index::Index, samples_to_append) = append_samples!(estimator, n_qoi, 1, index, samples_to_append)
 
 samples_diff(estimator::Estimator) = estimator.internals.default_internals.samples_diff
-samples_diff(estimator::Estimator, n_qoi) = estimator.internals.default_internals.samples_diff[n_qoi]
-samples_diff(estimator::Estimator, n_qoi, index::Index) = estimator.internals.default_internals.samples_diff[n_qoi][index + one(index)]
-append_samples_diff!(estimator::Estimator, n_qoi, index::Index, samples_to_append) = append!(estimator.internals.default_internals.samples_diff[n_qoi][index + one(index)], samples_to_append)
+samples_diff(estimator::Estimator, n_qoi, n_shift) = estimator.internals.default_internals.samples_diff[n_qoi, n_shift]
+samples_diff(estimator::Estimator, n_qoi) = samples_diff(estimator, n_qoi, 1)
+samples_diff(estimator::Estimator, n_qoi, n_shift, index::Index) = estimator.internals.default_internals.samples_diff[n_qoi, n_shift][index + one(index)]
+samples_diff(estimator::Estimator, n_qoi, index::Index) = samples_diff(estimator, n_qoi, 1, index)
+
+append_samples_diff!(estimator::Estimator, n_qoi, n_shift, index::Index, samples_to_append) = append!(estimator.internals.default_internals.samples_diff[n_qoi, n_shift][index + one(index)], samples_to_append)
+append_samples_diff!(estimator::Estimator, n_qoi, index::Index, samples_to_append) = append_samples_diff!(estimator, n_qoi, 1, index, samples_to_append)
 
 has_samples_at_index(estimator::Estimator, index::Index) = !isempty(estimator.internals.default_internals.samples_diff[1][index + one(index)])
 
@@ -70,18 +78,25 @@ nb_of_samples(estimator::Estimator, index::Index) = estimator.internals.default_
 add_to_nb_of_samples(estimator::Estimator, index::Index, amount::Integer) = estimator.internals.default_internals.nb_of_samples[index + one(index)] += amount
 
 work(estimator::Estimator, index::Index) = total_work(estimator, index)/nb_of_samples(estimator, index)
+
 total_work(estimator::Estimator) = estimator.internals.default_internals.total_work
 total_work(estimator::Estimator, index::Index) = estimator.internals.default_internals.total_work[index + one(index)]
+
 add_to_total_work(estimator::Estimator, index::Index, amount::Real) = estimator.internals.default_internals.total_work[index + one(index)] += amount
 
 time(estimator::Estimator, index::Index) = total_time(estimator, index)/nb_of_samples(estimator, index)
+
 total_time(estimator::Estimator) = estimator.internals.default_internals.total_time
 total_time(estimator::Estimator, index::Index) = estimator.internals.default_internals.total_time[index + one(index)]
+
 add_to_total_time(estimator::Estimator, index::Index, amount::Real) = estimator.internals.default_internals.total_time[index + one(index)] += amount
 
 current_index_set(estimator::Estimator) = estimator.internals.default_internals.current_index_set
+
 keys(estimator::Estimator) = sort(collect(current_index_set(estimator)))
+
 push!(estimator::Estimator, index::Index) = push!(estimator.internals.default_internals.current_index_set, index)
+
 clear(estimator::Estimator) = empty!(current_index_set(estimator))
 
 # specific internals related to the sample method
@@ -95,12 +110,16 @@ struct QMCInternals{T1} <: SampleMethodInternals
 	generators::T1
 end
 
+generator(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index) = estimator.internals.sample_method_internals.generators[index + one(index)]
+generator(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index, shift) = estimator.internals.sample_method_internals.generators[index + one(index)][shift]
+
 function SampleMethodInternals(index_set, sample_method::QMC, options)
 	max_search_space = index_set isa Union{AD, U} ? options[:max_search_space] : index_set
 	indices = get_index_set(max_search_space, options[:max_index_set_param])
 
-	sz = maximum(indices) + 1
-	generators = [ShiftedLatticeRule(options[:point_generator]) for I in CartesianIndices(sz)]
+	sz = maximum(indices)
+	R = CartesianIndices(sz + one(sz))
+	generators = [[ShiftedLatticeRule(options[:point_generator]) for i in 1:options[:nb_of_shifts](I)] for I in R]
 
     QMCInternals(generators)
 end
@@ -112,19 +131,54 @@ struct GenericIndexSetInternals <: SampleMethodInternals end
 
 IndexSetInternals(index_set, sample_method, options) = GenericIndexSetInternals()
 
-struct ADInternals{T1, T2} <: SampleMethodInternals
-    old_index_set::T1
-    spill_index_set::T1
-    boundary::T1
-    max_search_space::T2
+struct ADInternals{T1, T2, T3} <: SampleMethodInternals
+    old_set::T1
+    active_set::T1
+    max_index_set::T1
+	boundary::T2
+    max_search_space::T3
 end
 
 function IndexSetInternals(index_set::AD, sample_method, options)
-	old_index_set = Set{Index{ndims(index_set)}}
-	spill_index_set = Set{Index{ndims(index_set)}}
-	boundary = Set{Index{ndims(index_set)}}
+	old_set = Set{Index{ndims(index_set)}}()
+	active_set = Set{Index{ndims(index_set)}}()
+	push!(active_set, Index(ntuple(i -> 0, ndims(index_set))))
+	max_index_set = Set{Index{ndims(index_set)}}()
+	boundary = copy(active_set)#Set{Index{ndims(index_set)}}()
+	max_search_space = options[:max_search_space]
 
-	ADInternals(old_index_set, spill_index_set, boundary, options[:max_search_space])
+	ADInternals(old_set, active_set, max_index_set, boundary, max_search_space)
+end
+
+active_set(estimator::Estimator{<:AD}) = estimator.internals.index_set_internals.active_set
+
+add_to_active_set(estimator::Estimator{<:AD}, index::Index) = push!(estimator.internals.index_set_internals.active_set, index)
+
+remove_from_active_set(estimator::Estimator{<:AD}, index::Index) = delete!(estimator.internals.index_set_internals.active_set, index)
+
+old_set(estimator::Estimator{<:AD}) = estimator.internals.index_set_internals.old_set
+
+add_to_old_set(estimator::Estimator{<:AD}, index::Index) = push!(estimator.internals.index_set_internals.old_set, index)
+
+is_admissable(estimator::Estimator{<:AD}, index::Index) = is_admissable(estimator.internals.index_set_internals.old_set, index)
+
+max_index_set(estimator::Estimator{<:AD}) = estimator.internals.index_set_internals.max_index_set
+
+add_to_max_index_set(estimator::Estimator{<:AD}, index::Index) = push!(estimator.internals.index_set_internals.max_index_set, index)
+
+boundary(estimator::Estimator{<:AD}) = collect(estimator.internals.index_set_internals.boundary)
+
+update_boundary(estimator::Estimator{<:AD}) = begin
+	empty!(estimator.internals.index_set_internals.boundary)
+	union!(estimator.internals.index_set_internals.boundary, estimator.internals.index_set_internals.active_set) 
+end
+
+clear(estimator::Estimator{<:AD}) = begin
+	empty!(current_index_set(estimator))
+	empty!(active_set(estimator))
+	add_to_active_set(estimator, Index(ntuple(i -> 0, ndims(estimator))))
+	empty!(old_set(estimator))
+	empty!(max_index_set(estimator))
 end
 
 struct UInternals{T1, T2} <: SampleMethodInternals
@@ -154,6 +208,9 @@ sz(estimator::Estimator) = estimator.internals.default_internals.index_set_size.
 max_sz(estimator::Estimator) = estimator.internals.default_internals.index_set_size.max_sz
 
 set_sz(estimator::Estimator, n) = begin
-    estimator.internals.default_internals.index_set_size.sz = n
-    estimator.internals.default_internals.index_set_size.max_sz = max(sz(estimator), max_sz(estimator))
+	if estimator isa Estimator{<:AD} && n > max_sz(estimator)
+		update_boundary(estimator)
+	end
+	estimator.internals.default_internals.index_set_size.sz = n
+	estimator.internals.default_internals.index_set_size.max_sz = max(sz(estimator), max_sz(estimator))
 end

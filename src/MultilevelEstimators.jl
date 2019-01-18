@@ -37,42 +37,34 @@ export run
 
 # core
 
-include("core/check_input.jl")
+include("check_input.jl")
 
-include("core/index.jl")
+include("index.jl")
 
-include("core/index_set.jl")
+include("index_set.jl")
 
-include("core/distribution.jl")
+include("distribution.jl")
 
-include("core/sample_method.jl")
+include("sample_method.jl")
 
-include("core/lattice.jl")
+include("lattice.jl")
 
-include("core/estimator.jl")
+include("estimator.jl")
 
-include("core/options.jl")
+include("options.jl")
 
-include("core/parse.jl")
+include("parse.jl")
 
-include("core/internals.jl")
+include("internals.jl")
 
-include("core/print.jl")
+include("print.jl")
 
-include("core/sample.jl")
+include("sample.jl")
 
-include("core/history.jl")
+include("history.jl")
 
-include("core/run.jl")
+include("run.jl")
 
-include("core/methods.jl")
-
-# methods
-
-#include("methods/monte_carlo.jl")
-
-#include("methods/multilevel_monte_carlo.jl")
-
-#include("methods/multiindex_monte_carlo.jl")
+include("methods.jl")
 
 end # module

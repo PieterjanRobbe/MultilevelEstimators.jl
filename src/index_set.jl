@@ -311,17 +311,20 @@ julia> collect(get_index_set(TD(2), 3))
 """
 print(idxset::AbstractIndexSet, sz::Integer) = print(collect(get_index_set(idxset, sz)))
 
-function print(idxset::Vector{<:Index{2}})
-	if !isempty(idxset)
+function print(idxset::Vector{<:Index{2}}, idxset2::Vector{Index{2}}=Index{2}[])
+	if !(isempty(idxset) && isempty(idxset2))
 		char = "\u25FC"
-		n = maximum(idxset).I
+		char2 = "\u25A3"
+		n = maximum(union(idxset, idxset2)).I
 		R = CartesianIndices(ntuple(i -> 0:n[i], 2))
 		A = map(i -> i ∈ idxset, R)
+		B = map(i -> i ∈ idxset2, R)
 		str = ""
 		for j in n[2]+1:-1:1
 			str = string(str, "  ")
 			for i in 1:n[1]+1
 				str = A[i,j] ? string(str, char, " ") : str
+				str = B[i,j] ? string(str, char2, " ") : str
 			end
 			str = string(str,"\n")
 		end
