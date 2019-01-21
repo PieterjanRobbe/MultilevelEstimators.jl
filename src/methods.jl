@@ -102,7 +102,11 @@ function interp(f::Function, estimator::Estimator)
     idx_set = filter(i -> !isempty(samples(estimator)[1][i]), CartesianIndices(size(samples(estimator)[1])))
     A = [i == 0 ? 1 : getindex(index - one(index), i) for index in idx_set, i in 0:ndims(estimator)]	
     y = map(i -> log2(f(estimator, i - one(i))), idx_set)
-    A\y
+	try
+    	return A\y
+	catch e
+		return fill(NaN, length(y))
+	end
 end
 
 regress_mean(estimator, index) = _regress_mean(estimator, index)
@@ -241,12 +245,12 @@ varest(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index) = var(mean
 #
 # Unbiased estimation
 #
-qoi_with_max_var(estimator::Estimator{<:AbstractU, <:MC}) = argmax(map(n_qoi -> var(accumulator(estimator, n_qoi)) / length(accumulator(estimator, n_qoi)), 1:estimator[:nb_of_qoi]))
+qoi_with_max_var(estimator::Estimator{<:U, <:MC}) = argmax(map(n_qoi -> var(accumulator(estimator, n_qoi)) / length(accumulator(estimator, n_qoi)), 1:estimator[:nb_of_qoi]))
 
-qoi_with_max_var(estimator::Estimator{<:AbstractU, <:QMC}) = argmax(map(n_qoi -> var(mean(accumulator(estimator, n_qoi, n_shift) for n_shift in size(accumulator(estimator), 2))) / estimator[:nb_of_qoi]))
+qoi_with_max_var(estimator::Estimator{<:U, <:QMC}) = argmax(map(n_qoi -> var(mean(accumulator(estimator, n_qoi, n_shift)) for n_shift in 1:size(accumulator(estimator), 2)) / estimator[:nb_of_qoi], 1:estimator[:nb_of_qoi]))
 
-function next_number_of_samples(estimator::Estimator{<:AbstractU})
-    n_total = sum(values(number_of_samples(estimator)))
+function next_number_of_samples(estimator::Estimator{<:U})
+    n_total = sum(values(nb_of_samples(estimator)))
     n0 = max(estimator[:nb_of_warm_up_samples], n_total)
     n = estimator[:sample_mul_factor] ≤ 1 ? 1 : ceil(Int, n0 * (estimator[:sample_mul_factor] - 1))
     sample(pmf(estimator), n)
@@ -269,34 +273,40 @@ end
 
 Geometric(p, k) = (1 - p)^k*p
 
-function update_pmf(estimator::Estimator{<:AbstractU})
+function update_pmf(estimator::Estimator{<:U})
     f(estimator, index) = sqrt(var(estimator, index)/cost(estimator, index))
     p = interp(f, estimator)
-    for index in keys(estimator)
-        if isnan(f(estimator, index)) || isinf(f(estimator, index))
-            set_pmf_key(estimator, index, 2^(p[1]+sum(p[2:end].*index.I)))
-        else
-            set_pmf_key(estimator, index, f(estimator, index))
-        end
-    end
-    normalize!(pmf(estimator))
+	if !any(isnan.(p)) && all(p[2:end] .< -0.5)
+		for index in keys(estimator)
+			if isnan(f(estimator, index)) || isinf(f(estimator, index))
+				set_pmf_key(estimator, index, 2^(p[1]+sum(p[2:end].*index.I)))
+			else
+				set_pmf_key(estimator, index, f(estimator, index))
+			end
+		end
+		normalize!(pmf(estimator))
+	end
 end
 
-function normalize!(pmf::Dict{Index, Float64})
+function normalize!(pmf::Dict{<:Index, Float64})
     tot_sum = sum(values(pmf))
     for (key, val) in pmf
         pmf[key] /= tot_sum
     end
 end
 
-Prob(estimator::Estimator{<:AbstractU}, index::Index) = sum(pmf(estimator, index2) for index2 in zero(index):index)
+Prob(estimator::Estimator{<:U}, index::Index) = sum(val for (key, val) in pmf(estimator) if key ≥ index)
 
-Prob(estimator::Estimator{<:AbstractU}) = Dict(index => Prob(estimator, index) for index in keys(estimator))
+Prob(estimator::Estimator{<:U}) = Dict(index => Prob(estimator, index) for index in keys(estimator))
 
-varest(estimator::Estimator{<:AbstractU, <:MC}) = var(accumulator(estimator, qoi_with_max_var(estimator))) / length(accumulator(estimator, qoi_with_max_var(estimator)))
+varest(estimator::Estimator{<:U, <:MC}) = var(accumulator(estimator, qoi_with_max_var(estimator))) / length(accumulator(estimator, qoi_with_max_var(estimator)))
 
-varest(estimator::Estimator{<:AbstractU, <:QMC}) = var(mean(accumulator(estimator, qoi_with_max_var(estimator), n_shift) for n_shift in size(accumulator(estimator), 2))) / estimator[:nb_of_qoi]
+varest(estimator::Estimator{<:U, <:QMC}) = var(mean(accumulator(estimator, qoi_with_max_var(estimator), n_shift)) for n_shift in 1:size(accumulator(estimator), 2)) / estimator[:nb_of_qoi]
 
-mse(estimator::Estimator{<:AbstractU}) = varest(estimator)
+bias(estimator::Estimator{<:U}) = 0.0
 
-converged(estimator::Estimator, ϵ::Real) = mse(estimator) ≤ ϵ^2
+converged(estimator::Estimator{<:U}, ϵ::Real) = mse(estimator) ≤ ϵ^2
+
+mean(estimator::Estimator{<:U}) = mean(accumulator(estimator, qoi_with_max_var(estimator)))
+
+var(estimator::Estimator{<:U}) = var(accumulator(estimator, qoi_with_max_var(estimator)))

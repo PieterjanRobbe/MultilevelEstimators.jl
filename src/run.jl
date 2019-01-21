@@ -138,7 +138,7 @@ function _run(estimator::Estimator{T1, T2}, ϵ::Real) where {T1<:AbstractIndexSe
 end
 
 ## Unbiased estimator routine ##
-function _run(estimator::Estimator{T1, <:AbstractSampleMethod}, ϵ::Real) where T1 <: AbstractU
+function _run(estimator::Estimator{<:U, <:AbstractSampleMethod}, ϵ::Real)
 
     # print status
     estimator[:verbose] && print_header(estimator, ϵ)
@@ -149,12 +149,13 @@ function _run(estimator::Estimator{T1, <:AbstractSampleMethod}, ϵ::Real) where 
 
     # add new indices to the index set
     for index in index_set
-        haskey(estimator, index) || push!(estimator, index)
+        index ∈ current_index_set(estimator) || push!(estimator, index)
     end
     
     # main loop
-    while varest(estimator) > ϵ^2
-        
+	is_converged = false
+    while !is_converged
+
         # print status
         estimator[:verbose] && print_status(estimator)
 
@@ -166,9 +167,18 @@ function _run(estimator::Estimator{T1, <:AbstractSampleMethod}, ϵ::Real) where 
         
         # take additional samples
         update_samples(estimator, n_opt)
+
+		# update pmf
+		update_pmf(estimator)
+		estimator[:verbose] && print_pmf(estimator)
         
         # check next iteration
         estimator[:verbose] && print_unbiased_convergence(estimator, ϵ)
+
+		is_converged = varest(estimator) ≤ ϵ^2
+
+		# print index set
+    	estimator[:verbose] && print_index_set(estimator, index_set)
     end
 
     # print convergence status

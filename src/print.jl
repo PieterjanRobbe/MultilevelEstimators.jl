@@ -65,15 +65,17 @@ function print_status(estimator::Estimator)
     println(header)
     table_hline(5)
     for index in keys(estimator)
-        index_str = string(index)
-        str = "| "
-        str = string(str, index_str, spaces(n()-length(index_str)-2), " |")
-        str = string(str, long(mean(estimator, index)), spaces(n()-12-1), " |")
-        str = string(str, long(var(estimator, index)), spaces(n()-12-1), " |")
-        samples_str = print_nb_of_samples(estimator, index)
-        str = string(str, " ", samples_str, spaces(n()-length(samples_str)-2), " |")
-        str = string(str, long(cost(estimator, index)), spaces(n()-12-1), " |")
-        println(str)
+		if nb_of_samples(estimator, index) > 0
+			index_str = string(index)
+			str = "| "
+			str = string(str, index_str, spaces(n()-length(index_str)-2), " |")
+			str = string(str, long(mean(estimator, index)), spaces(n()-12-1), " |")
+			str = string(str, long(var(estimator, index)), spaces(n()-12-1), " |")
+			samples_str = print_nb_of_samples(estimator, index)
+			str = string(str, " ", samples_str, spaces(n()-length(samples_str)-2), " |")
+			str = string(str, long(cost(estimator, index)), spaces(n()-12-1), " |")
+			println(str)
+		end
     end
     table_hline(5)
 end
@@ -91,7 +93,7 @@ print_elname(::Estimator{<:AbstractMI}) = "index"
 # optimal number of samples
 #
 function print_optimal_nb_of_samples(estimator::Estimator, samples)
-    println("Samples will be updated to")
+    println("Samples will be updated ", estimator isa U ? "with" : "to")
     table_hline(2)
     header = "| "
     for name in [print_elname(estimator) "N"]
@@ -105,12 +107,14 @@ end
 
 function _print_optimal_nb_of_samples(estimator::Estimator, samples::Dict)
     for index in sort(collect(keys(samples)))
-        index_str = string(index)
-        str = "| "
-        str = string(str, index_str, spaces(n()-length(index_str)-2), " |")
-        samples_str = print_nb_of_samples(estimator, index, samples[index])
-        str = string(str, " ", samples_str, spaces(n()-length(samples_str)-2), " |")
-        println(str)
+		if samples[index] > 0
+			index_str = string(index)
+			str = "| "
+			str = string(str, index_str, spaces(n()-length(index_str)-2), " |")
+			samples_str = print_nb_of_samples(estimator, index, samples[index])
+			str = string(str, " ", samples_str, spaces(n()-length(samples_str)-2), " |")
+			println(str)
+		end
     end
 end
 
@@ -145,6 +149,30 @@ function print_largest_profit(estimator, max_index, max_profit, indices, profits
 end
 
 #
+# probabilities
+#
+function print_pmf(estimator::Estimator)
+	P = pmf(estimator)
+    println("Using approximate probability mass function:")
+    table_hline(2)
+    header = "| "
+	for name in [print_elname(estimator) "P"]
+        header = string(header, name, spaces(n()-length(name)-1), "| ")
+    end
+    println(header)
+    table_hline(2)
+	for idx in sort(collect(keys(P)))
+        index_str = string(idx)
+        str = "| "
+        str = string(str, index_str, spaces(n()-length(index_str)-2), " |")
+        pmf_str = shorte(P[idx])
+        str = string(str, " ", pmf_str, spaces(n()-length(pmf_str)-2), " |")
+        println(str)
+    end
+    table_hline(2)
+end
+
+#
 # convergence
 #
 function print_convergence(estimator::Estimator, converged::Bool)
@@ -171,22 +199,25 @@ function print_qmc_convergence(estimator::Estimator{<:AbstractIndexSet, <:QMC}, 
     println(string("  ==> ", converged ? "no!" : "yes", " (", long(varest(estimator))[2:end], converged ? " < " : " > ", short(θ), " *", long(ϵ^2), ")"))
 end
 
-function print_unbiased_convergence(estimator::Estimator{<:AbstractU}, ϵ::Real)
+function print_unbiased_convergence(estimator::Estimator{<:U}, ϵ::Real)
     println(string("Checking if variance of estimator is larger than ϵ^2..."))
-    converged = !(varest(estimator) > θ*ϵ^2)
+    converged = !(varest(estimator) > ϵ^2)
     println(string("  ==> ", converged ? "no!" : "yes", " (", long(varest(estimator))[2:end], converged ? " < " : " > ", long(ϵ^2)[2:end], ")"))
+    print_rates(estimator)
 end
 
 #
 # taking ...
 #
-print_sample!_header(estimator::Estimator, index::Index, n::Integer, warm_up::Bool) = println(string("Taking ", print_nb_of_samples(estimator, index, n), print_warm_up(Val(warm_up)), " sample", print_with_s(n), " at ", print_elname(estimator), " ", index, "..."))
+print_sample!_header(estimator::Estimator, index::Index, n::Integer, warm_up::Bool) = print(string("Taking ", print_nb_of_samples(estimator, index, n), print_warm_up(Val(warm_up)), " sample", print_with_s(n), " at ", print_elname(estimator), " ", index, "..."))
 
 print_warm_up(::Val{true}) = " warm-up"
 
 print_warm_up(::Val{false}) = " additional"
 
 print_with_s(n::Integer) = n > 1 ? "s" : ""
+
+print_sample!_footer() = println(" done")
 
 #
 # rates
@@ -231,6 +262,13 @@ print_index_set(estimator::Estimator{<:AbstractMI}, index_set) = begin
     if ndims(estimator) == 2
         println("Shape of the index set:")
         print(union(keys(estimator), index_set))
+    end
+end
+
+print_index_set(estimator::Estimator{<:U}, index_set) = begin
+    if ndims(estimator) == 2
+        println("Shape of the index set:")
+		print(filter(i -> has_samples_at_index(estimator, i), keys(estimator)))
     end
 end
 

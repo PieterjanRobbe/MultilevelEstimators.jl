@@ -7,11 +7,11 @@ module MultilevelEstimators
 
 ## dependencies ##
 
-using Dates, Distributed, JLD2, LinearAlgebra, Printf, Random, SpecialFunctions, Statistics
+using Dates, DelimitedFiles, Distributed, JLD2, LinearAlgebra, Printf, Random, SpecialFunctions, Statistics
 
 ## import statements ##
 
-import Base: filter, ndims, eltype, show, diff, sum, :, print, length, getindex, run, push!, isless, >, <, ≥, ≤, +, zero, one, keys 
+import Base: filter, ndims, eltype, show, diff, sum, :, print, length, getindex, run, push!, isless, >, <, ≥, ≤, +, zero, one, keys
 
 import Random: GLOBAL_RNG
 
@@ -21,7 +21,7 @@ import Statistics: mean, var
 
 export Level, Index
 
-export AbstractIndexSet, SL, ML, FT, TD, HC, ZC, AD, U, MG, get_index_set
+export AbstractIndexSet, SL, ML, FT, TD, HC, ZC, AD, U, get_index_set
 
 export AbstractDistribution, Uniform, Normal, TruncatedNormal, Weibull , transform
 

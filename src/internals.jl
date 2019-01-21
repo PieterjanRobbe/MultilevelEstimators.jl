@@ -95,7 +95,7 @@ total_work(estimator::Estimator) = estimator.internals.default_internals.total_w
 
 total_work(estimator::Estimator, index::Index) = estimator.internals.default_internals.total_work[index + one(index)]
 
-add_to_total_work(estimator::Estimator, index::Index, amount::Real) = estimator.internals.default_internals.total_work[index + one(index)] += amount
+add_to_total_work(estimator::Estimator, index::Index, amount::Real) = estimator.internals.default_internals.total_work[index + one(index)] += estimator[:cost_model] isa EmptyFunction ? 0. : amount*estimator[:cost_model](index)
 
 time(estimator::Estimator, index::Index) = total_time(estimator, index)/nb_of_samples(estimator, index)
 
@@ -108,8 +108,6 @@ add_to_total_time(estimator::Estimator, index::Index, amount::Real) = estimator.
 current_index_set(estimator::Estimator) = estimator.internals.default_internals.current_index_set
 
 keys(estimator::Estimator) = sort(collect(current_index_set(estimator)))
-
-haskey(estimator::Estimator, index::Index) = haskey(current_index_set(estimator), index)
 
 push!(estimator::Estimator, index::Index) = push!(estimator.internals.default_internals.current_index_set, index)
 
@@ -160,7 +158,7 @@ function IndexSetInternals(index_set::AD, sample_method, options)
     active_set = Set{Index{ndims(index_set)}}()
     push!(active_set, Index(ntuple(i -> 0, ndims(index_set))))
     max_index_set = Set{Index{ndims(index_set)}}()
-    boundary = copy(active_set)#Set{Index{ndims(index_set)}}()
+    boundary = copy(active_set)
     max_search_space = options[:max_search_space]
 
     ADInternals(old_set, active_set, max_index_set, boundary, max_search_space)
@@ -202,12 +200,12 @@ struct UInternals{T1, T2} <: SampleMethodInternals
     pmf::T2
 end
 
-function IndexSetInternals(index_set::AbstractU, sample_method, options)
+function IndexSetInternals(index_set::U, sample_method, options)
     indices = get_index_set(options[:max_search_space], options[:max_index_set_param])
 
     m = options[:nb_of_qoi] 
     n = sample_method isa MC ? 1 : maximum(options[:nb_of_shifts].(collect(indices))) 
-    d = ndims(options[:index_set])
+    d = ndims(index_set)
 
     accumulator = [Vector{Float64}(undef, 0) for i in 1:m, j in 1:n]
     pmf = Dict(index => prod(broadcast(i -> Geometric(1 - exp(-1.5), index[i]), 1:d)) for index in indices)
@@ -216,21 +214,25 @@ function IndexSetInternals(index_set::AbstractU, sample_method, options)
     UInternals(accumulator, pmf)
 end
 
-accumulator(estimator::Estimator{<:AbstractU}) = estimator.internals.index_set_internals.accumulator
+accumulator(estimator::Estimator{<:U}) = estimator.internals.index_set_internals.accumulator
 
-accumulator(estimator::Estimator{<:AbstractU}, n_qoi, n_shift) = estimator.internals.index_set_internals.accumulator[n_qoi, n_shift]
+accumulator(estimator::Estimator{<:U}, n_qoi, n_shift) = estimator.internals.index_set_internals.accumulator[n_qoi, n_shift]
 
-accumulator(estimator::Estimator{<:AbstractU}, n_qoi) = estimator.internals.index_set_internals.accumulator[n_qoi, 1]
+accumulator(estimator::Estimator{<:U}, n_qoi) = estimator.internals.index_set_internals.accumulator[n_qoi, 1]
 
-append_to_accumulator!(estimator::Estimator{<:AbstractU}, n_qoi, n_shift, samples_to_append) = append!(estimator.internals.index_set_internals.accumulator[n_qoi, n_shift], samples_to_append)
+append_to_accumulator!(estimator::Estimator{<:U}, n_qoi, n_shift, samples_to_append) = append!(estimator.internals.index_set_internals.accumulator[n_qoi, n_shift], samples_to_append)
 
-append_to_accumulator!(estimator::Estimator{<:AbstractU}, n_qoi, samples_to_append) = append!(estimator.internals.index_set_internals.accumulator[n_qoi, 1], samples_to_append)
+append_to_accumulator!(estimator::Estimator{<:U}, n_qoi, samples_to_append) = append_to_accumulator!(estimator, n_qoi, 1, samples_to_append)
 
-pmf(estimator::Estimator{<:AD}) = estimator.internals.index_set_internals.pmf
+add_to_accumulator!(estimator::Estimator{<:U}, n_qoi, n_shift, samples_to_add) = estimator.internals.index_set_internals.accumulator[n_qoi, n_shift][end-length(samples_to_add)+1:end] .+= samples_to_add
 
-pmf(estimator::Estimator{<:AD}, index::Index) = estimator.internals.index_set_internals.pmf[index]
+add_to_accumulator!(estimator::Estimator{<:U}, n_qoi, samples_to_add) = add_to_accumulator!(estimator, n_qoi, 1, samples_to_add)
 
-set_pmf_key(estimator::Estimator{<:AD}, index, val) = estimator.internals.index_set_internals.pmf[index] = val
+pmf(estimator::Estimator{<:U}) = estimator.internals.index_set_internals.pmf
+
+pmf(estimator::Estimator{<:U}, index::Index) = estimator.internals.index_set_internals.pmf[index]
+
+set_pmf_key(estimator::Estimator{<:U}, index, val) = estimator.internals.index_set_internals.pmf[index] = val
 
 # keeps track of max index size parameter sz
 mutable struct IndexSetSize{N}

@@ -66,7 +66,7 @@ eltype(::Type{<:Val{T}}) where {T} = T
 
 ## continuation_mul_factor ##
 @parse!(:continuation_mul_factor,
-        1.2,
+        1.3,
         begin
             check_type(to_string(key, val)..., Real)
             check_finite(to_string(key, val)...)

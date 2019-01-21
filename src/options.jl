@@ -30,7 +30,7 @@ default_options(::AbstractIndexSet) = [:min_splitting,
 get_valid_options(index_set::AbstractIndexSet) = default_options(index_set)
 get_valid_options(::SL) = Symbol[]
 get_valid_options(index_set::AD) = push!(default_options(index_set), :max_search_space)
-get_valid_options(::U) = [:max_search_space]
+get_valid_options(::U) = [:max_search_space, :sample_mul_factor]
 
 # additional valid options for SampleMethod
 get_valid_options(::AbstractSampleMethod) = Vector{Symbol}(undef, 0)

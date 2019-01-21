@@ -21,7 +21,7 @@ Return a single-level index set.
 julia> SL()
 SL
 ```
-See also: [`ML`](@ref), [`FT`](@ref), [`TD`](@ref), [`HC`](@ref), [`ZC`](@ref), [`AD`](@ref), [`U`](@ref), [`MG`](@ref)
+See also: [`ML`](@ref), [`FT`](@ref), [`TD`](@ref), [`HC`](@ref), [`ZC`](@ref), [`AD`](@ref), [`U`](@ref)
 """
 struct SL{d} <: AbstractIndexSet{d} end
 
@@ -40,7 +40,7 @@ Return a multi-level index set.
 julia> ML()
 ML
 ```
-See also: [`SL`](@ref), [`FT`](@ref), [`TD`](@ref), [`HC`](@ref), [`ZC`](@ref), [`AD`](@ref), [`U`](@ref), [`MG`](@ref)
+See also: [`SL`](@ref), [`FT`](@ref), [`TD`](@ref), [`HC`](@ref), [`ZC`](@ref), [`AD`](@ref), [`U`](@ref)
 """
 struct ML{d} <: AbstractIndexSet{d} end
 
@@ -72,7 +72,7 @@ julia> print(FT(2), 4)
   ◼ ◼ ◼ ◼ ◼
   ◼ ◼ ◼ ◼ ◼
 ```
-See also: [`SL`](@ref), [`ML`](@ref), [`TD`](@ref), [`HC`](@ref), [`ZC`](@ref), [`AD`](@ref), [`U`](@ref), [`MG`](@ref)
+See also: [`SL`](@ref), [`ML`](@ref), [`TD`](@ref), [`HC`](@ref), [`ZC`](@ref), [`AD`](@ref), [`U`](@ref)
 """
 struct FT{d, T} <: AbstractIndexSet{d}
     δ::T
@@ -104,7 +104,7 @@ julia> print(TD(2), 4)
 ```
 Return a total degree index set in `d` dimenions with optional weights `δ`. Default weights are all 1's.
 
-See also: [`SL`](@ref), [`ML`](@ref), [`FT`](@ref), [`HC`](@ref), [`ZC`](@ref), [`AD`](@ref), [`U`](@ref), [`MG`](@ref)
+See also: [`SL`](@ref), [`ML`](@ref), [`FT`](@ref), [`HC`](@ref), [`ZC`](@ref), [`AD`](@ref), [`U`](@ref)
 """
 struct TD{d, T} <: AbstractIndexSet{d}
     δ::T
@@ -136,7 +136,7 @@ julia> print(HC(2), 4)
 ```
 Return a hyperbolic cross index set in `d` dimenions with optional weights `δ`. Default weights are all 1's.
 
-See also: [`SL`](@ref), [`ML`](@ref), [`FT`](@ref), [`TD`](@ref), [`ZC`](@ref), [`AD`](@ref), [`U`](@ref), [`MG`](@ref)
+See also: [`SL`](@ref), [`ML`](@ref), [`FT`](@ref), [`TD`](@ref), [`ZC`](@ref), [`AD`](@ref), [`U`](@ref)
 """
 struct HC{d, T} <: AbstractIndexSet{d}
     δ::T
@@ -168,7 +168,7 @@ julia> print(ZC(2), 4)
 ```
 Return a Zaremba cross index set in `d` dimenions with optional weights `δ`. Default weights are all 1's.
 
-See also: [`SL`](@ref), [`ML`](@ref), [`FT`](@ref), [`TD`](@ref), [`HC`](@ref), [`AD`](@ref), [`U`](@ref), [`MG`](@ref)
+See also: [`SL`](@ref), [`ML`](@ref), [`FT`](@ref), [`TD`](@ref), [`HC`](@ref), [`AD`](@ref), [`U`](@ref)
 """
 struct ZC{d, T} <: AbstractIndexSet{d}
     δ::T
@@ -200,7 +200,7 @@ Return an adaptive index set in `d` dimenions.
 julia> AD(2)
 AD{2}
 ```
-See also: [`SL`](@ref), [`ML`](@ref), [`FT`](@ref), [`TD`](@ref), [`HC`](@ref), [`ZC`](@ref), [`U`](@ref), [`MG`](@ref)
+See also: [`SL`](@ref), [`ML`](@ref), [`FT`](@ref), [`TD`](@ref), [`HC`](@ref), [`ZC`](@ref), [`U`](@ref)
 """
 struct AD{d} <: AbstractIndexSet{d} end
 
@@ -217,37 +217,16 @@ Return an unbiased  multi-level or multi-index index set in `d` dimensions.
 julia> U(2)
 U{2}
 ```
-See also: [`SL`](@ref), [`ML`](@ref), [`FT`](@ref), [`TD`](@ref), [`HC`](@ref), [`ZC`](@ref), [`AD`](@ref), [`MG`](@ref)
+See also: [`SL`](@ref), [`ML`](@ref), [`FT`](@ref), [`TD`](@ref), [`HC`](@ref), [`ZC`](@ref), [`AD`](@ref)
 """
 struct U{d} <: AbstractIndexSet{d} end
 
 U(d::Integer) = check_larger_than(U, d, "dimension", 0) && U{d}()
 
-## MG ##
-"""
-    MG(I::U)
-
-Return a Multigrid wrapper for the index set `I` of type `U`.
-
-# Examples
-```jldoctest
-julia> MG(U(1))
-MG{U{1}}
-```
-See also: [`SL`](@ref), [`ML`](@ref), [`FT`](@ref), [`TD`](@ref), [`HC`](@ref), [`ZC`](@ref), [`AD`](@ref), [`U`](@ref)
-"""
-struct MG{d, I} <: AbstractIndexSet{d}
-    idxset::I
-end
-
-MG(idxset::I) where {I<:U{d}} where d = MG{d, I}(idxset)
-
 ## utilities ##
 AbstractMI = Union{TD, FT, HC, ZC, AD, U}
 
 AbstractML = Union{ML, U{1}}
-
-AbstractU = Union{MG, U}
 
 ndims(::AbstractIndexSet{d}) where {d} = d
 
@@ -273,8 +252,6 @@ julia> collect(get_index_set(TD(2), 2))
 ```
 """
 get_index_set(idxset::AbstractIndexSet{d}, sz::Integer) where d = Base.Iterators.filter(filter(idxset, sz), CartesianIndices(ntuple(i -> 0:sz + 1, d)))
-
-get_index_set(idxset::MG, sz::Integer) = get_index_set(idxset.idxset, sz)
 
 get_index_set(idxset::AD, sz::Integer) = get_index_set_not_implemented("AD") 
 
@@ -345,8 +322,6 @@ end
 for T in ["TD" "FT" "HC" "ZC" "AD" "U"]
     @eval shortname(idxset::$(Symbol(T))) = string($(T), "{", ndims(idxset), "}")
 end
-
-shortname(idxset::MG) = string("MG{", shortname(idxset.idxset), "}")
 
 ## input checking ##
 function check_args(δ::NTuple{d, <:Real}, name) where d
