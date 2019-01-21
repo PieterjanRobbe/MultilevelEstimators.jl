@@ -37,7 +37,7 @@ function print_header(estimator::Estimator, ϵ::Real)
     end_table_row(str)
     str = string("| *** This is a ", estimator)
     end_table_row(str)
-	str = string("| *** Simulating ", first(split(estimator[:name], ".")))
+    str = string("| *** Simulating ", first(split(estimator[:name], ".")))
     end_table_row(str)
     str = string("| *** Tolerance on RMSE ϵ = ", shorte(ϵ))
     end_table_row(str)
@@ -124,7 +124,7 @@ print_nb_of_samples(estimator::Estimator, index::Index) = print_nb_of_samples(es
 # profits
 #
 function print_largest_profit(estimator, max_index, max_profit, indices, profits)
-	println("Profit indicators:")
+    println("Profit indicators:")
     table_hline(2)
     header = "| "
     for name in [print_elname(estimator) "profit"]
@@ -132,16 +132,16 @@ function print_largest_profit(estimator, max_index, max_profit, indices, profits
     end
     println(header)
     table_hline(2)
-	for i in 1:length(indices)
-		index_str = string(indices[i])
+    for i in 1:length(indices)
+        index_str = string(indices[i])
         str = "| "
         str = string(str, index_str, spaces(n()-length(index_str)-2), " |")
-		profit_str = shorte(profits[i])
+        profit_str = shorte(profits[i])
         str = string(str, " ", profit_str, spaces(n()-length(profit_str)-2), " |")
         println(str)
     end
     table_hline(2)
-	println("Index with max profit is ", max_index, " (value = ", long(max_profit), ").")
+    println("Index with max profit is ", max_index, " (value = ", long(max_profit), ").")
 end
 
 #
@@ -168,7 +168,13 @@ end
 function print_qmc_convergence(estimator::Estimator{<:AbstractIndexSet, <:QMC}, ϵ::Real, θ::Real)
     println(string("Checking if variance of estimator is larger than θ*ϵ^2..."))
     converged = !(varest(estimator) > θ*ϵ^2)
-	println(string("  ==> ", converged ? "no!" : "yes", " (", long(varest(estimator))[2:end], converged ? " < " : " > ", short(θ), " *", long(ϵ^2), ")"))
+    println(string("  ==> ", converged ? "no!" : "yes", " (", long(varest(estimator))[2:end], converged ? " < " : " > ", short(θ), " *", long(ϵ^2), ")"))
+end
+
+function print_unbiased_convergence(estimator::Estimator{<:AbstractU}, ϵ::Real)
+    println(string("Checking if variance of estimator is larger than ϵ^2..."))
+    converged = !(varest(estimator) > θ*ϵ^2)
+    println(string("  ==> ", converged ? "no!" : "yes", " (", long(varest(estimator))[2:end], converged ? " < " : " > ", long(ϵ^2)[2:end], ")"))
 end
 
 #
@@ -222,15 +228,15 @@ print_level(estimator::Estimator, L) = println(string("Currently running with L 
 print_index_set(estimator::Estimator, index_set) = nothing
 
 print_index_set(estimator::Estimator{<:AbstractMI}, index_set) = begin
-	if ndims(estimator) == 2
-		println("Shape of the index set:")
-		print(union(keys(estimator), index_set))
-	end
+    if ndims(estimator) == 2
+        println("Shape of the index set:")
+        print(union(keys(estimator), index_set))
+    end
 end
 
 print_index_set(estimator::Estimator{<:AD}, index_set) = begin
-	if ndims(estimator) == 2
-		println("Shape of the index set (\u25A3 = active set):")
-		print(collect(old_set(estimator)), collect(active_set(estimator)))
-	end
+    if ndims(estimator) == 2
+        println("Shape of the index set (\u25A3 = active set):")
+        print(collect(old_set(estimator)), collect(active_set(estimator)))
+    end
 end

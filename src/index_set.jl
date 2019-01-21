@@ -247,6 +247,8 @@ AbstractMI = Union{TD, FT, HC, ZC, AD, U}
 
 AbstractML = Union{ML, U{1}}
 
+AbstractU = Union{MG, U}
+
 ndims(::AbstractIndexSet{d}) where {d} = d
 
 length(idxset::AbstractIndexSet, sz::Integer) = length(collect(get_index_set(idxset, sz)))

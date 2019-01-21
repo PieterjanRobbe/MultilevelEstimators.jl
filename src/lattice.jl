@@ -136,7 +136,7 @@ end
 	copyto!(x, (ϕ * 2.0^(-32) * shifted_lattice_rule.lattice_rule.z .+ shifted_lattice_rule.shift) .% 1)
 end
 
-@inline get_point(shifted_lattice_rule::ShiftedLatticeRule{<:LatticeRule{s}}, k::UInt32) where s = k > shifted_lattice_rule.lattice_rule.n ? rand(Float32, s) : get_point!(Vector{Float32}(undef, s), shifted_lattice_rule, k)
+@inline get_point(shifted_lattice_rule::ShiftedLatticeRule{<:LatticeRule32{s}}, k::UInt32) where s = k > shifted_lattice_rule.lattice_rule.n ? rand(Float32, s) : get_point!(Vector{Float32}(undef, s), shifted_lattice_rule, k)
 
 @inline get_point(shifted_lattice_rule::ShiftedLatticeRule{<:LatticeRule32{s}}, k::Int64) where s = k > shifted_lattice_rule.lattice_rule.n ? rand(s) : get_point!(Vector{Float64}(undef, s), shifted_lattice_rule, convert(UInt32, k))
 
