@@ -31,6 +31,8 @@ export LatticeRule32, get_point
 
 export Estimator
 
+export History
+
 export run
 
 ## include statements ##
