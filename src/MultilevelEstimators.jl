@@ -11,7 +11,7 @@ using Dates, DelimitedFiles, Distributed, JLD2, LinearAlgebra, Printf, Random, S
 
 ## import statements ##
 
-import Base: filter, ndims, eltype, show, diff, sum, :, print, length, getindex, run, push!, isless, >, <, ≥, ≤, +, zero, one, keys
+import Base: filter, ndims, eltype, show, diff, sum, :, print, length, getindex, run, push!, isless, >, <, ≥, ≤, +, zero, one, keys, haskey
 
 import Random: GLOBAL_RNG
 
@@ -31,7 +31,7 @@ export LatticeRule32, get_point
 
 export Estimator
 
-export History
+export History, haskey
 
 export run
 

@@ -31,12 +31,15 @@ function push!(history::History, estimator::Estimator, tol::Real, elapsed::Real)
     h[:V]             = apply(var0, estimator)
     h[:dE]            = apply(mean, estimator)
     h[:dV]            = apply(var, estimator)
-    h[:W]             = apply(work, estimator)
-    h[:W]             = apply(time, estimator)
+    h[:T]             = apply(time, estimator)
     h[:α]             = α(estimator)
     h[:β]             = β(estimator)
     h[:γ]             = γ(estimator)
     h[:nb_of_samples] = copy(nb_of_samples(estimator)) 
+	h[:cost_model]    = estimator[:cost_model]
+	if !(estimator[:cost_model] isa EmptyFunction)
+    	h[:W]         = apply(cost, estimator)
+	end
 
     # save samples if required
 	if estimator[:save_samples]
@@ -57,6 +60,8 @@ save(history::History) = @save joinpath(history[:folder], history[:name]) histor
 getindex(history::History, s::Symbol) = history.data[end][s]
 
 getindex(history::History, i::Integer) = history.data[i]
+
+haskey(history::History, s::Symbol) = haskey(history.data[end], s)
 
 length(history::History) = length(history.data)
 
