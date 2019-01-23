@@ -12,6 +12,8 @@ matrix:
     - julia: nightly
 env:
   - PYTHON=""
+before_script:
+  - julia -e 'using Pkg; Pkg.add("https://github.com/PieterjanRobbe/LognormalDiffusionProblems.git");'
 notifications:
   email: false
 after_success:
