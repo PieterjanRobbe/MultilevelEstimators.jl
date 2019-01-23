@@ -109,6 +109,8 @@ current_index_set(estimator::Estimator) = estimator.internals.default_internals.
 
 keys(estimator::Estimator) = sort(collect(current_index_set(estimator)))
 
+all_keys(estimator::Estimator) = broadcast(i -> i - one(i), filter(i -> has_samples_at_index(estimator, i -one(i)), CartesianIndices(samples(estimator, 1))))
+
 push!(estimator::Estimator, index::Index) = push!(estimator.internals.default_internals.current_index_set, index)
 
 clear(estimator::Estimator) = empty!(current_index_set(estimator))
@@ -145,23 +147,26 @@ struct GenericIndexSetInternals <: SampleMethodInternals end
 
 IndexSetInternals(index_set, sample_method, options) = GenericIndexSetInternals()
 
-struct ADInternals{T1, T2, T3} <: SampleMethodInternals
+struct ADInternals{T1, T2, T3, T4} <: SampleMethodInternals
     old_set::T1
     active_set::T1
     max_index_set::T1
     boundary::T2
     max_search_space::T3
+	logbook::T4
 end
 
 function IndexSetInternals(index_set::AD, sample_method, options)
-    old_set = Set{Index{ndims(index_set)}}()
-    active_set = Set{Index{ndims(index_set)}}()
-    push!(active_set, Index(ntuple(i -> 0, ndims(index_set))))
-    max_index_set = Set{Index{ndims(index_set)}}()
+	d = ndims(index_set)
+	s_type = Set{Index{d}}
+    old_set = s_type()
+    active_set = s_type()
+    max_index_set = s_type()
     boundary = copy(active_set)
     max_search_space = options[:max_search_space]
+	logbook = Vector{Tuple{s_type, s_type, Index{d}}}(undef, 0)
 
-    ADInternals(old_set, active_set, max_index_set, boundary, max_search_space)
+    ADInternals(old_set, active_set, max_index_set, boundary, max_search_space, logbook)
 end
 
 active_set(estimator::Estimator{<:AD}) = estimator.internals.index_set_internals.active_set
@@ -187,12 +192,16 @@ update_boundary(estimator::Estimator{<:AD}) = begin
     union!(estimator.internals.index_set_internals.boundary, estimator.internals.index_set_internals.active_set) 
 end
 
+logbook(estimator::Estimator{<:AD}) = estimator.internals.index_set_internals.logbook
+
+log_adaptive_index_set(estimator::Estimator{<:AD}, max_index) = push!(estimator.internals.index_set_internals.logbook, tuple(copy(old_set(estimator)), copy(union(active_set(estimator), max_index_set(estimator))), max_index)) 
+
 clear(estimator::Estimator{<:AD}) = begin
     empty!(current_index_set(estimator))
     empty!(active_set(estimator))
-    add_to_active_set(estimator, Index(ntuple(i -> 0, ndims(estimator))))
     empty!(old_set(estimator))
     empty!(max_index_set(estimator))
+	empty!(logbook(estimator))
 end
 
 struct UInternals{T1, T2} <: SampleMethodInternals

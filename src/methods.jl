@@ -192,24 +192,33 @@ function find_index_with_max_profit(estimator::Estimator{<:AD})
 end
 
 function new_index_set(estimator::Estimator{<:AD}, sz::Integer)
-    d = ndims(estimator)
-    max_index = find_index_with_max_profit(estimator)
-    add_to_old_set(estimator, max_index)
-    remove_from_active_set(estimator, max_index)
-    new_indices = Set{Index{d}}()
-    push!(new_indices, max_index)
-    for k in 1:d
-        new_index = max_index + Index(ntuple(i -> i == k, d))
-        if is_admissable(estimator, new_index)
-            if new_index ∈ get_index_set(estimator[:max_search_space], estimator[:max_index_set_param])
-                add_to_active_set(estimator, new_index)
-                push!(new_indices, new_index)
-            else
-                warn_max_index(estimator, max_index)
-                add_to_max_index_set(estimator, new_index)
-            end
-        end
-    end
+	d = ndims(estimator)
+	if isempty(active_set(estimator))
+		new_indices = Set{Index{d}}()
+		max_index = Index(ntuple(i -> 0, d))
+		add_to_active_set(estimator, max_index)
+		push!(new_indices, max_index)
+		update_boundary(estimator)
+	else
+		max_index = find_index_with_max_profit(estimator)
+		add_to_old_set(estimator, max_index)
+		remove_from_active_set(estimator, max_index)
+		new_indices = Set{Index{d}}()
+		push!(new_indices, max_index)
+		for k in 1:d
+			new_index = max_index + Index(ntuple(i -> i == k, d))
+			if is_admissable(estimator, new_index)
+				if new_index ∈ get_index_set(estimator[:max_search_space], estimator[:max_index_set_param])
+					add_to_active_set(estimator, new_index)
+					push!(new_indices, new_index)
+				else
+					warn_max_index(estimator, max_index)
+					add_to_max_index_set(estimator, new_index)
+				end
+			end
+		end
+	end
+	log_adaptive_index_set(estimator, max_index)
     return new_indices
 end
 

@@ -14,31 +14,38 @@ History() = History(Vector{Dict{Symbol, Any}}(undef, 0))
 
 function push!(history::History, estimator::Estimator, tol::Real, elapsed::Real)
     h = Dict{Symbol, Any}()
-    h[:type]          = typeof(estimator)
-    h[:ndims]         = ndims(estimator)
-	h[:name]          = estimator[:name]
-	h[:folder]        = estimator[:folder]
-    h[:elapsed]       = elapsed
-    h[:tol]           = tol
-    h[:index_set]     = keys(estimator)
-    h[:mse]           = mse(estimator)
-    h[:rmse]          = rmse(estimator)
-    h[:mean]          = mean(estimator)
-    h[:var]           = var(estimator)
-    h[:varest]        = varest(estimator)
-    h[:bias]          = bias(estimator)
-    h[:E]             = apply(mean0, estimator)
-    h[:V]             = apply(var0, estimator)
-    h[:dE]            = apply(mean, estimator)
-    h[:dV]            = apply(var, estimator)
-    h[:T]             = apply(time, estimator)
-    h[:α]             = α(estimator)
-    h[:β]             = β(estimator)
-    h[:γ]             = γ(estimator)
-    h[:nb_of_samples] = copy(nb_of_samples(estimator)) 
-	h[:cost_model]    = estimator[:cost_model]
+    h[:type]              = typeof(estimator)
+    h[:ndims]             = ndims(estimator)
+	h[:name]              = estimator[:name]
+	h[:folder]            = estimator[:folder]
+    h[:elapsed]           = elapsed
+    h[:tol]               = tol
+	h[:current_index_set] = copy(collect(keys(estimator)))
+	h[:index_set]         = copy(collect(all_keys(estimator)))
+    h[:mse]               = mse(estimator)
+    h[:rmse]              = rmse(estimator)
+    h[:mean]              = mean(estimator)
+    h[:var]               = var(estimator)
+    h[:varest]            = varest(estimator)
+    h[:bias]              = bias(estimator)
+    h[:E]                 = apply(mean0, estimator)
+    h[:V]                 = apply(var0, estimator)
+    h[:dE]                = apply(mean, estimator)
+    h[:dV]                = apply(var, estimator)
+    h[:T]                 = apply(time, estimator)
+    h[:α]                 = α(estimator)
+    h[:β]                 = β(estimator)
+    h[:γ]                 = γ(estimator)
+    h[:nb_of_samples]     = copy(nb_of_samples(estimator)) 
+
+	# add cost model is it was provided
 	if !(estimator[:cost_model] isa EmptyFunction)
-    	h[:W]         = apply(cost, estimator)
+    	h[:W]             = apply(cost, estimator)
+	end
+
+	# add logbook when using adpative index sets
+	if estimator isa Estimator{<:AD}
+		h[:logbook]       = copy(logbook(estimator))
 	end
 
     # save samples if required
@@ -53,7 +60,7 @@ function push!(history::History, estimator::Estimator, tol::Real, elapsed::Real)
     save(history)
 end
 
-apply(f::Function, estimator::Estimator) = Dict(i => f(estimator, i) for i in keys(estimator))
+apply(f::Function, estimator::Estimator) = Dict(i => f(estimator, i) for i in all_keys(estimator))
 
 save(history::History) = @save joinpath(history[:folder], history[:name]) history
 
