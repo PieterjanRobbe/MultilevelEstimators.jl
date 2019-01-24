@@ -17,4 +17,4 @@ Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 LognormalDiffusionProblems = "84461a34-18b6-11e9-063f-531b55a55ae0"
 
 [targets]
-test = ["LognormalDiffusionproblems"]
+test = ["LognormalDiffusionProblems"]

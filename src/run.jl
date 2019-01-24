@@ -133,6 +133,9 @@ function _run(estimator::Estimator{T1, T2}, ϵ::Real) where {T1<:AbstractIndexSe
         end
     end
 
+	# update boundary in case of AD
+	T1 <: AD && update_boundary(estimator)
+
     # print convergence status
     estimator[:verbose] && print_convergence(estimator, T1 <: SL ? true : converged(estimator, ϵ, θ))
 end

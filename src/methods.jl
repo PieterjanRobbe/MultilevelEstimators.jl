@@ -178,7 +178,7 @@ end
 #
 # adaptivity
 #
-profit(estimator::Estimator{<:AD}, index::Index) = abs(mean(estimator, index)) / sqrt(var(estimator, index) * cost(estimator, index))
+profit(estimator::Estimator{<:AD}, index::Index) = abs(mean(estimator, index)) / sqrt(var(estimator, index) * cost(estimator, index))^estimator[:penalization]
 
 max_level_exceeded(estimator::Estimator{<:AD}) = isempty(setdiff(get_index_set(estimator[:max_search_space], estimator[:max_index_set_param]), keys(estimator)))
 
@@ -198,7 +198,6 @@ function new_index_set(estimator::Estimator{<:AD}, sz::Integer)
 		max_index = Index(ntuple(i -> 0, d))
 		add_to_active_set(estimator, max_index)
 		push!(new_indices, max_index)
-		update_boundary(estimator)
 	else
 		max_index = find_index_with_max_profit(estimator)
 		add_to_old_set(estimator, max_index)
@@ -223,8 +222,12 @@ function new_index_set(estimator::Estimator{<:AD}, sz::Integer)
 end
 
 function bias(estimator::Estimator{<:AD}, sz::Integer)
-    indices = sz == max_sz(estimator) ? boundary(estimator) : active_set(estimator)
-    abs(sum(broadcast(i -> mean(estimator, i), collect(indices))))
+	b(indices) = abs(sum(broadcast(i -> mean(estimator, i), collect(indices))))
+	if sz != max_sz(estimator)
+		return b(active_set(estimator))
+	else
+		return min(b(active_set(estimator)), b(boundary(estimator)))
+	end
 end
 
 #

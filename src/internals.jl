@@ -163,6 +163,7 @@ function IndexSetInternals(index_set::AD, sample_method, options)
     active_set = s_type()
     max_index_set = s_type()
     boundary = copy(active_set)
+	push!(boundary, Index(ntuple(i -> 0, d)))
     max_search_space = options[:max_search_space]
 	logbook = Vector{Tuple{s_type, s_type, Index{d}}}(undef, 0)
 
@@ -189,12 +190,12 @@ boundary(estimator::Estimator{<:AD}) = collect(estimator.internals.index_set_int
 
 update_boundary(estimator::Estimator{<:AD}) = begin
     empty!(estimator.internals.index_set_internals.boundary)
-    union!(estimator.internals.index_set_internals.boundary, estimator.internals.index_set_internals.active_set) 
+	union!(estimator.internals.index_set_internals.boundary, copy(estimator.internals.index_set_internals.active_set))
 end
 
 logbook(estimator::Estimator{<:AD}) = estimator.internals.index_set_internals.logbook
 
-log_adaptive_index_set(estimator::Estimator{<:AD}, max_index) = push!(estimator.internals.index_set_internals.logbook, tuple(copy(old_set(estimator)), copy(union(active_set(estimator), max_index_set(estimator))), max_index)) 
+log_adaptive_index_set(estimator::Estimator{<:AD}, max_index) = push!(estimator.internals.index_set_internals.logbook, tuple(copy(old_set(estimator)), copy(active_set(estimator)), max_index)) 
 
 clear(estimator::Estimator{<:AD}) = begin
     empty!(current_index_set(estimator))

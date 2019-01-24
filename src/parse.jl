@@ -205,7 +205,7 @@ struct EmptyFunction <: Function end
         i -> 10,
         begin
             check_type(to_string(key, val)..., Union{Integer, Function})
-            val isa Function && options[:index_set] <: AbstractU && throw(ArgumentError("in Estimator, optional key nb_of_shifts cannot be a Function when using unbiased estimation"))
+            val isa Function && index_set isa U && throw(ArgumentError("in Estimator, optional key nb_of_shifts cannot be a Function when using unbiased estimation"))
             if val isa Integer
                 check_larger_than(to_string(key, val)..., 1)
                 delete!(options, val)
@@ -240,3 +240,14 @@ end
         i -> length(options[:distributions]),
 check_type(to_string(key, val)..., Function)
 )
+
+## penalization ##
+@parse!(:penalization,
+        0.5,
+        begin
+            check_type(to_string(key, val)..., Real)
+            check_finite(to_string(key, val)...)
+            check_larger_than_or_equal_to(to_string(key, val)..., 0)
+            check_smaller_than_or_equal_to(to_string(key, val)..., 1)
+        end
+        )

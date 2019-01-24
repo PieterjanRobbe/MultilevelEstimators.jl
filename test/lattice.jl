@@ -11,8 +11,8 @@ point = get_point(lattice_rule, 2)
 @test length(point) == 2
 @test all(0 .≤ point .< 1)
 
-z_file_1 = joinpath(dirname(pathof(MultilevelEstimators)), "core", "generating_vectors", "K_3600_32.txt")
-z_file_2 = joinpath(dirname(pathof(MultilevelEstimators)), "core", "generating_vectors", "CKN_250_20.txt")
+z_file_1 = joinpath(dirname(pathof(MultilevelEstimators)), "generating_vectors", "K_3600_32.txt")
+z_file_2 = joinpath(dirname(pathof(MultilevelEstimators)), "generating_vectors", "CKN_250_20.txt")
 lattice_rule = LatticeRule32(z_file_1, 101)
 point = get_point(lattice_rule, 100_000)
 @test lattice_rule isa LatticeRule32

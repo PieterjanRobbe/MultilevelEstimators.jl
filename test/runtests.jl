@@ -15,7 +15,6 @@ include("lattice.jl")
 
 include("estimator.jl")
 
-
 ## lognormal tests ##
 #push!(LOAD_PATH,joinpath(dirname(pathof(MultilevelEstimators)), "..", "applications", "lognormal"))
 #using LognormalDiffusionProblems, GaussianRandomFields

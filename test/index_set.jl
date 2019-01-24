@@ -66,12 +66,12 @@ u = U(1)
 @test_throws MethodError U(1, 2)
 @sprintf "%s" u
 
-m = MG(U(2))
-@test m isa MG
+m = U(2)
+@test m isa U{2}
 @test_throws ArgumentError get_index_set(m, 4)
 @sprintf "%s" m
 
 @test length(collect(get_index_set(TD(2), 0))) == 1
-@test_throws ArgumentError get_index_set(TD(2), -1)
+@test isempty(get_index_set(TD(2), -1))
 
 end

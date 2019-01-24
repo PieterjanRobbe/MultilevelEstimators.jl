@@ -13,7 +13,7 @@ matrix:
 env:
   - PYTHON=""
 before_script:
-  - julia -e 'using Pkg; Pkg.clone("https://github.com/PieterjanRobbe/LognormalDiffusionProblems.jl.git");'
+  - julia -e 'using Pkg; Pkg.clone("https://github.com/PieterjanRobbe/SimpleMultigrid.jl.git"); Pkg.clone("https://github.com/PieterjanRobbe/NotSoSimpleMultigrid.jl.git"); Pkg.clone("https://github.com/PieterjanRobbe/LognormalDiffusionProblems.jl.git");'
 notifications:
   email: false
 after_success:
