@@ -12,9 +12,9 @@
 Return a multi-index.
 
 # Examples
-```jldoctest
-julia> index = Index(2,1)
-(2,1)
+```jldoctest; setup = :(using MultilevelEstimators)
+julia> index = Index(2, 1)
+(2, 1)
 ```
 See also: [`Level`](@ref)
 """
@@ -30,7 +30,7 @@ show(io::IO, ::Type{Index}) = print(io, "Index")
 Return a level.
 
 # Examples
-```jldoctest
+```jldoctest; setup = :(using MultilevelEstimators)
 julia> level = Level(2)
 2
 ```
@@ -42,9 +42,6 @@ show(io::IO, level::Level) = print(io, level[1])
 show(io::IO, ::Type{Level}) = print(io, "Level")
 
 ## utilities ##
-"""
-Returns a `Dict` with keys of type `Index` and values +1 or -1.
-"""
 function diff(index::Index{d}) where d
     D = Dict{Index{d}, Int}()
     Istart = max(zero(index), index - one(index))
@@ -58,5 +55,6 @@ end
 
 sum(I::CartesianIndex) = sum(Tuple(I))
 
-# TODO: this method should already be defined when using > v1.1.0!
-(:)(I::CartesianIndex{N}, J::CartesianIndex{N}) where N = CartesianIndices(map((i,j) -> i:j, Tuple(I), Tuple(J)))
+if VERSION < v"1.1.0-"
+	(:)(I::CartesianIndex{N}, J::CartesianIndex{N}) where N = CartesianIndices(map((i,j) -> i:j, Tuple(I), Tuple(J)))
+end

@@ -187,7 +187,7 @@ function find_index_with_max_profit(estimator::Estimator{<:AD})
     profits = [profit(estimator, index) for index in indices] 
     (max_profit, idx) = findmax(profits)
     max_index = indices[idx]
-    print_largest_profit(estimator, max_index, max_profit, indices, profits)
+    estimator[:verbose] && print_largest_profit(estimator, max_index, max_profit, indices, profits)
     return max_index
 end
 
