@@ -49,15 +49,17 @@ function push!(history::History, estimator::Estimator, tol::Real, elapsed::Real)
 	end
 
     # save samples if required
-	if estimator[:save_samples]
-        h[:samples] = samples(estimator)
-        h[:samples_diff] = samples_diff(estimator)
+    if estimator[:save]
+        if estimator[:save_samples]
+            h[:samples] = samples(estimator)
+            h[:samples_diff] = samples_diff(estimator)
+        end
+
+        push!(history.data, h)
+
+        # save history
+        save(history)
     end
-
-    push!(history.data, h)
-
-    # save history
-    save(history)
 end
 
 apply(f::Function, estimator::Estimator) = Dict(i => f(estimator, i) for i in all_keys(estimator))

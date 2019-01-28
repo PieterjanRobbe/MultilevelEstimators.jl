@@ -11,6 +11,7 @@ default_options(::AbstractIndexSet, ::AbstractSampleMethod) = [:nb_of_warm_up_sa
                                                                :nb_of_tols,
                                                                :continuation_mul_factor,
                                                                :continuate,
+                                                               :save,
                                                                :save_samples,
                                                                :verbose,
                                                                :folder,

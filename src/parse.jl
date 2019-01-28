@@ -106,8 +106,11 @@ eltype(::Type{<:Val{T}}) where {T} = T
         pwd(),
         begin
             check_type(to_string(key, val)..., String)
-            isdir(val) || throw(ArgumentError(string(val, "is not a directory!")))
-            ispath(val) || makepath(val)
+            haskey(options, :save) || parse!(index_set, sample_method, options, :save)
+            if options[:save]
+                isdir(val) || throw(ArgumentError(string(val, "is not a directory!")))
+                ispath(val) || makepath(val)
+            end
         end
         )
 
@@ -140,6 +143,12 @@ end
 ## save_samples ##
 @parse!(:save_samples,
         false,
+        check_type(to_string(key, val)..., Bool)
+)
+
+## save ##
+@parse!(:save,
+        true,
         check_type(to_string(key, val)..., Bool)
 )
 

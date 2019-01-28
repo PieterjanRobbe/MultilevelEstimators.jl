@@ -17,7 +17,7 @@ abstract type AbstractIndexSet{d} end
 Return a single-level index set.
 
 # Examples
-```jldoctest
+```jldoctest; setup = :(using MultilevelEstimators)
 julia> SL()
 SL
 ```
@@ -36,7 +36,7 @@ filter(::SL, sz) = itr -> sum(itr) == sz
 Return a multi-level index set.
 
 # Examples
-```jldoctest
+```jldoctest; setup = :(using MultilevelEstimators)
 julia> ML()
 ML
 ```
@@ -58,11 +58,11 @@ filter(::ML, sz) = itr -> sum(itr) ≤ sz
 Return a full tensor index set in `d` dimenions with optional weights `δ`. Default weights are all 1's.
 
 # Examples
-```jldoctest
+```jldoctest; setup = :(using MultilevelEstimators)
 julia> FT(2)
 FT{2}
 
-julia> FT([2, 1, 1])
+julia> FT([1, 1/2, 1/2])
 FT{3}
 
 julia> print(FT(2), 4)
@@ -88,11 +88,11 @@ filter(idxset::FT, sz) = itr -> all(itr.I ./ idxset.δ .≤ sz)
     TD(δ::NTuple)
 
 # Examples
-```jldoctest
+```jldoctest; setup = :(using MultilevelEstimators)
 julia> TD(2)
 TD{2}
 
-julia> TD([2, 1, 1])
+julia> TD([1, 1/2, 1/2])
 TD{3}
 
 julia> print(TD(2), 4)
@@ -120,11 +120,11 @@ filter(idxset::TD, sz) = itr -> sum(itr.I ./ idxset.δ) ≤ sz
     HC(δ::NTuple)
 
 # Examples
-```jldoctest
+```jldoctest; setup = :(using MultilevelEstimators)
 julia> HC(2)
 HC{2}
 
-julia> HC([2, 1, 1])
+julia> HC([1, 1/2, 1/2])
 HC{3}
 
 julia> print(HC(2), 4)
@@ -152,11 +152,11 @@ filter(idxset::HC, sz) = itr -> prod(itr.I ./ idxset.δ .+ 1) - 1 ≤ sz
     ZC(δ::NTuple)
 
 # Examples
-```jldoctest
+```jldoctest; setup = :(using MultilevelEstimators)
 julia> ZC(2)
 ZC{2}
 
-julia> ZC([2, 1, 1])
+julia> ZC([1, 1/2, 1/2])
 ZC{3}
 
 julia> print(ZC(2), 4)
@@ -196,7 +196,7 @@ end
 Return an adaptive index set in `d` dimenions.
 
 # Examples
-```jldoctest
+```jldoctest; setup = :(using MultilevelEstimators)
 julia> AD(2)
 AD{2}
 ```
@@ -213,7 +213,7 @@ AD(d::Integer) = check_larger_than(AD, d, "dimension", 1) && AD{d}()
 Return an unbiased  multi-level or multi-index index set in `d` dimensions.
 
 # Examples
-```jldoctest
+```jldoctest; setup = :(using MultilevelEstimators)
 julia> U(2)
 U{2}
 ```
@@ -240,7 +240,7 @@ eltype(::Type{<:AbstractIndexSet{d}}) where d = Index{d}
 Return an iterator over all indices in the index set `idxset` for a given size parameter `sz`.
 
 # Examples
-```jldoctest
+```jldoctest; setup = :(using MultilevelEstimators)
 julia> collect(get_index_set(TD(2), 2))
 6-element Array{Tuple{Int64,Int64},1}:
 (0, 0)
@@ -280,7 +280,7 @@ end
 Print the indices in the index set `idxset` for a given size parameter `sz`. Only implemented for two-dimensional index sets.
 
 # Examples
-```jldoctest
+```jldoctest; setup = :(using MultilevelEstimators)
 julia> collect(get_index_set(TD(2), 3))
   ◼
   ◼ ◼
