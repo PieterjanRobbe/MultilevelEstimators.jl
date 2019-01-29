@@ -52,8 +52,8 @@ filter(::ML, sz) = itr -> sum(itr) ≤ sz
 """
     FT(d::Integer)
     FT(δ::Real...)
-    FT(δ::AbstractVector)
-    FT(δ::NTuple)
+	FT(δ::AbstractVector{<:Real})
+    FT(δ::NTuple{N, <:Real})
 
 Return a full tensor index set in `d` dimenions with optional weights `δ`. Default weights are all 1's.
 
@@ -84,8 +84,10 @@ filter(idxset::FT, sz) = itr -> all(itr.I ./ idxset.δ .≤ sz)
 """
     TD(d::Integer)
     TD(δ::Real...)
-    TD(δ::AbstractVector)
-    TD(δ::NTuple)
+	TD(δ::AbstractVector{<:Real})
+    TD(δ::NTuple{N, <:Real})
+
+Return a total degree index set in `d` dimenions with optional weights `δ`. Default weights are all 1's.
 
 # Examples
 ```jldoctest; setup = :(using MultilevelEstimators)
@@ -102,7 +104,6 @@ julia> print(TD(2), 4)
   ◼ ◼ ◼ ◼
   ◼ ◼ ◼ ◼ ◼
 ```
-Return a total degree index set in `d` dimenions with optional weights `δ`. Default weights are all 1's.
 
 See also: [`SL`](@ref), [`ML`](@ref), [`FT`](@ref), [`HC`](@ref), [`ZC`](@ref), [`AD`](@ref), [`U`](@ref)
 """
@@ -116,8 +117,10 @@ filter(idxset::TD, sz) = itr -> sum(itr.I ./ idxset.δ) ≤ sz
 """
     HC(d::Integer)
     HC(δ::Real...)
-    HC(δ::AbstractVector)
-    HC(δ::NTuple)
+	HC(δ::AbstractVector{<:Real})
+    HC(δ::NTuple{N, <:Real})
+
+Return a hyperbolic cross index set in `d` dimenions with optional weights `δ`. Default weights are all 1's.
 
 # Examples
 ```jldoctest; setup = :(using MultilevelEstimators)
@@ -134,7 +137,6 @@ julia> print(HC(2), 4)
   ◼ ◼
   ◼ ◼ ◼ ◼ ◼
 ```
-Return a hyperbolic cross index set in `d` dimenions with optional weights `δ`. Default weights are all 1's.
 
 See also: [`SL`](@ref), [`ML`](@ref), [`FT`](@ref), [`TD`](@ref), [`ZC`](@ref), [`AD`](@ref), [`U`](@ref)
 """
@@ -148,8 +150,10 @@ filter(idxset::HC, sz) = itr -> prod(itr.I ./ idxset.δ .+ 1) - 1 ≤ sz
 """
     ZC(d::Integer)
     ZC(δ::Real...)
-    ZC(δ::AbstractVector)
-    ZC(δ::NTuple)
+	ZC(δ::AbstractVector{<:Real})
+	ZC(δ::NTuple{N, <:Real})
+
+Return a Zaremba cross index set in `d` dimenions with optional weights `δ`. Default weights are all 1's.
 
 # Examples
 ```jldoctest; setup = :(using MultilevelEstimators)
@@ -166,7 +170,6 @@ julia> print(ZC(2), 4)
   ◼ ◼ ◼ ◼ ◼ 
   ◼ ◼ ◼ ◼ ◼ 
 ```
-Return a Zaremba cross index set in `d` dimenions with optional weights `δ`. Default weights are all 1's.
 
 See also: [`SL`](@ref), [`ML`](@ref), [`FT`](@ref), [`TD`](@ref), [`HC`](@ref), [`AD`](@ref), [`U`](@ref)
 """
@@ -242,13 +245,13 @@ Return an iterator over all indices in the index set `idxset` for a given size p
 # Examples
 ```jldoctest; setup = :(using MultilevelEstimators)
 julia> collect(get_index_set(TD(2), 2))
-6-element Array{Tuple{Int64,Int64},1}:
-(0, 0)
-(1, 0)
-(2, 0)
-(0, 1)
-(1, 1)
-(0, 2)
+6-element Array{CartesianIndex{2},1}:
+ (0, 0)
+ (1, 0)
+ (2, 0)
+ (0, 1)
+ (1, 1)
+ (0, 2)
 ```
 """
 get_index_set(idxset::AbstractIndexSet{d}, sz::Integer) where d = Base.Iterators.filter(filter(idxset, sz), CartesianIndices(ntuple(i -> 0:sz + 1, d)))
@@ -281,7 +284,7 @@ Print the indices in the index set `idxset` for a given size parameter `sz`. Onl
 
 # Examples
 ```jldoctest; setup = :(using MultilevelEstimators)
-julia> collect(get_index_set(TD(2), 3))
+julia> print(TD(2), 3)
   ◼
   ◼ ◼
   ◼ ◼ ◼

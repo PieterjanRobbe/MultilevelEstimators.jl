@@ -1,12 +1,13 @@
 # Manual
 
+```@contents
+Pages = ["manual.md"]
+```
+
 ## Index
 
 ```@docs
 Level
-```
-
-```@docs
 Index
 ```
 
@@ -14,32 +15,51 @@ Index
 
 ```@docs
 SL
-```
-
-```@docs
 ML
-```
-
-```@docs
 FT
-```
-
-```@docs
 TD
-```
-
-```@docs
 HC
-```
-
-```@docs
 ZC
-```
-
-```@docs
 AD
+U
+get_index_set
+print
 ```
 
+## SampleMethod
+
 ```@docs
-U
+MC
+QMC
+```
+
+## Distribution
+
+```@docs
+Uniform
+Normal
+TruncatedNormal
+Weibull
+transform
+```
+
+## LatticeRule32
+
+```@docs
+LatticeRule32
+ShiftedLatticeRule
+get_point
+```
+
+## Estimator
+
+```@docs
+Estimator
+run
+```
+
+## History
+
+```@docs
+History
 ```

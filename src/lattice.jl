@@ -20,10 +20,16 @@ end
 
 Returns a rank-1 lattice rule in `s` dimensions with generating vector `z` and at most `n` points.
 
-Technically, we return an extensible lattice sequence where the `k`-th point is transformed using the radical inverse function. This has the advantage that we can add points to the set without changing the already computed points. When no maximum number of points `n` is provided, we assume `n=2^32`. When no number of dimensions `s` is provided, we assume `s=length(z)`. 
+When no maximum number of points `n` is provided, we assume `n=2^32`. When no number of dimensions `s` is provided, we assume `s=length(z)`. 
+
+!!! info
+
+    Technically, we return an extensible lattice sequence where the `k`-th point is transformed using the radical inverse function. This has the advantage that we can add points to the set without changing the already computed points.
+
+More generating vectors can be found online [here](https://web.maths.unsw.edu.au/~fkuo/lattice/index.html) or [here](https://people.cs.kuleuven.be/~dirk.nuyens/qmc-generators/).
 
 # Examples
-```jldoctest
+```jldoctest; setup = :(using MultilevelEstimators; import Random; Random.seed!(1))
 julia> lattice_rule = LatticeRule32([0x00000001,0x00000022], 2, 0x00000037) # Fibonacci lattice rule
 LatticeRule32{2}
 
@@ -34,8 +40,10 @@ julia> get_point(lattice_rule, 2)
 
 julia> get_point(lattice_rule, 56) # returns random points beyond n
 2-element Array{Float64,1}:
-[...]
+ 0.23603334566204692
+ 0.34651701419196046
 ```
+See also: [`get_point`](@ref), [`ShiftedLatticeRule`](@ref)
 """
 LatticeRule32(z::Vector{UInt32}) = LatticeRule32(z, length(z))
 LatticeRule32(z::Vector{UInt32}, s::Integer) = LatticeRule32(z, s, typemax(UInt32))
@@ -48,14 +56,9 @@ LatticeRule32(z::Vector{UInt32}, s::Integer, n::Integer) = check_args(z, s, n) &
 
 Returns a rank-1 lattice rule in `s` dimensions with generating vector `z` read from the file `str` and at most `n` points.
 
-Technically, we return an extensible lattice sequence where the `k`-th point is transformed using the radical inverse function. This has the advantage that we can add points to the set without changing the already computed points. When no maximum number of points `n` is provided, we assume `n=2^32`. When no number of dimensions `s` is provided, we assume `s=length(z)`. The file `str` should contain a vector of integer points.
-
 # Examples
-```jldoctest
-julia> import MultilevelEstimators
-
-julia> z_file = joinpath(dirname(pathof(MultilevelEstimators)), "core", "generating_vectors", "K_3600_32.txt")
-[...]
+```jldoctest; setup = :(using MultilevelEstimators)
+julia> z_file = joinpath(dirname(pathof(MultilevelEstimators)), "generating_vectors", "K_3600_32.txt");
 
 julia> lattice_rule = LatticeRule32(z_file, 16)
 LatticeRule32{16}
@@ -63,23 +66,24 @@ LatticeRule32{16}
 julia> get_point(lattice_rule, 123)
 16-element Array{Float64,1}:
  0.3828125
- 0.28125  
- 0.15625  
- 0.34375  
+ 0.2890625
+ 0.1484375
+ 0.3515625
  0.6015625
  0.1171875
  0.4296875
  0.4609375
  0.2265625
- 0.65625  
+ 0.6484375
  0.9609375
  0.6796875
  0.0546875
- 0.21875  
+ 0.2265625
  0.1328125
  0.1640625
 
 ```
+See also: [`get_point`](@ref), [`ShiftedLatticeRule`](@ref)
 """
 LatticeRule32(s::Int) = check_arg(s) && LatticeRule32(joinpath(@__DIR__(), "generating_vectors", "K_3600_32.txt"), s)
 LatticeRule32(str::String, s::Integer) = LatticeRule32(vec(readdlm(str, UInt32)), s)
@@ -89,20 +93,13 @@ show(io::IO, lattice_rule::LatticeRule32{s}) where s = print(io, string("Lattice
 
 ## ShiftedLatticeRule ##
 """
-    LatticeRule32(str, s, n)
-    LatticeRule32(str, s)
-    LatticeRule32(str)
+    ShiftedLatticeRule(lat::AbstractLatticeRule)
 
-Returns a rank-1 lattice rule in `s` dimensions with generating vector `z` read from the file `str` and at most `n` points.
-
-Technically, we return an extensible lattice sequence where the `k`-th point is transformed using the radical inverse function. This has the advantage that we can add points to the set without changing the already computed points. When no maximum number of points `n` is provided, we assume `n=2^32`. When no number of dimensions `s` is provided, we assume `s=length(z)`. The file `str` should contain a vector of integer points.
+Returns a shifted rank-1 lattice rule based on the lattice rule `lat`.
 
 # Examples
-```jldoctest
-julia> import MultilevelEstimators
-
-julia> z_file = joinpath(dirname(pathof(MultilevelEstimators)), "core", "generating_vectors", "K_3600_32.txt")
-[...]
+```jldoctest; setup = :(using MultilevelEstimators; import Random; Random.seed!(1))
+julia> z_file = joinpath(dirname(pathof(MultilevelEstimators)), "generating_vectors", "K_3600_32.txt");
 
 julia> lattice_rule = LatticeRule32(z_file, 16)
 LatticeRule32{16}
@@ -110,7 +107,27 @@ LatticeRule32{16}
 julia> shifted_lattice_rule = ShiftedLatticeRule(lattice_rule)
 ShiftedLatticeRule{LatticeRule32{16}}
 
+julia> get_point(shifted_lattice_rule, 0)
+16-element Array{Float64,1}:
+ 0.23603334566204692
+ 0.34651701419196046
+ 0.3127069683360675
+ 0.00790928339056074
+ 0.4886128300795012
+ 0.21096820215853596
+ 0.951916339835734
+ 0.9999046588986136
+ 0.25166218303197185
+ 0.9866663668987996
+ 0.5557510873245723
+ 0.43710797460962514
+ 0.42471785049513144
+ 0.773223048457377
+ 0.2811902322857298
+ 0.20947237319807077
+
 ```
+See also: [`LatticeRule32`](@ref), [`get_point`](@ref)
 """
 struct ShiftedLatticeRule{L<:AbstractLatticeRule, V<:AbstractVector{<:Real}}
     lattice_rule::L
@@ -127,6 +144,23 @@ show(io::IO, s::ShiftedLatticeRule) = print(io, string("ShiftedLatticeRule{", s.
 	copyto!(x, ϕ * 2.0^(-32) * lattice_rule.z .% 1)
 end
 
+"""
+    get_point(lat::AbstractLatticeRule, k::Integer)
+
+Get the `k`-th point of the lattice rule `lat`.
+
+```jldoctest; setup = :(using MultilevelEstimators)
+julia> lattice_rule = LatticeRule32([0x00000001,0x00000022], 2, 0x00000037) # Fibonacci lattice rule
+LatticeRule32{2}
+
+julia> get_point(lattice_rule, 2)
+2-element Array{Float64,1}:
+ 0.75
+ 0.5
+
+```
+See also: [`LatticeRule32`](@ref), [`ShiftedLatticeRule`](@ref)
+"""
 @inline get_point(lattice_rule::LatticeRule32{s}, k::UInt32) where s = k > lattice_rule.n ? rand(Float32, s) : get_point!(Vector{Float32}(undef, s), lattice_rule, k)
 
 @inline get_point(lattice_rule::LatticeRule32{s}, k::Int64) where s = k > lattice_rule.n ? rand(s) : get_point!(Vector{Float64}(undef, s), lattice_rule, convert(UInt32, k))

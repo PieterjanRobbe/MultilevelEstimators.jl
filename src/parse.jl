@@ -180,7 +180,7 @@ struct EmptyFunction <: Function end
 
 ## max_index_set_param ##
 @parse!(:max_index_set_param,
-        100,
+		typemax(Int64),
         begin
             check_type(to_string(key, val)..., Signed)
             check_larger_than(to_string(key, val)..., 0)

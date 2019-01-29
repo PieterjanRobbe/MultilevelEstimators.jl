@@ -11,7 +11,7 @@ A full description of the functionality is described in the [Manual](@ref).
 MultilevelEstimators is not added to the Julia package manager (just yet), but, the package can easily be installed by cloning the git repository. From the Julia REPL, type `]` to enter Pkg mode and run
 
 ```julia
-pkg> add https://github.com/PieterjanRobbe/MultilevelEstimators.jl.git
+pkg> add https://github.com/PieterjanRobbe/MultilevelEstimators.jl
 ```
 
 This will install the main functionality.
@@ -23,7 +23,7 @@ This will install the main functionality.
 For automatic generation of reports and figures you will need the [`Reporter.jl`](https://github.com/PieterjanRobbe/Reporter.jl)  package
 
 ```julia
-pkg> add https://github.com/PieterjanRobbe/Reporter.jl.git
+pkg> add https://github.com/PieterjanRobbe/Reporter.jl
 ```
 
 Finally, to run the example problems, you can install the Multigrid solvers and the package to solve lognormal diffusion problems:
@@ -57,28 +57,30 @@ Most recent addition to the package is **unbiased** Multilevel and Multi-Index M
 
 The algorithms implemented in this package are loosely based on the following papers:
 
-Basic Multilevel Monte Carlo method:
++ Basic Multilevel Monte Carlo method:
 
-* Giles, M. B. *Multilevel Monte Carlo Path Simulation*. Operations Research 56.3 (2008): 607-617.
+    [1] Giles, M. B. *Multilevel Monte Carlo Path Simulation*. Operations Research 56.3 (2008): 607-617.
 
-Variance regression and continuation:
+    [2] Cliffe, K. A., Giles, M. B., Scheichl, R., and Teckentrup, A. L. *Multilevel Monte Carlo methods and applications to elliptic PDEs with random coefficients*. Computing and Visualization in Science, 14.1, (2011): 3-15.
 
-* Collier, N., Haji-Ali, A. L., Nobile, F., von Schwerin, E., and Tempone, R. *A Continuation Multilevel Monte Carlo Algorithm*. BIT Numerical Mathematics 55.2 (2015): 399-432. 
++ Variance regression and continuation:
 
-Quasi-Monte Carlo and Multilevel Quasi-Monte Carlo methods:
+    [3] Collier, N., Haji-Ali, A. L., Nobile, F., von Schwerin, E., and Tempone, R. *A Continuation Multilevel Monte Carlo Algorithm*. BIT Numerical Mathematics 55.2 (2015): 399-432. 
 
-* Giles, M. B., and Waterhouse, B. J. *Multilevel Quasi-Monte Carlo Path Simulation*. Advanced Financial Modelling, Radon Series on Computational and Applied Mathematics (2009): 165-181.
++ Quasi-Monte Carlo and Multilevel Quasi-Monte Carlo methods:
 
-Multi-Index (Quasi-)Monte Carlo methods:
+    [4] Giles, M. B., and Waterhouse, B. J. *Multilevel Quasi-Monte Carlo Path Simulation*. Advanced Financial Modelling, Radon Series on Computational and Applied Mathematics (2009): 165-181.
 
-* Robbe, P., Nuyens, D., and Vandewalle, S. *A Multi-Index Quasi-Monte Carlo Algorithm for Lognormal Diffusion Problems*. SIAM Journal on Scientific Computing 39.5 (2017): S851-S872.
++ Multi-Index (Quasi-)Monte Carlo methods:
 
-Adaptive Multi-Index methods:
+    [5] Robbe, P., Nuyens, D., and Vandewalle, S. *A Multi-Index Quasi-Monte Carlo Algorithm for Lognormal Diffusion Problems*. SIAM Journal on Scientific Computing 39.5 (2017): S851-S872.
 
-* Robbe, P., Nuyens, D., and Vandewalle, S. *A Dimension-Adaptive Multi-Index Monte Carlo Method Applied to a Model of a Heat Exchanger*. International Conference on Monte Carlo and Quasi-Monte Carlo Methods in Scientific Computing. Springer Proceedings in Mathematics & Statistics 241 (2018): 429-445.
++ Adaptive Multi-Index methods:
 
-Unbiased estimation:
+    [6] Robbe, P., Nuyens, D., and Vandewalle, S. *A Dimension-Adaptive Multi-Index Monte Carlo Method Applied to a Model of a Heat Exchanger*. International Conference on Monte Carlo and Quasi-Monte Carlo Methods in Scientific Computing. Springer Proceedings in Mathematics & Statistics 241 (2018): 429-445.
 
-* Robbe, P., Nuyens, D. and Vandewalle, S. *Recycling Samples in the Multigrid Multilevel (Quasi-)Monte Carlo Method*. SIAM Journal on Scientific Computing, to appear (2019).
++ Unbiased estimation:
 
-* Robbe, P., Nuyens, D. and Vandewalle, S. *Enhanced Multi-Index Monte Carlo by means of Multiple Semi-coarsened Multigrid for Anisotropic Diffusion Problems*. In preparation (2019).
+    [7] Robbe, P., Nuyens, D. and Vandewalle, S. *Recycling Samples in the Multigrid Multilevel (Quasi-)Monte Carlo Method*. SIAM Journal on Scientific Computing, to appear (2019).
+
+    [8] Robbe, P., Nuyens, D. and Vandewalle, S. *Enhanced Multi-Index Monte Carlo by means of Multiple Semi-coarsened Multigrid for Anisotropic Diffusion Problems*. In preparation (2019).

@@ -27,7 +27,7 @@ export AbstractDistribution, Uniform, Normal, TruncatedNormal, Weibull , transfo
 
 export AbstractSampleMethod, MC, QMC
 
-export LatticeRule32, get_point
+export LatticeRule32, ShiftedLatticeRule, get_point
 
 export Estimator
 

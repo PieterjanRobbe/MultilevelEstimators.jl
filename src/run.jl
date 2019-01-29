@@ -6,15 +6,16 @@
 # Carlo Methods (c) Pieterjan Robbe, 2019
 
 """
-    run(estimator, ϵ)
+    run(estimator::Estimator, ε::Real)
+	run(estimator::Estimator, ε::Vector{<:Real})
 
-Run the estimator and compute the expected value of the quantity of interest up to the given tolerance(s) `ϵ`.
+Run the estimator and compute the expected value of the quantity of interest up to the given tolerance(s) `ε`. Returns a [`History`](@ref)-object that contains usefull diagnostics about the simulation. 
 
 # Examples
-```jldoctest
-julia>
 
-```
+An example detailing how to use MultilevelEstimators is provided in the [example in the documentation](@ref Example).
+
+See also: [`Estimator`](@ref), [`History`](@ref)
 """
 function run(estimator::Estimator, tols::AbstractVector{<:Real})
 

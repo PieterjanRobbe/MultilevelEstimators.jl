@@ -6,6 +6,46 @@
 # Carlo Methods (c) Pieterjan Robbe, 2019
 
 ## History ##
+"""
+    History
+
+A History is the result of a call to [`run`](@ref) and contains useful diagnostic information about the state of the `Estimator`.
+
+The information is stored as a `Vector` of `Dict`'s, where each entry in the vector is the result of a single run. See below for a list of keys added to these `Dict`s. Access to the key corresponding to the last entry in the `History` (that is, the one with the highest accuracy) is provided as `history[key]`.
+
+See also the package [`Reporter`](https://github.com/PieterjanRobbe/Reporter.jl) for automatic generation of reports based on a History object.
+
+# Keys
+
+- `type::AbstractIndexSet`: the index set type of the `Estimator`.
+- `ndims::Integer`: the number of dimensions of the `Estimator`.
+- `name::String`: the name of this `Estimator`.
+- `folder::String`: the directory where the results are stored.
+- `elapsed::Real`: the elapsed time (in seconds).
+- `tol::Real`: the request accuracy.
+- `current_index_set::Vector{::Index}`: the levels (or indices) currently in use by the `Estimator`.
+- `index_set::Vector{::Index}`: all levels (or indices) that are added to the `Estimator`.
+- `mse::Real`: the measured mean square error of the `Estimator`. 
+- `rmse::Real`: the measured root mean square error of the `Estimator`. 
+- `mean::Real`: the estimated expected value of the quantity of interest, up to an absolute error of `tol`.
+- `var::Real`: the measured variance of the quantity of interest.
+- `varest::Real`: the measured variance of the `Estimator` for the expected value of the quantity of interest.
+- `bias::Real`: the measured bias of the `Estimator`.
+- `E::Dict{::Index, ::Real}`: a `Dict` with the measured expected value of the quantity of interest on each level (or index).
+- `V::Dict{::Index, ::Real}`: a `Dict` with the measured variance of the quantity of interest on each level (or index).
+- `dE::Dict{::Index, ::Real}`: a `Dict` with the measured expected value of the **difference** of the quantity of interest on each level (or index).
+- `dV::Dict{::Index, ::Real}`: a `Dict` with the measured variance of the **difference** of the quantity of interest on each level (or index).
+- `T::Dict{::Index, ::Real}`: a `Dict` with the measured computation time for a sample of the quantity of interest on each level (or index).
+- `W::Dict{::Index, ::Real}`: a `Dict` with the computational cost for a sample of the quantity of interest on each level (or index). *Only available when a cost model was provided!*
+- `α::Tuple`: the estimated rates of decay of the expected value of the difference of the quantity of interest.
+- `β::Tuple`: the estimated rates of decay of the variance of the difference of the quantity of interest.
+- `γ::Tuple`: the estimated rates of increase of the cost of the difference of the quantity of interest.
+- `nb_of_samples::Array`: an `Array` with, on each index, the number of samples taken on that index. 
+- `logbook`: a logbook with information about the adaptive algorithm *Only available for `Estimator`s with index sets of type `AD`*
+- `samples::Array`: an `Array` with on each index, the collection of samples of the quantity of interest taken on that index. *Only available when the optional key `save_samples = true` was used* 
+- `samples_diff::Array`: an `Array` with on each index, the collection of samples of the **difference** of the quantity of interest taken on that index. *Only available when the optional key `save_samples = true` was used* 
+See also: [`Estimator`](@ref), [`run`](@ref)
+"""
 mutable struct History{T}
     data::T
 end

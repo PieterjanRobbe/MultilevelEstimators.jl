@@ -1,8 +1,9 @@
 using Documenter, MultilevelEstimators
 
-makedocs(sitename = "MultilevelEstimators.jl",
+makedocs(modules = [MultilevelEstimators],
+		 sitename = "MultilevelEstimators.jl",
          format = Documenter.HTML(
-                                  prettyurls = !("local" in ARGS),
+                                  prettyurls = false,#!("local" in ARGS),
                                  ),
          authors = "Pieterjan Robbe",
          pages = Any[

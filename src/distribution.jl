@@ -17,14 +17,14 @@ abstract type AbstractDistribution end
 
 ## Uniform ##
 """
-    Uniform([a=0, [b=1]])
+    Uniform([a = 0, [b = 1]])
 
 Return a uniform distribution on [`a`, `b`].
 
 # Examples
-```jldoctest
+```jldoctest; setup = :(using MultilevelEstimators)
 julia> Uniform()
-Uniform{Int64}(a=0, b=1)
+Uniform{Int64}(a = 0, b = 1)
 ```
 See also: [`Normal`](@ref), [`TruncatedNormal`](@ref), [`Weibull`](@ref)
 """
@@ -39,35 +39,60 @@ check_finite(Uniform, b, "b") &&
 check_ordered(Uniform, a, b, "a", "b") &&
 Uniform{promote_type(T1, T2)}(a, b)
 
-show(io::IO, distr::Uniform{T}) where T = print(io, string("Uniform{", T, "}(a=", distr.a, ", b=", distr.b, ")"))
+show(io::IO, distr::Uniform{T}) where T = print(io, string("Uniform{", T, "}(a = ", distr.a, ", b = ", distr.b, ")"))
 
 """
     transform(D::AbstractDistribution, x::Real)
 
 Apply a transformation to the uniformly distributed number `x` such that it is distributed according to `D`.
 
-The transform is implemented by applyibg the inverse CDF of the distribution `D`. Note, this is currently only limited to distributions with an analytic expression for the inverse CDF.
+The transform is implemented by applying the inverse CDF of the distribution `D`.
+
+!!! note
+
+    This is currently limited only to distributions with an analytic expression for the inverse CDF.
 
 # Examples
-```jldoctest
-julia> x = rand(10);
+```jldoctest; setup = :(using MultilevelEstimators; import Random; Random.seed!(1))
+julia> x = rand(10)
+10-element Array{Float64,1}:
+ 0.23603334566204692
+ 0.34651701419196046
+ 0.3127069683360675
+ 0.00790928339056074
+ 0.4886128300795012
+ 0.21096820215853596
+ 0.951916339835734
+ 0.9999046588986136
+ 0.25166218303197185
+ 0.9866663668987996
 
-julia> transform.(Normal(), x)
-[...]
+julia> broadcast(i -> transform(Normal(), i), x)
+10-element Array{Float64,1}:
+ -0.7191204773101185 
+ -0.39474101736576256
+ -0.4881918784059056 
+ -2.413074939355834  
+ -0.02854727903738184
+ -0.8030663180302484 
+  1.6637253880181684 
+  3.7310515426407296 
+ -0.6692682660790877 
+  2.2163540181904553 
 ```
 """
 transform(T::Uniform, x::Number) = T.a + (T.b - T.a)*x
 
 ## Normal ##
 """
-    Normal([μ=0, [σ=1]])
+    Normal([μ = 0, [σ = 1]])
 
 Return a normal distribution with mean `μ` and standard deviation `σ`.
 
 # Examples
-```jldoctest
+```jldoctest; setup = :(using MultilevelEstimators)
 julia> Normal()
-Normal{Int64}(μ=0, σ=1)
+Normal{Int64}(μ = 0, σ = 1)
 ```
 See also: [`Uniform`](@ref), [`TruncatedNormal`](@ref), [`Weibull`](@ref)
 """
@@ -82,20 +107,20 @@ check_finite(Normal, σ, "σ") &&
 check_larger_than(Normal, σ, "σ", 0) &&
 Normal{promote_type(T1, T2)}(μ, σ)
 
-show(io::IO, distr::Normal{T}) where T = print(io, string("Normal{", T, "}(μ=", distr.μ, ", σ=", distr.σ, ")"))
+show(io::IO, distr::Normal{T}) where T = print(io, string("Normal{", T, "}(μ = ", distr.μ, ", σ = ", distr.σ, ")"))
 
 transform(T::Normal, x::Number) = T.μ + T.σ*Φ⁻¹(x)
 
 ## TruncatedNormal ##
 """
-    TruncatedNormal([μ=0, [σ=1, [a=-2, [b=2]]]])
+    TruncatedNormal([μ = 0, [σ = 1, [a = -2, [b = 2]]]])
 
 Return a truncated normal distribution with mean `μ` and standard deviation `σ`.
 
 # Examples
-```jldoctest
+```jldoctest; setup = :(using MultilevelEstimators)
 julia> TruncatedNormal()
-TruncatedNormal{Int64}(μ=0, σ=1, a=-2, b=2)
+TruncatedNormal{Int64}(μ = 0, σ = 1, a = -2, b = 2)
 ```
 See also: [`Uniform`](@ref), [`Normal`](@ref), [`Weibull`](@ref)
 """
@@ -115,7 +140,7 @@ check_larger_than(TruncatedNormal, σ, "σ", 0) &&
 check_ordered(TruncatedNormal, a, b, "a", "b") &&
 TruncatedNormal{promote_type(T1, T2, T3, T4)}(μ, σ, a, b)
 
-show(io::IO, distr::TruncatedNormal{T}) where T = print(io, string("TruncatedNormal{", T, "}(μ=", distr.μ, ", σ=", distr.σ, ", a=", distr.a, ", b=", distr.b, ")"))
+show(io::IO, distr::TruncatedNormal{T}) where T = print(io, string("TruncatedNormal{", T, "}(μ = ", distr.μ, ", σ = ", distr.σ, ", a = ", distr.a, ", b = ", distr.b, ")"))
 
 function transform(T::TruncatedNormal, x::Number)
     α = (T.a - T.μ)/T.σ
@@ -129,14 +154,14 @@ end
 
 ## Weibull ##
 """
-    Weibull([k=2, [λ=√2]])
+    Weibull([k = 2, [λ = √2]])
 
 Return a Weibull distribution with shape parameter `k` and scale parameter `λ`.
 
 # Examples
-```jldoctest
+```jldoctest; setup = :(using MultilevelEstimators)
 julia> Weibull()
-Weibull{Float64}(k=2.0, λ=1.4142135623730951)
+Weibull{Float64}(k = 2.0, λ = 1.4142135623730951)
 ```
 See also: [`Uniform`](@ref), [`Normal`](@ref), [`TruncatedNormal`](@ref)
 """
@@ -152,6 +177,6 @@ check_larger_than(Weibull, k, "k", 0) &&
 check_larger_than(Weibull, λ, "λ", 0) &&
 Weibull{promote_type(T1, T2)}(k, λ)
 
-show(io::IO, distr::Weibull{T}) where T = print(io, string("Weibull{", T, "}(k=", distr.k, ", λ=", distr.λ, ")"))
+show(io::IO, distr::Weibull{T}) where T = print(io, string("Weibull{", T, "}(k = ", distr.k, ", λ = ", distr.λ, ")"))
 
 transform(T::Weibull, x::Number) = T.λ * ( -log(1 - x))^(1/T.k)
