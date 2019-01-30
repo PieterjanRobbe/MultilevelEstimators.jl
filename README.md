@@ -1,4 +1,5 @@
 # Multilevel Monte Carlo for Julia
-[![Build Status](https://travis-ci.org/PieterjanRobbe/MultilevelEstimators.jl.png)](https://travis-ci.org/PieterjanRobbe/MultilevelEstimators.jl)
-[![Coverage Status](https://coveralls.io/repos/github/PieterjanRobbe/MultilevelEstimators.jl/badge.svg?branch=master)](https://coveralls.io/github/PieterjanRobbe/MultilevelEstimators.jl?branch=master)
-[![](https://img.shields.io/badge/docs-stable-blue.svg)](https://PieterjanRobbe.github.io/MultilevelEstimators:w.jl/stable)
+
+| **Documentation** | **Build Status** | **Coverage** |
+|-------------------|------------------|--------------|
+| [![Documentation](https://img.shields.io/badge/docs-stable-blue.svg)](https://PieterjanRobbe.github.io/MultilevelEstimators.jl/stable) [![Documentation](https://img.shields.io/badge/docs-dev-blue.svg)](https://PieterjanRobbe.github.io/MultilevelEstimators.jl/dev) | [![Build Status](https://travis-ci.org/PieterjanRobbe/MultilevelEstimators.jl.png)](https://travis-ci.org/PieterjanRobbe/MultilevelEstimators.jl) [![Build status](https://ci.appveyor.com/api/projects/status/gh4ka7m9a7qekqu8?svg=true)](https://ci.appveyor.com/project/PieterjanRobbe/multilevelestimators-jl) | [![Coverage](https://codecov.io/gh/PieterjanRobbe/MultilevelEstimators.jl/branch/master/graph/badge.svg)](https://codecov.io/gh/PieterjanRobbe/MultilevelEstimators.jl) [![Coverage Status](https://coveralls.io/repos/github/PieterjanRobbe/MultilevelEstimators.jl/badge.svg)](https://coveralls.io/github/PieterjanRobbe/MultilevelEstimators.jl) |
