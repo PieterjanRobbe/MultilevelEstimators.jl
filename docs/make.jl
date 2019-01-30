@@ -21,5 +21,4 @@ makedocs(modules = [MultilevelEstimators],
 
 deploydocs(
     repo = "github.com/PieterjanRobbe/MultilevelEstimators.jl.git",
-    target = "build",
 )
