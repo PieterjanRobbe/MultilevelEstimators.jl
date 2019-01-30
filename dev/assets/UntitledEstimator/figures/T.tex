@@ -1,0 +1,16 @@
+\begin{tikzpicture}
+\begin{axis}[ticklabel style={{font=\small}}, major tick length={2pt}, every tick/.style={{black, line cap=round}}, axis on top, legend style={{draw=none, font=\small, at={(0.03,0.03)}, anchor=south west, fill=none, legend cell align=left}}, xlabel={$\ell$}, xtick distance={1}, ylabel={$\log_2(\textrm{time}(\;\cdot\;))$}, legend style={{draw=none, font=\small, at={(0.03,0.97)}, anchor=north west, fill=none, legend cell align=left}}]
+    \addplot[mark={*}, mark size={1pt}, line cap={round}, mark options={solid}, color={orange}, style={dotted}]
+        table[row sep={\\}]
+        {
+            \\
+            0.0  -13.500274478314875  \\
+            1.0  -11.202150915172265  \\
+            2.0  -8.942715536992708  \\
+            3.0  -6.840583882664476  \\
+            4.0  -4.880750397462864  \\
+        }
+        ;
+    \addlegendentry {$\Delta Q_{\ell}$}
+\end{axis}
+\end{tikzpicture}

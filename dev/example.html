@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><title>Example · MultilevelEstimators.jl</title><link href="https://cdnjs.cloudflare.com/ajax/libs/normalize/4.2.0/normalize.min.css" rel="stylesheet" type="text/css"/><link href="https://fonts.googleapis.com/css?family=Lato|Roboto+Mono" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.6.3/css/font-awesome.min.css" rel="stylesheet" type="text/css"/><link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/default.min.css" rel="stylesheet" type="text/css"/><script>documenterBaseURL="."</script><script src="https://cdnjs.cloudflare.com/ajax/libs/require.js/2.2.0/require.min.js" data-main="assets/documenter.js"></script><script src="siteinfo.js"></script><script src="../versions.js"></script><link href="assets/documenter.css" rel="stylesheet" type="text/css"/></head><body><nav class="toc"><a href="index.html"><img class="logo" src="assets/logo.png" alt="MultilevelEstimators.jl logo"/></a><h1>MultilevelEstimators.jl</h1><select id="version-selector" onChange="window.location.href=this.value" style="visibility: hidden"></select><form class="search" id="search-form" action="search.html"><input id="search-query" name="q" type="text" placeholder="Search docs"/></form><ul><li><a class="toctext" href="index.html">Home</a></li><li class="current"><a class="toctext" href="example.html">Example</a><ul class="internal"><li><a class="toctext" href="#Lognormal-diffusion-problems-1">Lognormal diffusion problems</a></li><li><a class="toctext" href="#Multilevel-Monte-Carlo-1">Multilevel Monte Carlo</a></li><li><a class="toctext" href="#Multilevel-Quasi-Monte-Carlo-1">Multilevel Quasi-Monte Carlo</a></li><li><a class="toctext" href="#Multi-Index-Monte-Carlo-1">Multi-Index Monte Carlo</a></li><li><a class="toctext" href="#Unbiased-estimation-1">Unbiased estimation</a></li></ul></li><li><a class="toctext" href="manual.html">Manual</a></li></ul></nav><article id="docs"><header><nav><ul><li><a href="example.html">Example</a></li></ul><a class="edit-page" href="https://github.com/PieterjanRobbe/MultilevelEstimators.jl/blob/master/docs/src/example.md"><span class="fa"></span> Edit on GitHub</a></nav><hr/><div id="topbar"><span>Example</span><a class="fa fa-bars" href="#"></a></div></header><h1><a class="nav-anchor" id="Example-1" href="#Example-1">Example</a></h1><p>We consider the elliptic PDE with random coefficients</p><div>\[- \nabla ( a(x, \omega) \nabla u(x, \omega) ) = f(x)\]</div><p>defined on the unit square <span>$D = [0, 1]^2$</span>, with homogeneous boundary conditions <span>$u(x, \cdot) = 0$</span> on <span>$\partial D$</span>. </p><p>Assume the uncertain diffusion coefficient is given as a lognormal random field  <span>$\log a(x, \omega) = z(x, \omega)$</span> where <span>$z(x, \omega)$</span> is a Gaussian random field (see below).</p><div class="admonition note"><div class="admonition-title">Note</div><div class="admonition-text"><p>The following examples assume you have already installed the test dependencies as outlined in the <a href="index.html#Installation-1">Installation</a> guide.</p></div></div><ul><li><a href="example.html#Example-1">Example</a></li><ul><li><a href="example.html#Lognormal-diffusion-problems-1">Lognormal diffusion problems</a></li><li><a href="example.html#Multilevel-Monte-Carlo-1">Multilevel Monte Carlo</a></li><li><a href="example.html#Multilevel-Quasi-Monte-Carlo-1">Multilevel Quasi-Monte Carlo</a></li><li><a href="example.html#Multi-Index-Monte-Carlo-1">Multi-Index Monte Carlo</a></li><li><a href="example.html#Unbiased-estimation-1">Unbiased estimation</a></li></ul></ul><h2><a class="nav-anchor" id="Lognormal-diffusion-problems-1" href="#Lognormal-diffusion-problems-1">Lognormal diffusion problems</a></h2><p>First, we need to define a random field that will be used for the uncertain diffusion coefficient of the PDE. Fortunately, a Julia package that generates and samples from such random fields already exists.</p><pre><code class="language-julia">using GaussianRandomFields</code></pre><p>To specify the spatial correlation in the random field, we consider the <a href="https://en.wikipedia.org/wiki/Matérn_covariance_function">Matérn</a> covariance function with a given correlation length and smoothness. This function is predefined in the package. </p><pre><code class="language-julia">correlation_length = 0.5
+smoothness = 2.0
+covariance_function = CovarianceFunction(2, Matern(correlation_length, smoothness))</code></pre><p>We generate samples of this smooth random field using a truncated <a href="https://en.wikipedia.org/wiki/Karhunen–Loève_theorem">Karhunen-Loève expansion</a> with 250 terms. To this end, we discretize the domain <code>D</code> into a regular grid with grid size <span>$\Delta x = \Delta y =$</span> 1/128.</p><pre><code class="language-julia">n = 256
+pts = range(0, stop=1, length=n)
+n_kl = 250
+grf = GaussianRandomField(covariance_function, KarhunenLoeve(n_kl), pts, pts)</code></pre><p>A sample of this Gaussian random field is returned by either calling the <code>sample</code>-function directly, or by supplying the random numbers used for sampling from the random field.</p><pre><code class="language-julia">sample(grf)
+sample(grf, xi = randn(n_kl))</code></pre><p>The keyword <code>xi</code> corresponds to the sample <span>$\omega$</span> in the defintion of the PDE.</p><p>We vizualize a sample of this random field.</p><pre><code class="language-julia">using Plots
+contourf(sample(grf))</code></pre><img src="assets/grf.png" width="400"><p>Many more options and details regarding the generation of Gaussian random fields can be found in the <a href="https://github.com/PieterjanRobbe/GaussianRandomFields.jl/blob/master/tutorial/tutorial.ipynb">tutorial</a> that accomagnies the package <a href="https://github.com/PieterjanRobbe/GaussianRandomFields.jl"><code>GaussianRandomFields.jl</code></a>. </p><p>Suppose we are interested in computing the expected value of a quantity of interest derived from the solution of the PDE. For example, we might be interested in the value of the solution <span>$u(x, ω)$</span> at the point <span>$x=y=$</span>0.5.</p><h2><a class="nav-anchor" id="Multilevel-Monte-Carlo-1" href="#Multilevel-Monte-Carlo-1">Multilevel Monte Carlo</a></h2><p>The basics of any <a href="https://en.wikipedia.org/wiki/Multilevel_Monte_Carlo_method">multilevel method</a> is a hierarchy of approximations of the model problem with an increasing accuracy, but corresponding increasing cost. For the lognormal diffusion example, such a hierarchy is provided by solving the PDE on an ever finer grid. We define a hierarchy of Gaussian random field generators using</p><pre><code class="language-julia">grfs = Vector{typeof(grf)}(undef, 7)
+for i in 1:7
+    n = 2^(i+1)
+    pts = 1/n:1/n:1-1/n
+    grfs[i] = GaussianRandomField(covariance_function, KarhunenLoeve(n_kl), pts, pts)
+end</code></pre><p>The corresponding system matrix that results from a finite difference discretization of the PDE with varying diffusion coefficient is returned by the <code>elliptic2d</code>-function from the <a href="https://github.com/PieterjanRobbe/SimpleMultigrid.jl"><code>SimpleMultigrid</code></a> package.</p><pre><code class="language-julia">using SimpleMultigrid
+z = sample(grf)
+a = exp.(z)
+A = elliptic2d(a)
+b = ones(size(A, 1))
+u = A\b
+contourf(reshape(u, n, n))</code></pre><h3><a class="nav-anchor" id="Creating-an-Estimator-1" href="#Creating-an-Estimator-1">Creating an <code>Estimator</code></a></h3><pre><code class="language-julia">using MultilevelEstimators</code></pre><p>The main type provided by MultilevelEstimators is an <a href="manual.html#MultilevelEstimators.Estimator"><code>Estimator</code></a>. This type has two parametric subtypes, <code>Estimator{&lt;:AbstractIndexSet, &lt;:AbstractSampleMethod}</code>, where <code>AbstractIndexSet</code> is an abstract type for the  index set, and <code>AbstractSampleMethod</code> is an abstract type for the sample method. For example, a Multilevel Monte Carlo method will have type signature <code>Estimator{ML, MC}</code>.</p><div class="admonition info"><div class="admonition-title">Info</div><div class="admonition-text"><p>For a complete list of possible index set types, see <a href="manual.html#IndexSet-1"><code>IndexSet</code></a>. For a complete list of possible sample method types, see <a href="manual.html#SampleMethod-1"><code>SampleMethod</code></a>.</p></div></div><p>The main user interaction required by MultilevelEstimators is the definition of a sample function. This function must return a sample of the quantity of interest, and of its difference, for the given discretization parameter (or level) and random parameters. Here is an example for the lognormal diffusion problem:</p><pre><code class="language-julia">function sample_lognormal(level::Level, ω::Vector{&lt;:Real}, grf::GaussianRandomField)
+
+    # solve on finest grid
+    z  = sample(grf, xi = ω)
+    af = exp.(z)
+    Af = elliptic2d(af)
+    bf = fill(one(eltype(Af)), size(Af, 1))
+    uf = Af\bf
+    Qf = uf[length(uf) ÷ 2]
+
+    # compute difference when not on coarsest grid
+    dQ = Qf
+    if level != Level(0)
+        ac = view(af, 2:2:size(af, 1), 2:2:size(af, 2))
+        Ac = elliptic2d(ac)
+        bc = fill(one(eltype(Af)), size(Ac, 1))
+        uc = Ac\bc
+        Qc = uc[length(uc) ÷ 2]
+        dQ -= Qc
+    end
+    dQ, Qf
+end</code></pre><p>Thus, when the level parameter is zero, we return the value of the quantity of interest on the coarsest mesh. For a larger level parameter, we return both the difference of the quantity of interest with a coarser grid solution, and the value of the quantity of interest itself.</p><p>The sample function can only have two input parameters: a level and a vector of random parameters. For sample functions that require data (such as the precomputed Gaussian random fields in the example above), one might need to add a convenience function:</p><pre><code class="language-julia">sample_lognormal(level, ω) = sample_lognormal(level, ω, grfs[level + one(level)])</code></pre><p>Finally, for the construction of an <code>Estimator</code>, we also need to specify the number of random parameters and their respective distributions. For the lognormal diffusion problem, these random parameters are normally distributed.</p><pre><code class="language-julia">distributions = [Normal() for i in 1:n_kl]</code></pre><div class="admonition info"><div class="admonition-title">Info</div><div class="admonition-text"><p>A complete list of predefined distributions can be found in the manual for <a href="manual.html#Distribution-1"><code>Distribution</code>s</a>.</p></div></div><p>An estimator for the lognormal diffusion problem can thus be created using</p><pre><code class="language-julia">estimator = Estimator(ML(), MC(), sample_lognormal, distributions)</code></pre><h3><a class="nav-anchor" id="Specifying-options-1" href="#Specifying-options-1">Specifying options</a></h3><p>Different options and settings can be passed on to the <code>Estimator</code> by supplying the appropriate keyword argument. For example, to set the number of warm up samples to 10, call</p><pre><code class="language-julia">estimator = Estimator(ML(), MC(), sample_lognormal, distributions, nb_of_warm_up_samples = 10)</code></pre><div class="admonition info"><div class="admonition-title">Info</div><div class="admonition-text"><p>A complete list of optional arguments can be found in the manual for <a href="manual.html#MultilevelEstimators.Estimator"><code>Estimator</code></a>.</p></div></div><div class="admonition note"><div class="admonition-title">Note</div><div class="admonition-text"><p>It is easy to extend the current setup to the computation of the expected value of multiple quantities of interest, by using the keyword <code>nb_of_qoi</code>.</p></div></div><h3><a class="nav-anchor" id="Running-a-simulation-1" href="#Running-a-simulation-1">Running a simulation</a></h3><p>To start a simulation for the expected value of the quantity of interest up to an absolute (root mean square) error of <code>5e-3</code>, call</p><pre><code class="language-julia">h = run(estimator, 5e-3)</code></pre><p>This function will return a <a href="manual.html#MultilevelEstimators.History"><code>History</code></a> object that contains usefull diagnostics about the simulation.</p><div class="admonition info"><div class="admonition-title">Info</div><div class="admonition-text"><p>See <a href="manual.html#MultilevelEstimators.History"><code>History</code></a> for a complete list of diagnostic entries.</p></div></div><div class="admonition note"><div class="admonition-title">Note</div><div class="admonition-text"><p>By default, the simulation is performed for a sequence of larger tolerances to get improved estimates for the rates of decay of expected value and variance, bias estimation... This sequence is of the form</p><div>\[\text{tol}_i = p^{(n - 1 - i)} \text{tol}, i = 0, \ldots, n - 1\]</div><p>with <span>$p&gt;$</span>1 and where the values for <span>$p$</span> and <span>$n$</span> can be controlled by the keyword arguments <code>continuation_mul_factor</code> and <code>nb_of_tols</code> respectively. You can disable continuation with the optional argument <code>continuation = false</code>. Our experience is that continuation is a very powerful tool when combined with a non-trivial mean square error splitting (<code>do_mse_splitting = true</code>) and variance regression (<code>do_regression = true</code>). </p></div></div><div class="admonition note"><div class="admonition-title">Note</div><div class="admonition-text"><p>By default, samples will be taken in parallel on all available processors (see <code>addprocs</code>). The number of processors is controlled by the optional keyword <code>nb_of_workers</code>. This can either be a fixed value, or a function, specifying the number of workers to be used on each level.</p></div></div><h3><a class="nav-anchor" id="Vizualization-of-the-result-using-[Reporter](https://github.com/PieterjanRobbe/Reporter.jl)-1" href="#Vizualization-of-the-result-using-[Reporter](https://github.com/PieterjanRobbe/Reporter.jl)-1">Vizualization of the result using <a href="https://github.com/PieterjanRobbe/Reporter.jl"><code>Reporter</code></a></a></h3><p>MultilevelEstimators can automatically build a set of diagnostic figures based on a <a href="manual.html#MultilevelEstimators.History"><code>History</code></a> file. Load the package by</p><pre><code class="language-julia">using Reporter</code></pre><p>and generate a report by calling</p><pre><code class="language-julia">report(h)</code></pre><p>If all goes well, you should now see a webpage with diagnostic information about the simulation, similar to <a href="assets/UntitledEstimator/index.html">this one</a>. Print-ready <code>.tex</code>-figures are stored locally under <code>figures/</code>.</p><h2><a class="nav-anchor" id="Multilevel-Quasi-Monte-Carlo-1" href="#Multilevel-Quasi-Monte-Carlo-1">Multilevel Quasi-Monte Carlo</a></h2><p><a href="https://en.wikipedia.org/wiki/Quasi-Monte_Carlo_method">Quasi-Monte Carlo</a> is an alternative way to pick the samples <code>omega</code>. The random samples in the Monte Carlo method are replaced by deterministically well-chosen points that increase the accuracy of the estimation with respect to the number of samples. A popular type of such point sets are <a href="https://people.cs.kuleuven.be/~dirk.nuyens/qmc-generators/">rank-1 lattice rules</a>, implemented here as <a href="manual.html#MultilevelEstimators.LatticeRule32"><code>LatticeRule32</code></a>. These points are used by default when calling the <code>QMC</code>-version of the <code>Estimator</code></p><pre><code class="language-julia">estimator = Estimator(ML(), QMC(), sample_lognormal, distributions)</code></pre><p>Under the hood, the default lattice rule uses a 3600-dimensional generating vector from <a href="https://web.maths.unsw.edu.au/~fkuo/lattice/index.html">Kuo et al</a>. It is easy to provide your own generating vector with the optional <code>point_generator</code>-argument.</p><pre><code class="language-julia">estimator = Estimator(ML(), QMC(), sample_lognormal, point_generator = LatticeRule32(&quot;my_gen_vec.txt&quot;))</code></pre><div class="admonition note"><div class="admonition-title">Note</div><div class="admonition-text"><p>The number of shifts is controlled by the <code>nb_of_shifts</code>-keyword. We recommend a value between 10 (default) and 30. The number of samples is updated carefully, with a default multiplication factor of 1.2 (instead of the standard and theoretically justifiable value 2, which we found to be too aggressive). This number can be controlled with the keyword <code>sample_mul_factor</code>. </p></div></div><h2><a class="nav-anchor" id="Multi-Index-Monte-Carlo-1" href="#Multi-Index-Monte-Carlo-1">Multi-Index Monte Carlo</a></h2><p>It is easy to extend the lognormal diffusion example to compute multi-index differences. Instead of a difference between a fine and a coarse approximation, we now compute mixed differences.</p><pre><code class="language-julia">function sample_lognormal(index::Index, ω::Vector{&lt;:Real}, grf::GaussianRandomField)
+
+    # solve on finest grid
+    z  = sample(grf, xi = ω)
+    af = exp.(z)
+    Af = elliptic2d(af)
+    bf = fill(eltype(Af), size(Af, 1))
+    uf = Af\bf
+    Qf = uf[length(uf) ÷ 2]
+
+    # compute multi-index differences
+    dQ = Qf
+    for (key, val) in diff(index)
+        step = (index - key).I .+ 1
+        ac = view(af, step[1]:step[1]:size(af, 1), step[2]:step[2]:size(af, 2))
+        Ac = elliptic2d(ac)
+        bc = fill(eltype(Af), size(Ac, 1))
+        uc = Ac\bc
+        Qc = uc[length(uc) ÷ 2]
+        dQ += val * Qc
+    end
+    dQ, Qf
+end</code></pre><p>All functionality is hidden in the call to <code>diff(index)</code>. This function returns a <code>Dict</code> with as keys the indices where coarse approximations must be computed, and as values <code>+1</code> or <code>-1</code>, specifying how these corrections must be added to the quantity of interest on the fine grid.</p><h3><a class="nav-anchor" id="Multi-index-sets-1" href="#Multi-index-sets-1">Multi-index sets</a></h3><p>Different choices for the multi-index sets are available: full tensor index sets (<a href="manual.html#MultilevelEstimators.FT"><code>FT</code></a>), total degree index sets (<a href="manual.html#MultilevelEstimators.TD"><code>TD</code></a>), hyperbolic cross index sets (<a href="manual.html#MultilevelEstimators.HC"><code>HC</code></a>) and Zaremba cross index sets (<a href="manual.html#MultilevelEstimators.ZC"><code>ZC</code></a>). For example, total degree (TD) index sets look like this </p><div><pre><code class="language-julia">index_set = TD(2)
+for sz = 0:5
+    println(&quot;size parameter: &quot;, sz)
+    print(index_set, sz)
+end</code></pre><pre><code class="language-none">size parameter: 0
+  ◼
+size parameter: 1
+  ◼
+  ◼ ◼
+size parameter: 2
+  ◼
+  ◼ ◼
+  ◼ ◼ ◼
+size parameter: 3
+  ◼
+  ◼ ◼
+  ◼ ◼ ◼
+  ◼ ◼ ◼ ◼
+size parameter: 4
+  ◼
+  ◼ ◼
+  ◼ ◼ ◼
+  ◼ ◼ ◼ ◼
+  ◼ ◼ ◼ ◼ ◼
+size parameter: 5
+  ◼
+  ◼ ◼
+  ◼ ◼ ◼
+  ◼ ◼ ◼ ◼
+  ◼ ◼ ◼ ◼ ◼
+  ◼ ◼ ◼ ◼ ◼ ◼</code></pre></div><p>Weighted index sets are created by specifying appropriate weiths. All weights must be smaller than or equal to 1.</p><div><pre><code class="language-julia">index_set = ZC(1/2, 1)
+for sz = 0:5
+    println(&quot;size parameter: &quot;, sz)
+    print(index_set, sz)
+end</code></pre><pre><code class="language-none">size parameter: 0
+  ◼
+size parameter: 1
+  ◼
+  ◼
+size parameter: 2
+  ◼
+  ◼ ◼
+  ◼ ◼
+size parameter: 3
+  ◼
+  ◼
+  ◼ ◼
+  ◼ ◼
+size parameter: 4
+  ◼
+  ◼
+  ◼ ◼
+  ◼ ◼ ◼
+  ◼ ◼ ◼
+size parameter: 5
+  ◼
+  ◼
+  ◼
+  ◼ ◼
+  ◼ ◼ ◼
+  ◼ ◼ ◼</code></pre></div><p>We can create an estimator the usual way:</p><pre><code class="language-julia">estimator = Estimator(TD(2), MC(), sample_lognormal, distributions)</code></pre><p>where <code>TD(2)</code> denotes a 2-dimensional index set.</p><p>Before running a simulation, we must precomputed the random fields on all indices.</p><pre><code class="language-julia">grfs = Matrix{typeof(grf)}(undef, 7, 7)
+for index in get_index_set(TD(2), 6)
+    n = 2 .^(index.I .+ 2)
+    pts = map(i -&gt; range(1/i, step = 1/i, stop = 1 - 1/i), n)
+    grfs[index + one(index)] = GaussianRandomField(covariance_function, KarhunenLoeve(n_kl), pts...)
+end</code></pre><p>A multi-index Monte Carlo simulation with this estimator is performed by</p><pre><code class="language-julia">h = run(estimator, 5e-3)</code></pre><h3><a class="nav-anchor" id="Adaptive-Multi-index-Monte-Carlo-1" href="#Adaptive-Multi-index-Monte-Carlo-1">Adaptive Multi-index Monte Carlo</a></h3><p>Instead of using predefined (weighted or unweighted) index sets, we can also construct the index set adaptively based on some profit indicator (see [6])</p><div>\[P_\ell = \frac{E_\ell}{\sqrt{V_\ell W_\ell}}\]</div><p>where <span>$E_\ell$</span> and <span>$V_\ell$</span> are the expected value and variance of the multi-index difference, respectively, and <span>$W_\ell$</span> is the computational cost required to computed a sample of the difference.</p><pre><code class="language-julia">estimator = Estimator(AD(2), MC(), sample_lognormal, distributions)</code></pre><div class="admonition note"><div class="admonition-title">Note</div><div class="admonition-text"><p>The maximum allowed indices that can be simulated can be set by the keyword <code>max_search_space</code>. This keyword should be an index set of one of the above types. The adaptive method will only find indices inside this index set, with the size parameter equal to <code>max_index_set_param</code>.</p></div></div><div class="admonition note"><div class="admonition-title">Note</div><div class="admonition-text"><p>Sometimes it is beneficial to add a penalization parameter to the profit indicator to avoid searching too much around the coordinate axes, and bumping into a memory constraint:  </p><div>\[P_\ell = \frac{E_\ell}{(\sqrt{V_\ell W_\ell})^p}\]</div><p>with 0 &lt; <span>$p$</span> &lt; 1. Specify <span>$p$</span> with the optional key <code>penalization</code>. </p></div></div><h3><a class="nav-anchor" id="Multi-Index-Quasi-Monte-Carlo-1" href="#Multi-Index-Quasi-Monte-Carlo-1">Multi-Index Quasi Monte Carlo</a></h3><p>Just as in standard Multilevel Monte Carlo, the Multi-Index Monte Carlo method can be extended to use quasi-random numbers instead, see [5]. The setup remains the same, just change <code>MC()</code> into <code>QMC()</code>. For example, a Hyperbolic Cross Multi-Index Quasi-Monte Carlo estimator can be created by </p><pre><code class="language-julia">estimator = Estimator(HC(2), QMC(), sample_lognormal, distributions)</code></pre><h2><a class="nav-anchor" id="Unbiased-estimation-1" href="#Unbiased-estimation-1">Unbiased estimation</a></h2><p>The most recent development to MultilevelEstimators is the addition of unbaised multilevel estimators. In contrast to standard Multilevel Monte Carlo, a weighted sum of multilevel contributions is used, thus eliminating the bias in the estimator.</p><p>This requires a small change to the sample function, in the sense that it should now return the solutions for all levels samller than or equal to <code>level</code>. In the PDE example this can easily be accomplished by using Full Multigrid, see [7] and [8]. See <a href="https://github.com/PieterjanRobbe/SimpleMultigrid.jl">SimpleMultigrid</a> and <a href="https://github.com/PieterjanRobbe/NotSoSimpleMultigrid.jl">NotSoSimpleMultigrid</a> for basic example solvers. See also <a href="https://github.com/PieterjanRobbe/LognormalDiffusionProblems.jl">LognormalDiffusionProblems</a> for a setup using Full Multigrid.</p><pre><code class="language-julia">estimator = estimator(U(1), MC(), sample_lognormal_fmg, distributions)</code></pre><div class="admonition warning"><div class="admonition-title">Warning</div><div class="admonition-text"><p>Since this is a recent addition to MultilevelEstimators, it has not been tested as extensively as the other methods. Should you encounter any issues, feel free to submit an issue.</p></div></div><div class="admonition info"><div class="admonition-title">Info</div><div class="admonition-text"><p>See the index set type <a href="manual.html#MultilevelEstimators.U"><code>U</code></a> for more information and set up.</p></div></div><footer><hr/><a class="previous" href="index.html"><span class="direction">Previous</span><span class="title">Home</span></a><a class="next" href="manual.html"><span class="direction">Next</span><span class="title">Manual</span></a></footer></article></body></html>
