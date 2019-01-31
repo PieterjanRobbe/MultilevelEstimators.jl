@@ -14,7 +14,9 @@ SpecialFunctions = "276daf66-3868-5448-9aa4-cd146d93841b"
 Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [extras]
+GaussianRandomFields = "e4b2fa32-6e09-5554-b718-106ed5adafe9"
+LognormalDiffusionProblems = "84461a34-18b6-11e9-063f-531b55a55ae0"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
 
 [targets]
-test = ["Test"]
+test = ["Test", "LognormalDiffusionProblems", "GaussianRandomFields"]

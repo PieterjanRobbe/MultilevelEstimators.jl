@@ -2,8 +2,8 @@
 #
 # Runs the Estimator for the given tolerance, and returns a History object.
 #
-# This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
-# Carlo Methods (c) Pieterjan Robbe, 2019
+# This file is part of MultilevelEstimators.jl - A Julia toolbox for
+# Multilevel Monte Carlo Methods (c) Pieterjan Robbe, 2019
 
 """
     run(estimator::Estimator, ε::Real)

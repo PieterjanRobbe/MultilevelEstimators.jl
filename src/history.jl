@@ -2,8 +2,8 @@
 #
 # A history object contains bookkeeping data for multilevel estimators.
 #
-# This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
-# Carlo Methods (c) Pieterjan Robbe, 2019
+# This file is part of MultilevelEstimators.jl - A Julia toolbox for
+# Multilevel Monte Carlo Methods (c) Pieterjan Robbe, 2019
 
 ## History ##
 """

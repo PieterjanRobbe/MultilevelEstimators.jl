@@ -2,8 +2,8 @@
 #
 # Basic implementation of rank-1 lattice rules to generate points in [0,1] 
 #
-# This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
-# Carlo Methods (c) Pieterjan Robbe, 2019
+# This file is part of MultilevelEstimators.jl - A Julia toolbox for
+# Multilevel Monte Carlo Methods (c) Pieterjan Robbe, 2019
 
 abstract type AbstractLatticeRule{s} <: AbstractRNG end
 
@@ -163,7 +163,7 @@ See also: [`LatticeRule32`](@ref), [`ShiftedLatticeRule`](@ref)
 """
 @inline get_point(lattice_rule::LatticeRule32{s}, k::UInt32) where s = k > lattice_rule.n ? rand(Float32, s) : get_point!(Vector{Float32}(undef, s), lattice_rule, k)
 
-@inline get_point(lattice_rule::LatticeRule32{s}, k::Int64) where s = k > lattice_rule.n ? rand(s) : get_point!(Vector{Float64}(undef, s), lattice_rule, convert(UInt32, k))
+@inline get_point(lattice_rule::LatticeRule32{s}, k::Int) where s = k > lattice_rule.n ? rand(s) : get_point!(Vector{Float64}(undef, s), lattice_rule, convert(UInt32, k))
 
 @inline function get_point!(x::Vector{<:AbstractFloat}, shifted_lattice_rule::ShiftedLatticeRule, k::UInt32)
     ϕ = convert(UInt32, reversebits(xor(k, k >> 1)))
@@ -172,7 +172,7 @@ end
 
 @inline get_point(shifted_lattice_rule::ShiftedLatticeRule{<:LatticeRule32{s}}, k::UInt32) where s = k > shifted_lattice_rule.lattice_rule.n ? rand(Float32, s) : get_point!(Vector{Float32}(undef, s), shifted_lattice_rule, k)
 
-@inline get_point(shifted_lattice_rule::ShiftedLatticeRule{<:LatticeRule32{s}}, k::Int64) where s = k > shifted_lattice_rule.lattice_rule.n ? rand(s) : get_point!(Vector{Float64}(undef, s), shifted_lattice_rule, convert(UInt32, k))
+@inline get_point(shifted_lattice_rule::ShiftedLatticeRule{<:LatticeRule32{s}}, k::Int) where s = k > shifted_lattice_rule.lattice_rule.n ? rand(s) : get_point!(Vector{Float64}(undef, s), shifted_lattice_rule, convert(UInt32, k))
 
 ## reverse_bits ##
 reversebits(n::U) where U<:Unsigned = parse(U, reverse(bitstring(n)), base=2)
@@ -180,8 +180,8 @@ reversebits(n::U) where U<:Unsigned = parse(U, reverse(bitstring(n)), base=2)
 ## input checking ##
 function check_args(z::Vector{UInt32}, s::Integer, n::Integer)
 	check_larger_than(LatticeRule32, s, "number of dimensions s", 0)
-	check_ordered(LatticeRule32, s, length(z)+1, "number of dimensions s", "or equal to the length of the generating vector z")
-	check_ordered(LatticeRule32, n, 2^32, "maximum number of points n", "or equal to 2^32, consider implementing a LatticeRule64 type")
+	check_ordered(LatticeRule32, s, length(z) + 1, "number of dimensions s", "or equal to the length of the generating vector z")
+	check_ordered(LatticeRule32, n, typemax(UInt32) + 1, "maximum number of points n", "or equal to 2^32, consider implementing a LatticeRule64 type")
 end
 
 check_arg(s::Integer) = check_ordered(LatticeRule32, s, 3601, "number of dimensions s", "or equal to 3600, please supply your own generating vector z to proceed")

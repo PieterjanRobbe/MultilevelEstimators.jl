@@ -14,11 +14,8 @@ env:
   - PYTHON=""
 notifications:
   email: false
-after_success:
-  # push coverage results to Coveralls
-  - julia -e 'using Pkg; cd(Pkg.dir("MultilevelEstimators")); Pkg.add("Coverage"); using Coverage; Coveralls.submit(process_folder())'
-  # push coverage results to Codecov
-  - julia -e 'using Pkg; cd(Pkg.dir("MultilevelEstimators")); Pkg.add("Coverage"); using Coverage; Codecov.submit(process_folder())'
+codecov: true
+coveralls: true
 jobs:
   include:
     - stage: "Documentation"

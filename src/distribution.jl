@@ -9,8 +9,8 @@
 # As a temporary fix, we will define some commonly used probability distributions, and
 # define the required transformations ourselves (with less efficiency).
 #
-# This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
-# Carlo Methods (c) Pieterjan Robbe, 2018
+# This file is part of MultilevelEstimators.jl - A Julia toolbox for
+# Multilevel Monte Carlo Methods (c) Pieterjan Robbe, 2019
 
 ## AbstractDistribution ##
 abstract type AbstractDistribution end

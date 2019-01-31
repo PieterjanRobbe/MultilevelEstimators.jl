@@ -2,8 +2,8 @@
 #
 # Implements refactored methods from run.jl.
 #
-# This file is part of MultilevelEstimators.jl - A Julia toolbox for Multilevel Monte
-# Carlo Methods (c) Pieterjan Robbe, 2019
+# This file is part of MultilevelEstimators.jl - A Julia toolbox for
+# Multilevel Monte Carlo Methods (c) Pieterjan Robbe, 2019
 
 #
 # basics
@@ -114,6 +114,8 @@ regress_var(estimator, index) = _regress_var(estimator, index)
 regress_cost(estimator, index) = estimator[:cost_model] isa EmptyFunction ? _regress_cost(estimator, index) : estimator[:cost_model](index)
 
 regress_nb_of_samples(estimator::Estimator{<:SL}, index_set, ϵ::Real, θ::Real, L::Integer) = Dict(Level(0) => estimator[:nb_of_warm_up_samples])
+
+regress_nb_of_samples(estimator::Estimator{<:SL, <:QMC}, index_set, ϵ::Real, θ::Real, L::Integer) = Dict(Level(0) => estimator[:nb_of_warm_up_samples])
 
 regress_nb_of_samples(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index_set, ϵ::Real, θ::Real, L::Integer) = Dict(index => estimator[:nb_of_warm_up_samples] for index in index_set)
 
