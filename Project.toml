@@ -1,6 +1,6 @@
 name = "MultilevelEstimators"
 uuid = "bc769cb7-f249-5bba-802a-80f19cb247ec"
-version = "v0.0.0"
+version = "0.0.0"
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -17,6 +17,8 @@ Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 GaussianRandomFields = "e4b2fa32-6e09-5554-b718-106ed5adafe9"
 LognormalDiffusionProblems = "84461a34-18b6-11e9-063f-531b55a55ae0"
 Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+SimpleMultigrid = "e8fea2e7-436f-5c48-8914-48864cfb6713"
+NotSoSimpleMultigrid = "bc769cb7-f249-5bba-802a-79f19cb249ec"
 
 [targets]
-test = ["Test", "LognormalDiffusionProblems", "GaussianRandomFields"]
+test = ["Test", "SimpleMultigrid", "NotSoSimpleMultigrid", "LognormalDiffusionProblems", "GaussianRandomFields"]
