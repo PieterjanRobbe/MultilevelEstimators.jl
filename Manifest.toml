@@ -80,6 +80,14 @@ uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 [[Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
 
+[[LognormalDiffusionProblems]]
+deps = ["Distributed", "FFTW", "GaussianRandomFields", "Interpolations", "MultilevelEstimators", "NotSoSimpleMultigrid", "PaddedViews", "Printf", "Random", "Reexport", "Retry", "SimpleMultigrid", "Statistics"]
+git-tree-sha1 = "13959a34593d06dce8ae1301b577b20cdb604c99"
+repo-rev = "master"
+repo-url = "https://github.com/PieterjanRobbe/LognormalDiffusionProblems.jl.git"
+uuid = "84461a34-18b6-11e9-063f-531b55a55ae0"
+version = "0.1.0"
+
 [[Markdown]]
 deps = ["Base64"]
 uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
