@@ -260,3 +260,14 @@ check_type(to_string(key, val)..., Function)
             check_smaller_than_or_equal_to(to_string(key, val)..., 1)
         end
         )
+
+## acceptance_rate ##
+@parse!(:acceptance_rate,
+		1.0,
+        begin
+            check_type(to_string(key, val)..., Real)
+            check_finite(to_string(key, val)...)
+            check_larger_than_or_equal_to(to_string(key, val)..., 0)
+            check_smaller_than_or_equal_to(to_string(key, val)..., 1)
+        end
+        )

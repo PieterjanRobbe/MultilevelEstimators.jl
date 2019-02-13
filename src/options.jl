@@ -30,7 +30,7 @@ default_options(::AbstractIndexSet) = [:min_splitting,
                                        :do_regression]
 get_valid_options(index_set::AbstractIndexSet) = default_options(index_set)
 get_valid_options(::SL) = Symbol[]
-get_valid_options(index_set::AD) = push!(default_options(index_set), :max_search_space, :penalization)
+get_valid_options(index_set::AD) = push!(default_options(index_set), :max_search_space, :penalization, :acceptance_rate)
 get_valid_options(::U) = [:max_search_space, :sample_mul_factor]
 
 # additional valid options for SampleMethod

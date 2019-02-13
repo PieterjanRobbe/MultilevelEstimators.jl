@@ -188,7 +188,11 @@ function find_index_with_max_profit(estimator::Estimator{<:AD})
     indices = collect(active_set(estimator))
     profits = [profit(estimator, index) for index in indices] 
     (max_profit, idx) = findmax(profits)
-    max_index = indices[idx]
+	if rand() < estimator[:acceptance_rate] || length(profits)==1
+    	max_index = indices[idx]
+	else
+		max_index = indices[rand(deleteat!(collect(1:length(profits)), idx))]
+	end
     estimator[:verbose] && print_largest_profit(estimator, max_index, max_profit, indices, profits)
     return max_index
 end
@@ -213,7 +217,7 @@ function new_index_set(estimator::Estimator{<:AD}, sz::Integer)
 					add_to_active_set(estimator, new_index)
 					push!(new_indices, new_index)
 				else
-					warn_max_index(estimator, max_index)
+					warn_max_index(estimator, new_index)
 					add_to_max_index_set(estimator, new_index)
 				end
 			end

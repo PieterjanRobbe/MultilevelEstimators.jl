@@ -90,6 +90,8 @@ When no cost model is provided (default), the actual run time on each level (or 
 P_\\ell = \\frac{E_\\ell}{(\\sqrt{V_\\ell W_\\ell})^p}
 ```
 
+**`accept_rate`** is the acceptance rate in the accept-reject method for chosing new indices from the active set for further refinement. A lower value means a more global search stretegy. Usefull when the adaptive method finds itself stuck along a single coordinate direction. Default value is 1 (no accept-reject).
+
 # Keywords valid for [`QMC`](@ref) sample methods
 
 **`nb_of_shifts`** indicates the number of randomly-shifted rank-1 lattice rules used in the [`QMC`](@ref) method. The higher this value, the more accurate the variance estimation will be. This keyword can also be a function that returns the number of shifts on each level (or index). Typically, the number of shifts on coarser levels will be smaller than the number of shifts on finer levels, since, on these coarse levels, many QMC samples will be available. Default is 10 random shifts.

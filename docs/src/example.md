@@ -309,7 +309,8 @@ estimator = Estimator(AD(2), MC(), sample_lognormal, distributions)
     ```math
     P_\ell = \frac{E_\ell}{(\sqrt{V_\ell W_\ell})^p}
     ```
-    with 0 < ``p`` < 1. Specify ``p`` with the optional key `penalization`. 
+    with 0 < ``p`` < 1. Specify ``p`` with the optional key `penalization`.
+	Another useful optional key is `acceptance_rate`. When this parameter is smaller than 1, a suboptimal index from the active set will be used for further refinement. This index is chosen according to an accept-reject method: we sample a uniform random number using `rand()`, and when this number is larger than the accept ratio, we pich another index at random. Lowering the `acceptance_rate` results in an algorithm with a stronger global search behavior, and is useful when the adaptive method is stuck along one or more directions. Default value is 1 (no globalization). 
  
 ### Multi-Index Quasi Monte Carlo
 

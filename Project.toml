@@ -1,6 +1,6 @@
 name = "MultilevelEstimators"
 uuid = "bc769cb7-f249-5bba-802a-80f19cb247ec"
-version = "v0.0.0"
+version = "0.0.0"
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
