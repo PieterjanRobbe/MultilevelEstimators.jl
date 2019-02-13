@@ -3,7 +3,7 @@
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for
 # Multilevel Monte Carlo Methods (c) Pieterjan Robbe, 2019
 
-using Distributed, GaussianRandomFields, LognormalDiffusionProblems, MultilevelEstimators, Printf, Random, Test
+using Distributed, MultilevelEstimators, Printf, Test
 
 ## unit tests ##
 
@@ -16,5 +16,3 @@ include("distribution.jl")
 include("lattice.jl")
 
 include("estimator.jl")
-
-include("lognormal.jl")

@@ -38,7 +38,7 @@ eltype(::Type{<:Val{T}}) where {T} = T
             check_type(to_string(key, val)..., Signed)
             check_larger_than(to_string(key, val)..., 1)
         end
-        )
+       )
 
 ## nb_of_qoi ##
 @parse!(:nb_of_qoi,
@@ -62,7 +62,7 @@ eltype(::Type{<:Val{T}}) where {T} = T
             check_type(to_string(key, val)..., Integer)
             check_larger_than(to_string(key, val)..., 0)
         end
-        )
+       )
 
 ## continuation_mul_factor ##
 @parse!(:continuation_mul_factor,
@@ -72,7 +72,7 @@ eltype(::Type{<:Val{T}}) where {T} = T
             check_finite(to_string(key, val)...)
             check_larger_than(to_string(key, val)..., 1)
         end
-        )
+       )
 
 ## min_splitting ##
 @parse!(:min_splitting,
@@ -86,7 +86,7 @@ eltype(::Type{<:Val{T}}) where {T} = T
             check_ordered(Estimator, val, options[:max_splitting], "optional key min_splitting", "optional key max_splitting")
 
         end
-        )
+       )
 
 ## max_splitting ##
 @parse!(:max_splitting,
@@ -99,7 +99,7 @@ eltype(::Type{<:Val{T}}) where {T} = T
             haskey(options, :min_splitting) || parse!(index_set, sample_method, options, :min_splitting)
             check_ordered(Estimator, options[:min_splitting], val, "optional key min_splitting", "optional key max_splitting")
         end
-        )
+       )
 
 ## folder ##
 @parse!(:folder,
@@ -112,7 +112,7 @@ eltype(::Type{<:Val{T}}) where {T} = T
                 ispath(val) || makepath(val)
             end
         end
-        )
+       )
 
 ## name ##
 @parse!(:name,
@@ -125,7 +125,7 @@ eltype(::Type{<:Val{T}}) where {T} = T
             options[key] = val
             isfile(joinpath(options[:folder], val)) && @warn string("filename ", val, " exists, will be overwritten!")
         end
-        )
+       )
 
 function get_valid_filename(index_set, sample_method, options)
     parse!(index_set, sample_method, options, Val(:folder))
@@ -144,13 +144,13 @@ end
 @parse!(:save_samples,
         false,
         check_type(to_string(key, val)..., Bool)
-)
+       )
 
 ## save ##
 @parse!(:save,
         true,
         check_type(to_string(key, val)..., Bool)
-)
+       )
 
 ## verbose ##
 @parse!(:verbose,
@@ -180,7 +180,7 @@ struct EmptyFunction <: Function end
 
 ## max_index_set_param ##
 @parse!(:max_index_set_param,
-		10 * ndims(index_set),
+        10 * ndims(index_set),
         begin
             check_type(to_string(key, val)..., Signed)
             check_larger_than(to_string(key, val)..., 0)
@@ -194,19 +194,19 @@ struct EmptyFunction <: Function end
             check_type(to_string(key, val)..., Real)
             check_finite(to_string(key, val)...)
         end
-        )
+       )
 
 ## nb_of_workers ##
 @parse!(:nb_of_workers,
-       i -> nworkers(),
-       begin
-           check_type(to_string(key, val)..., Union{Integer, Function})
-           if val isa Integer
-               check_larger_than(to_string(key, val)..., 0)
-               delete!(options, val)
-               options[key] = i -> val
-           end
-       end
+        i -> nworkers(),
+        begin
+            check_type(to_string(key, val)..., Union{Integer, Function})
+            if val isa Integer
+                check_larger_than(to_string(key, val)..., 0)
+                delete!(options, val)
+                options[key] = i -> val
+            end
+        end
        )
 
 ## nb_of_shifts ##
@@ -221,7 +221,7 @@ struct EmptyFunction <: Function end
                 options[key] = i -> val
             end
         end
-        )
+       )
 
 ## point_generator ##
 @parse!(:point_generator,
@@ -238,16 +238,16 @@ struct EmptyFunction <: Function end
 ## max_search_space ##
 @parse!(:max_search_space,
         TD(ndims(index_set)),
-begin
-    check_type(to_string(key, val)..., AbstractIndexSet)
-    check_equal_to(Estimator, ndims(val), "dimensions of max_search_space", ndims(index_set))
-end
-)
+        begin
+            check_type(to_string(key, val)..., AbstractIndexSet)
+            check_equal_to(Estimator, ndims(val), "dimensions of max_search_space", ndims(index_set))
+        end
+       )
 
 ## nb_of_uncertainties ##
 @parse!(:nb_of_uncertainties,
         i -> length(options[:distributions]),
-check_type(to_string(key, val)..., Function)
+        check_type(to_string(key, val)..., Function)
 )
 
 ## penalization ##

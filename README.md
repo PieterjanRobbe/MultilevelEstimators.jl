@@ -40,4 +40,4 @@ Documentation is available [here](https://PieterjanRobbe.github.io/MultilevelEst
 ## Related Packages
 
 - [**Reporter.jl**](https://github.com/PieterjanRobbe/Reporter.jl) &mdash; automatic generation of diagnostic information and reports for a MultilevelEstimators simulation
-- [**LognormalDiffusionProblems.jl**](https://github.com/PieterjanRobbe/Reporter.jl) &mdash; a package with a complete MultilevelEstimators setup for the lognormal diffusion problem
+- [**LognormalDiffusionProblems.jl**](https://github.com/PieterjanRobbe/Reporter.jl) &mdash; a package with a complete MultilevelEstimators setup for a 2d elliptic PDE with random coefficients
