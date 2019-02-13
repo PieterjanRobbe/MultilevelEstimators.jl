@@ -302,6 +302,10 @@ estimator = Estimator(AD(2), MC(), sample_lognormal, distributions)
 !!! note
 
     The maximum allowed indices that can be simulated can be set by the keyword `max_search_space`. This keyword should be an index set of one of the above types. The adaptive method will only find indices inside this index set, with the size parameter equal to `max_index_set_param`.
+
+!!! warning
+
+    When the adaptive algorithm tries to add indices outside of the set of maximum allowed indices, a warning will be printed and this index is dropped when computing the bias. This might result in a biased estimator!
  
 !!! note
 
@@ -310,7 +314,10 @@ estimator = Estimator(AD(2), MC(), sample_lognormal, distributions)
     P_\ell = \frac{E_\ell}{(\sqrt{V_\ell W_\ell})^p}
     ```
     with 0 < ``p`` < 1. Specify ``p`` with the optional key `penalization`.
-	Another useful optional key is `acceptance_rate`. When this parameter is smaller than 1, a suboptimal index from the active set will be used for further refinement. This index is chosen according to an accept-reject method: we sample a uniform random number using `rand()`, and when this number is larger than the accept ratio, we pich another index at random. Lowering the `acceptance_rate` results in an algorithm with a stronger global search behavior, and is useful when the adaptive method is stuck along one or more directions. Default value is 1 (no globalization). 
+    
+!!! note
+
+    Another useful optional key is `acceptance_rate`. When this parameter is smaller than 1, a suboptimal index from the active set will be used for further refinement. This index is chosen according to an accept-reject method: we sample a uniform random number using `rand()`, and when this number is larger than the accept ratio, we pich another index at random. Lowering the `acceptance_rate` results in an algorithm with a stronger global search behavior, and is useful when the adaptive method is stuck along one or more directions. Default value is 1 (no globalization). 
  
 ### Multi-Index Quasi Monte Carlo
 
