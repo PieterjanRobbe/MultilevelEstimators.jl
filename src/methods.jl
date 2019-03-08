@@ -70,7 +70,7 @@ for (f, g, sgn) in zip([:α, :β, :γ], [:mean, :var, :cost], [-1, -1, 1])
             else
                 x = m:-1:1
                 y = map(xᵢ -> $g(estimator, idx - xᵢ * Index(ntuple(i -> i == dir, ndims(estimator)))), 1:m)
-                idcs = .!isnan.(y)
+                idcs = .!(isnan.(y) .| iszero.(y))
                 θ = interp1(view(x, idcs), log2.(abs.(view(y, idcs))))
                 return tuple(θ...)
             end
@@ -172,7 +172,8 @@ function bias(estimator::Estimator, sz::Integer)
     else
         x = max(1, sz - 2):sz
         y = Float64[log2(abs(sum(broadcast(i -> mean(estimator, i), boundary(estimator, xᵢ))))) for xᵢ in x]
-        p = interp1(x, y)
+        idcs = isfinite.(y)
+        p = interp1(x[idcs], y[idcs])
         return 2^(p[1]+(sz+1)*p[2])
     end
 end
