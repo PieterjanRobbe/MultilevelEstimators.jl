@@ -60,7 +60,7 @@ end</code></pre><p>Thus, when the level parameter is zero, we return the value o
         dQ += val * Qc
     end
     dQ, Qf
-end</code></pre><p>All functionality is hidden in the call to <code>diff(index)</code>. This function returns a <code>Dict</code> with as keys the indices where coarse approximations must be computed, and as values <code>+1</code> or <code>-1</code>, specifying how these corrections must be added to the quantity of interest on the fine grid.</p><h3><a class="nav-anchor" id="Multi-index-sets-1" href="#Multi-index-sets-1">Multi-index sets</a></h3><p>Different choices for the multi-index sets are available: full tensor index sets (<a href="manual.html#MultilevelEstimators.FT"><code>FT</code></a>), total degree index sets (<a href="manual.html#MultilevelEstimators.TD"><code>TD</code></a>), hyperbolic cross index sets (<a href="manual.html#MultilevelEstimators.HC"><code>HC</code></a>) and Zaremba cross index sets (<a href="manual.html#MultilevelEstimators.ZC"><code>ZC</code></a>). For example, total degree (TD) index sets look like this </p><div><pre><code class="language-julia">index_set = TD(2)
+end</code></pre><p>All functionality is hidden in the call to <code>diff(index)</code>. This function returns a <code>Dict</code> with as keys the indices where coarse approximations must be computed, and as values <code>+1</code> or <code>-1</code>, specifying how these corrections must be added to the quantity of interest on the fine grid.</p><h3><a class="nav-anchor" id="Multi-index-sets-1" href="#Multi-index-sets-1">Multi-index sets</a></h3><p>Different choices for the multi-index sets are available: full tensor index sets (<a href="manual.html#MultilevelEstimators.FT"><code>FT</code></a>), total degree index sets (<a href="manual.html#MultilevelEstimators.TD"><code>TD</code></a>), hyperbolic cross index sets (<a href="manual.html#MultilevelEstimators.HC"><code>HC</code></a>) and Zaremba cross index sets (<a href="manual.html#MultilevelEstimators.ZC"><code>ZC</code></a>). For example, total degree (TD) index sets look like this </p><pre><code class="language-julia">index_set = TD(2)
 for sz = 0:5
     println(&quot;size parameter: &quot;, sz)
     print(index_set, sz)
@@ -90,7 +90,7 @@ size parameter: 5
   ◼ ◼ ◼
   ◼ ◼ ◼ ◼
   ◼ ◼ ◼ ◼ ◼
-  ◼ ◼ ◼ ◼ ◼ ◼</code></pre></div><p>Weighted index sets are created by specifying appropriate weiths. All weights must be smaller than or equal to 1.</p><div><pre><code class="language-julia">index_set = ZC(1/2, 1)
+  ◼ ◼ ◼ ◼ ◼ ◼</code></pre><p>Weighted index sets are created by specifying appropriate weiths. All weights must be smaller than or equal to 1.</p><pre><code class="language-julia">index_set = ZC(1/2, 1)
 for sz = 0:5
     println(&quot;size parameter: &quot;, sz)
     print(index_set, sz)
@@ -120,7 +120,7 @@ size parameter: 5
   ◼
   ◼ ◼
   ◼ ◼ ◼
-  ◼ ◼ ◼</code></pre></div><p>We can create an estimator the usual way:</p><pre><code class="language-julia">estimator = Estimator(TD(2), MC(), sample_lognormal, distributions)</code></pre><p>where <code>TD(2)</code> denotes a 2-dimensional index set.</p><p>Before running a simulation, we must precomputed the random fields on all indices.</p><pre><code class="language-julia">grfs = Matrix{typeof(grf)}(undef, 7, 7)
+  ◼ ◼ ◼</code></pre><p>We can create an estimator the usual way:</p><pre><code class="language-julia">estimator = Estimator(TD(2), MC(), sample_lognormal, distributions)</code></pre><p>where <code>TD(2)</code> denotes a 2-dimensional index set.</p><p>Before running a simulation, we must precomputed the random fields on all indices.</p><pre><code class="language-julia">grfs = Matrix{typeof(grf)}(undef, 7, 7)
 for index in get_index_set(TD(2), 6)
     n = 2 .^(index.I .+ 2)
     pts = map(i -&gt; range(1/i, step = 1/i, stop = 1 - 1/i), n)
