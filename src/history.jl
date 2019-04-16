@@ -56,12 +56,12 @@ function push!(history::History, estimator::Estimator, tol::Real, elapsed::Real)
     h = Dict{Symbol, Any}()
     h[:type]              = typeof(estimator)
     h[:ndims]             = ndims(estimator)
-	h[:name]              = estimator[:name]
-	h[:folder]            = estimator[:folder]
+    h[:name]              = estimator[:name]
+    h[:folder]            = estimator[:folder]
     h[:elapsed]           = elapsed
     h[:tol]               = tol
-	h[:current_index_set] = copy(collect(keys(estimator)))
-	h[:index_set]         = copy(collect(all_keys(estimator)))
+    h[:current_index_set] = copy(collect(keys(estimator)))
+    h[:index_set]         = copy(collect(all_keys(estimator)))
     h[:mse]               = mse(estimator)
     h[:rmse]              = rmse(estimator)
     h[:mean]              = mean(estimator)
@@ -77,16 +77,17 @@ function push!(history::History, estimator::Estimator, tol::Real, elapsed::Real)
     h[:β]                 = β(estimator)
     h[:γ]                 = γ(estimator)
     h[:nb_of_samples]     = copy(nb_of_samples(estimator)) 
+    h[:qoi_with_max_var]  = qoi_with_max_var(estimator)
 
-	# add cost model is it was provided
-	if !(estimator[:cost_model] isa EmptyFunction)
-    	h[:W]             = apply(cost, estimator)
-	end
+    # add cost model is it was provided
+    if !(estimator[:cost_model] isa EmptyFunction)
+        h[:W]             = apply(cost, estimator)
+    end
 
-	# add logbook when using adpative index sets
-	if estimator isa Estimator{<:AD}
-		h[:logbook]       = copy(logbook(estimator))
-	end
+    # add logbook when using adpative index sets
+    if estimator isa Estimator{<:AD}
+        h[:logbook]       = copy(logbook(estimator))
+    end
 
     # save samples if required
     if estimator[:save]
