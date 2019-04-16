@@ -8,6 +8,7 @@
 # valid options
 default_options(::AbstractIndexSet, ::AbstractSampleMethod) = [:nb_of_warm_up_samples,
                                                                :nb_of_qoi,
+                                                               :qoi_with_max_var,
                                                                :nb_of_tols,
                                                                :continuation_mul_factor,
                                                                :continuate,

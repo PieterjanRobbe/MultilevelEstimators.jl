@@ -248,7 +248,7 @@ struct EmptyFunction <: Function end
 @parse!(:nb_of_uncertainties,
         i -> length(options[:distributions]),
         check_type(to_string(key, val)..., Function)
-)
+       )
 
 ## penalization ##
 @parse!(:penalization,
@@ -259,15 +259,24 @@ struct EmptyFunction <: Function end
             check_larger_than_or_equal_to(to_string(key, val)..., 0)
             check_smaller_than_or_equal_to(to_string(key, val)..., 1)
         end
-        )
+       )
 
 ## acceptance_rate ##
 @parse!(:acceptance_rate,
-		1.0,
+        1.0,
         begin
             check_type(to_string(key, val)..., Real)
             check_finite(to_string(key, val)...)
             check_larger_than_or_equal_to(to_string(key, val)..., 0)
             check_smaller_than_or_equal_to(to_string(key, val)..., 1)
         end
-        )
+       )
+
+## qoi_with_max_var
+@parse!(:qoi_with_max_var,
+        0,
+        begin
+            check_larger_than(to_string(key, val)..., 0)
+            check_smaller_than_or_equal_to(to_string(key, val)..., length(options[:distributions]))
+        end
+       )

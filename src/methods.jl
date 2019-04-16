@@ -25,7 +25,7 @@ max_level_exceeded(estimator::Estimator) = sz(estimator) ≥ estimator[:max_inde
 #
 # inspector functions: mean, var, varest...
 #
-qoi_with_max_var(estimator::Estimator{<:AbstractIndexSet, <:MC}) = argmax(map(n_qoi -> sum(var(samples_diff(estimator, n_qoi, index)) for index in keys(estimator)), 1:estimator[:nb_of_qoi]))
+qoi_with_max_var(estimator::Estimator{<:AbstractIndexSet, <:MC}) = estimator[:qoi_with_max_var] == 0 ? argmax(map(n_qoi -> sum(var(samples_diff(estimator, n_qoi, index)) for index in keys(estimator)), 1:estimator[:nb_of_qoi])) : estimator[:qoi_with_max_var]
 
 cost(estimator::Estimator, index::Index) = estimator[:cost_model] isa EmptyFunction ? time(estimator, index) : work(estimator, index)
 
@@ -240,7 +240,7 @@ end
 #
 # QMC related functions
 #
-qoi_with_max_var(estimator::Estimator{<:AbstractIndexSet, <:QMC}) = argmax(map(n_qoi -> sum(mean(var(samples_diff(estimator, n_qoi, n_shift, index)) for n_shift in 1:estimator[:nb_of_shifts](index)) for index in keys(estimator)), 1:estimator[:nb_of_qoi]))
+qoi_with_max_var(estimator::Estimator{<:AbstractIndexSet, <:QMC}) = estimator[:qoi_with_max_var] == 0 ? argmax(map(n_qoi -> sum(mean(var(samples_diff(estimator, n_qoi, n_shift, index)) for n_shift in 1:estimator[:nb_of_shifts](index)) for index in keys(estimator)), 1:estimator[:nb_of_qoi])) : estimator[:qoi_with_max_var]
 
 function next_number_of_samples(estimator, index)
     if estimator[:sample_mul_factor] == 2
@@ -264,9 +264,9 @@ varest(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index) = var(mean
 #
 # Unbiased estimation
 #
-qoi_with_max_var(estimator::Estimator{<:U, <:MC}) = argmax(map(n_qoi -> var(accumulator(estimator, n_qoi)) / length(accumulator(estimator, n_qoi)), 1:estimator[:nb_of_qoi]))
+qoi_with_max_var(estimator::Estimator{<:U, <:MC}) = estimator[:qoi_with_max_var] == 0 ? argmax(map(n_qoi -> var(accumulator(estimator, n_qoi)) / length(accumulator(estimator, n_qoi)), 1:estimator[:nb_of_qoi])) : estimator[:qoi_with_max_var]
 
-qoi_with_max_var(estimator::Estimator{<:U, <:QMC}) = argmax(map(n_qoi -> var(mean(accumulator(estimator, n_qoi, n_shift)) for n_shift in 1:size(accumulator(estimator), 2)) / estimator[:nb_of_qoi], 1:estimator[:nb_of_qoi]))
+qoi_with_max_var(estimator::Estimator{<:U, <:QMC}) = estimator[:qoi_with_max_var] == 0 ? argmax(map(n_qoi -> var(mean(accumulator(estimator, n_qoi, n_shift)) for n_shift in 1:size(accumulator(estimator), 2)) / estimator[:nb_of_qoi], 1:estimator[:nb_of_qoi])) : estimator[:qoi_with_max_var]
 
 function next_number_of_samples(estimator::Estimator{<:U})
     n_total = sum(values(nb_of_samples(estimator)))
