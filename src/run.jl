@@ -6,8 +6,8 @@
 # Multilevel Monte Carlo Methods (c) Pieterjan Robbe, 2019
 
 """
-    run(estimator::Estimator, ε::Real)
-	run(estimator::Estimator, ε::Vector{<:Real})
+run(estimator::Estimator, ε::Real)
+run(estimator::Estimator, ε::Vector{<:Real})
 
 Run the estimator and compute the expected value of the quantity of interest up to the given tolerance(s) `ε`. Returns a [`History`](@ref)-object that contains usefull diagnostics about the simulation. 
 
@@ -134,8 +134,8 @@ function _run(estimator::Estimator{T1, T2}, ϵ::Real) where {T1<:AbstractIndexSe
         end
     end
 
-	# update boundary in case of AD
-	T1 <: AD && update_boundary(estimator)
+    # update boundary in case of AD
+    T1 <: AD && update_boundary(estimator)
 
     # print convergence status
     estimator[:verbose] && print_convergence(estimator, T1 <: SL ? true : converged(estimator, ϵ, θ))
@@ -155,9 +155,9 @@ function _run(estimator::Estimator{<:U, <:AbstractSampleMethod}, ϵ::Real)
     for index in index_set
         index ∈ current_index_set(estimator) || push!(estimator, index)
     end
-    
+
     # main loop
-	is_converged = false
+    is_converged = varest(estimator) ≤ ϵ^2
     while !is_converged
 
         # print status
@@ -168,21 +168,21 @@ function _run(estimator::Estimator{<:U, <:AbstractSampleMethod}, ϵ::Real)
 
         # print optimal number of samples
         estimator[:verbose] && print_optimal_nb_of_samples(estimator, n_opt)
-        
+
         # take additional samples
         update_samples(estimator, n_opt)
 
-		# update pmf
-		update_pmf(estimator)
-		estimator[:verbose] && print_pmf(estimator)
-        
+        # update pmf
+        update_pmf(estimator)
+        estimator[:verbose] && print_pmf(estimator)
+
         # check next iteration
         estimator[:verbose] && print_unbiased_convergence(estimator, ϵ)
 
-		is_converged = varest(estimator) ≤ ϵ^2
+        is_converged = varest(estimator) ≤ ϵ^2
 
-		# print index set
-    	estimator[:verbose] && print_index_set(estimator, index_set)
+        # print index set
+        estimator[:verbose] && print_index_set(estimator, index_set)
     end
 
     # print convergence status
