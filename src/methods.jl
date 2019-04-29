@@ -295,7 +295,7 @@ Geometric(p, k) = (1 - p)^k*p
 function update_pmf(estimator::Estimator{<:U})
     f(estimator, index) = sqrt(var(estimator, index)/cost(estimator, index))
     p = interp(f, estimator)
-    if !any(isnan.(p)) && all(p[2:end] .< -0.5)
+    if !any(isnan.(p)) #&& all(p[2:end] .< -0.5)
         for index in keys(estimator)
             if isnan(f(estimator, index)) || isinf(f(estimator, index))
                 set_pmf_key(estimator, index, 2^(p[1]+sum(p[2:end].*index.I)))
