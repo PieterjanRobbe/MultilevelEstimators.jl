@@ -102,11 +102,11 @@ function interp(f::Function, estimator::Estimator)
     idx_set = filter(i -> !isempty(samples(estimator)[1][i]), CartesianIndices(size(samples(estimator)[1])))
     A = [i == 0 ? 1 : getindex(index - one(index), i) for index in idx_set, i in 0:ndims(estimator)]	
     y = map(i -> log2(f(estimator, i - one(i))), idx_set)
-	try
-    	return A\y
-	catch e
-		return fill(NaN, length(y))
-	end
+    try
+        return A\y
+    catch e
+        return fill(NaN, length(y))
+    end
 end
 
 regress_mean(estimator, index) = _regress_mean(estimator, index)
@@ -189,52 +189,52 @@ function find_index_with_max_profit(estimator::Estimator{<:AD})
     indices = collect(active_set(estimator))
     profits = [profit(estimator, index) for index in indices] 
     (max_profit, idx) = findmax(profits)
-	if rand() < estimator[:acceptance_rate] || length(profits)==1
-    	max_index = indices[idx]
-	else
-		max_index = indices[rand(deleteat!(collect(1:length(profits)), idx))]
-	end
+    if rand() < estimator[:acceptance_rate] || length(profits)==1
+        max_index = indices[idx]
+    else
+        max_index = indices[rand(deleteat!(collect(1:length(profits)), idx))]
+    end
     estimator[:verbose] && print_largest_profit(estimator, max_index, max_profit, indices, profits)
     return max_index
 end
 
 function new_index_set(estimator::Estimator{<:AD}, sz::Integer)
-	d = ndims(estimator)
-	if isempty(active_set(estimator))
-		new_indices = Set{Index{d}}()
-		max_index = Index(ntuple(i -> 0, d))
-		add_to_active_set(estimator, max_index)
-		push!(new_indices, max_index)
-	else
-		max_index = find_index_with_max_profit(estimator)
-		add_to_old_set(estimator, max_index)
-		remove_from_active_set(estimator, max_index)
-		new_indices = Set{Index{d}}()
-		push!(new_indices, max_index)
-		for k in 1:d
-			new_index = max_index + Index(ntuple(i -> i == k, d))
-			if is_admissable(estimator, new_index)
-				if new_index ∈ get_index_set(estimator[:max_search_space], estimator[:max_index_set_param])
-					add_to_active_set(estimator, new_index)
-					push!(new_indices, new_index)
-				else
-					warn_max_index(estimator, new_index)
-					add_to_max_index_set(estimator, new_index)
-				end
-			end
-		end
-	end
-	log_adaptive_index_set(estimator, max_index)
+    d = ndims(estimator)
+    if isempty(active_set(estimator))
+        new_indices = Set{Index{d}}()
+        max_index = Index(ntuple(i -> 0, d))
+        add_to_active_set(estimator, max_index)
+        push!(new_indices, max_index)
+    else
+        max_index = find_index_with_max_profit(estimator)
+        add_to_old_set(estimator, max_index)
+        remove_from_active_set(estimator, max_index)
+        new_indices = Set{Index{d}}()
+        push!(new_indices, max_index)
+        for k in 1:d
+            new_index = max_index + Index(ntuple(i -> i == k, d))
+            if is_admissable(estimator, new_index)
+                if new_index ∈ get_index_set(estimator[:max_search_space], estimator[:max_index_set_param])
+                    add_to_active_set(estimator, new_index)
+                    push!(new_indices, new_index)
+                else
+                    warn_max_index(estimator, new_index)
+                    add_to_max_index_set(estimator, new_index)
+                end
+            end
+        end
+    end
+    log_adaptive_index_set(estimator, max_index)
     return new_indices
 end
 
 function bias(estimator::Estimator{<:AD}, sz::Integer)
-	b(indices) = abs(sum(broadcast(i -> mean(estimator, i), collect(indices))))
-	if sz != max_sz(estimator)
-		return b(active_set(estimator))
-	else
-		return min(b(active_set(estimator)), b(boundary(estimator)))
-	end
+    b(indices) = abs(sum(broadcast(i -> mean(estimator, i), collect(indices))))
+    if sz != max_sz(estimator)
+        return b(active_set(estimator))
+    else
+        return min(b(active_set(estimator)), b(boundary(estimator)))
+    end
 end
 
 #
@@ -295,16 +295,16 @@ Geometric(p, k) = (1 - p)^k*p
 function update_pmf(estimator::Estimator{<:U})
     f(estimator, index) = sqrt(var(estimator, index)/cost(estimator, index))
     p = interp(f, estimator)
-	if !any(isnan.(p)) && all(p[2:end] .< -0.5)
-		for index in keys(estimator)
-			if isnan(f(estimator, index)) || isinf(f(estimator, index))
-				set_pmf_key(estimator, index, 2^(p[1]+sum(p[2:end].*index.I)))
-			else
-				set_pmf_key(estimator, index, f(estimator, index))
-			end
-		end
-		normalize!(pmf(estimator))
-	end
+    if !any(isnan.(p)) && all(p[2:end] .< -0.5)
+        for index in keys(estimator)
+            if isnan(f(estimator, index)) || isinf(f(estimator, index))
+                set_pmf_key(estimator, index, 2^(p[1]+sum(p[2:end].*index.I)))
+            else
+                set_pmf_key(estimator, index, f(estimator, index))
+            end
+        end
+        normalize!(pmf(estimator))
+    end
 end
 
 function normalize!(pmf::Dict{<:Index, Float64})
