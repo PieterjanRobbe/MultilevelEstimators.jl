@@ -33,7 +33,7 @@ eltype(::Type{<:Val{T}}) where {T} = T
 
 ## nb_of_warm_up_samples ##
 @parse!(:nb_of_warm_up_samples,
-        sample_method isa QMC ? 1 : 20,
+		sample_method isa QMC ? (index_set isa U ? 2 : 1) : 20,
         begin
             check_type(to_string(key, val)..., Signed)
             check_larger_than(to_string(key, val)..., 1)

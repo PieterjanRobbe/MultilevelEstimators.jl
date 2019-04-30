@@ -99,7 +99,8 @@ function interp1(x::AbstractVector{<:Real}, y::AbstractVector{<:Real})
 end
 
 function interp(f::Function, estimator::Estimator)
-    idx_set = filter(i -> !isempty(samples(estimator)[1][i]), CartesianIndices(size(samples(estimator)[1])))
+	filter_fcn = estimator isa Estimator{<:AbstractIndexSet, QMC} ? i -> !isempty(samples(estimator)[1][i]) : i -> length(samples(estimator)[1][i]) > 1
+    idx_set = filter(filter_fcn, CartesianIndices(size(samples(estimator)[1])))
     A = [i == 0 ? 1 : getindex(index - one(index), i) for index in idx_set, i in 0:ndims(estimator)]	
     y = map(i -> log2(f(estimator, i - one(i))), idx_set)
     try
@@ -295,7 +296,7 @@ Geometric(p, k) = (1 - p)^k*p
 function update_pmf(estimator::Estimator{<:U})
     f(estimator, index) = sqrt(var(estimator, index)/cost(estimator, index))
     p = interp(f, estimator)
-    if !any(isnan.(p)) #&& all(p[2:end] .< -0.5)
+    if !any(isnan.(p)) && all(p[2:end] .< 0)
         for index in keys(estimator)
             if isnan(f(estimator, index)) || isinf(f(estimator, index))
                 set_pmf_key(estimator, index, 2^(p[1]+sum(p[2:end].*index.I)))
