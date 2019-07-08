@@ -83,7 +83,7 @@ eltype(::Type{<:Val{T}}) where {T} = T
             check_larger_than(to_string(key, val)..., 0)
             check_smaller_than_or_equal_to(to_string(key, val)..., 1)
             haskey(options, :max_splitting) || parse!(index_set, sample_method, options, :max_splitting)
-            check_ordered(Estimator, val, options[:max_splitting], "optional key min_splitting", "optional key max_splitting")
+            check_ordered_or_equal(Estimator, val, options[:max_splitting], "optional key min_splitting", "optional key max_splitting")
 
         end
        )
@@ -97,7 +97,7 @@ eltype(::Type{<:Val{T}}) where {T} = T
             check_larger_than(to_string(key, val)..., 0)
             check_smaller_than_or_equal_to(to_string(key, val)..., 1)
             haskey(options, :min_splitting) || parse!(index_set, sample_method, options, :min_splitting)
-            check_ordered(Estimator, options[:min_splitting], val, "optional key min_splitting", "optional key max_splitting")
+            check_ordered_or_equal(Estimator, options[:min_splitting], val, "optional key min_splitting", "optional key max_splitting")
         end
        )
 
@@ -184,6 +184,19 @@ struct EmptyFunction <: Function end
         begin
             check_type(to_string(key, val)..., Signed)
             check_larger_than(to_string(key, val)..., 0)
+            haskey(options, :min_index_set_param) || parse!(index_set, sample_method, options, :min_index_set_param)
+            check_ordered_or_equal(Estimator, options[:min_index_set_param], val, "optional key min_index_set_param", "optional key max_index_set_param")
+        end
+       )
+
+## min_index_set_param ##
+@parse!(:min_index_set_param,
+        2,
+        begin
+            check_type(to_string(key, val)..., Signed)
+            check_larger_than(to_string(key, val)..., 0)
+            haskey(options, :max_index_set_param) || parse!(index_set, sample_method, options, :max_index_set_param)
+            check_ordered_or_equal(Estimator, val, options[:max_index_set_param], "optional key min_index_set_param", "optional key max_index_set_param")
         end
        )
 

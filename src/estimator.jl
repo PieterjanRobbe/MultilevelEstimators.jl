@@ -69,6 +69,8 @@ When no cost model is provided (default), the actual run time on each level (or 
 
 **`max_index_set_param`** is the maximum index set size parameter that can be used in a simulation. Typically, a simulation will only be possible up to a finite index set size parameter, due to, for instance, memory constraints or prohibitively lare computational cost. For a multilevel simulation with [`ML`](@ref) this is the maximum number of levels. For a multi-index simulation with [`FT`](@ref), [`TD`](@ref), [`HC`](@ref) or [`ZC`](@ref), this is the maximum index set size parameter. For simulations with [`AD`](@ref) or [`U`](@ref), this is the maximum index set size to be used in the `max_search_space` (see below). Default is 10 times the number of dimensions of the index set. When this value is exceeded, the simulation will stop with a bias (and, consequently, a root mean square error) larger than the requested accuracy.
 
+**`min_index_set_param`** is the minimum index set size parameter that should be used in a simulation. Useful for providing a minimum number of levels that should be used. This parameter should be at least 2 to allow for regression and estimation of the rates `alpha` and `beta. Default value is 2.
+
 # Keywords valid for index set types [`SL`](@ref), [`ML`](@ref), [`FT`](@ref), [`TD`](@ref), [`HC`](@ref) and [`ZC`](@ref)
 
 **`do_regression`** -- if set to `true`, the variance on the finer levels (or indices) will be guessed from the aready available variances on the coarser levels (or indices). These finer levels (or indices) must have a value larger than or equal to 2 in at least one of the coordinate directions. This is very powerfull when dealing with computationally demanding sample functions. Default: `true`.

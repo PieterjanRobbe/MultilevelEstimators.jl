@@ -20,7 +20,8 @@ default_options(::AbstractIndexSet, ::AbstractSampleMethod) = [:nb_of_warm_up_sa
                                                                :cost_model,
                                                                :nb_of_workers,
                                                                :nb_of_uncertainties,
-                                                               :max_index_set_param]
+                                                               :max_index_set_param,
+															   :min_index_set_param]
 get_valid_options(index_set, sample_method) = push!(default_options(index_set, sample_method), get_valid_options(index_set)..., get_valid_options(sample_method)...)
 
 # additional valid options for IndexSet
