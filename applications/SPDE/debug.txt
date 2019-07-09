@@ -1,0 +1,277 @@
+WARNING: Method definition show(IO, Base.IteratorsMD.CartesianIndex{N} where N) in module IteratorsMD at multidimensional.jl:84 overwritten in module MultilevelEstimators at /home/philippeb/.julia/packages/MultilevelEstimators/l8j9n/src/index.jl:23.
+Procs added
+3
+getfield(Coupling, Symbol("##24#47")){Int64,typeof(MatlabSampler),String,Float64,Float64}(3, MatlabSampler, "/home/philippeb/.julia/packages/MultilevelEstimators/l8j9n/applications/SPDE/data/Interm", 2.5, 0.25, Core.Box(Dict{Any,Any}(0=>HomogeneousNormalMatrix(0.0:0.003125:0.996875, 0.0:0.25:0.75, (0.0:0.003125:0.996875, 0.0:0.25:0.75)))))
+┌ Warning: `Pkg.dir(pkgname, paths...)` is deprecated; instead, do `import MultilevelEstimators; joinpath(dirname(pathof(MultilevelEstimators)), "..", paths...)`.
+└ @ Pkg.API /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.0/Pkg/src/API.jl:480
++-------------------------------------------------------------------------------+
+| *** MultilevelEstimators.jl @2019-04-18T15:11:22.841                          |
+| *** This is a Estimator{SL, MC}                                               |
+| *** Simulating Beam MC_Hom_Lin_High                                           |
+| *** Tolerance on RMSE ϵ = 8.484e-04                                           |
++-------------------------------------------------------------------------------+
+Currently running on finest level.
+Taking 40 warm-up samples at level 0...      From worker 5:	ErrorException("function sample does not accept keyword arguments")
+      From worker 2:	ErrorException("function sample does not accept keyword arguments")
+      From worker 13:	ErrorException("function sample does not accept keyword arguments")
+      From worker 11:	ErrorException("function sample does not accept keyword arguments")
+      From worker 4:	ErrorException("function sample does not accept keyword arguments")
+      From worker 5:	Error in return map caught
+      From worker 5:	ErrorException("function sample does not accept keyword arguments")
+      From worker 5:	Error in return map caught
+      From worker 13:	Error in return map caught
+      From worker 13:	ErrorException("function sample does not accept keyword arguments")
+      From worker 13:	Error in return map caught
+      From worker 4:	Error in return map caught
+      From worker 11:	Error in return map caught
+      From worker 4:	ErrorException("function sample does not accept keyword arguments")
+      From worker 4:	Error in return map caught
+      From worker 11:	ErrorException("function sample does not accept keyword arguments")
+      From worker 11:	Error in return map caught
+      From worker 2:	Error in return map caught
+      From worker 2:	ErrorException("function sample does not accept keyword arguments")
+      From worker 2:	Error in return map caught
+      From worker 8:	ErrorException("function sample does not accept keyword arguments")
+      From worker 3:	ErrorException("function sample does not accept keyword arguments")
+      From worker 15:	ErrorException("function sample does not accept keyword arguments")
+      From worker 8:	Error in return map caught
+      From worker 3:	Error in return map caught
+      From worker 8:	ErrorException("function sample does not accept keyword arguments")
+      From worker 8:	Error in return map caught
+      From worker 3:	ErrorException("function sample does not accept keyword arguments")
+      From worker 3:	Error in return map caught
+      From worker 23:	ErrorException("function sample does not accept keyword arguments")
+      From worker 9:	ErrorException("function sample does not accept keyword arguments")
+      From worker 20:	ErrorException("function sample does not accept keyword arguments")
+      From worker 15:	Error in return map caught
+      From worker 15:	ErrorException("function sample does not accept keyword arguments")
+      From worker 15:	Error in return map caught
+      From worker 23:	Error in return map caught
+      From worker 19:	ErrorException("function sample does not accept keyword arguments")
+      From worker 20:	Error in return map caught
+      From worker 9:	Error in return map caught
+      From worker 9:	ErrorException("function sample does not accept keyword arguments")
+      From worker 9:	Error in return map caught
+      From worker 16:	ErrorException("function sample does not accept keyword arguments")
+      From worker 7:	ErrorException("function sample does not accept keyword arguments")
+      From worker 18:	ErrorException("function sample does not accept keyword arguments")
+      From worker 19:	Error in return map caught
+      From worker 16:	Error in return map caught
+      From worker 7:	Error in return map caught
+      From worker 18:	Error in return map caught
+      From worker 7:	ErrorException("function sample does not accept keyword arguments")
+      From worker 7:	Error in return map caught
+      From worker 22:	ErrorException("function sample does not accept keyword arguments")
+      From worker 14:	ErrorException("function sample does not accept keyword arguments")
+      From worker 17:	ErrorException("function sample does not accept keyword arguments")
+      From worker 10:	ErrorException("function sample does not accept keyword arguments")
+      From worker 22:	Error in return map caught
+      From worker 12:	ErrorException("function sample does not accept keyword arguments")
+      From worker 17:	Error in return map caught
+      From worker 14:	Error in return map caught
+      From worker 14:	ErrorException("function sample does not accept keyword arguments")
+      From worker 14:	Error in return map caught
+      From worker 21:	ErrorException("function sample does not accept keyword arguments")
+      From worker 24:	ErrorException("function sample does not accept keyword arguments")
+      From worker 10:	Error in return map caught
+      From worker 10:	ErrorException("function sample does not accept keyword arguments")
+      From worker 10:	Error in return map caught
+      From worker 26:	ErrorException("function sample does not accept keyword arguments")
+      From worker 12:	Error in return map caught
+      From worker 12:	ErrorException("function sample does not accept keyword arguments")
+      From worker 12:	Error in return map caught
+      From worker 21:	Error in return map caught
+      From worker 24:	Error in return map caught
+      From worker 26:	Error in return map caught
+      From worker 25:	ErrorException("function sample does not accept keyword arguments")
+      From worker 6:	ErrorException("function sample does not accept keyword arguments")
+      From worker 25:	Error in return map caught
+      From worker 27:	ErrorException("function sample does not accept keyword arguments")
+      From worker 6:	Error in return map caught
+      From worker 6:	ErrorException("function sample does not accept keyword arguments")
+      From worker 6:	Error in return map caught
+      From worker 27:	Error in return map caught
+      From worker 5:	ErrorException("function sample does not accept keyword arguments")
+      From worker 3:	ErrorException("function sample does not accept keyword arguments")
+      From worker 3:	Error in return map caught
+      From worker 13:	ErrorException("function sample does not accept keyword arguments")
+      From worker 13:	Error in return map caught
+      From worker 5:	Error in return map caught
+      From worker 20:	ErrorException("function sample does not accept keyword arguments")
+      From worker 20:	Error in return map caught
+      From worker 23:	ErrorException("function sample does not accept keyword arguments")
+      From worker 23:	Error in return map caught
+      From worker 2:	ErrorException("function sample does not accept keyword arguments")
+      From worker 2:	Error in return map caught
+      From worker 17:	ErrorException("function sample does not accept keyword arguments")
+      From worker 17:	Error in return map caught
+      From worker 18:	ErrorException("function sample does not accept keyword arguments")
+      From worker 18:	Error in return map caught
+      From worker 4:	ErrorException("function sample does not accept keyword arguments")
+      From worker 4:	Error in return map caught
+      From worker 7:	ErrorException("function sample does not accept keyword arguments")
+      From worker 7:	Error in return map caught
+      From worker 9:	ErrorException("function sample does not accept keyword arguments")
+      From worker 9:	Error in return map caught
+      From worker 14:	ErrorException("function sample does not accept keyword arguments")
+      From worker 14:	Error in return map caught
+      From worker 10:	ErrorException("function sample does not accept keyword arguments")
+      From worker 10:	Error in return map caught
+      From worker 22:	ErrorException("function sample does not accept keyword arguments")
+      From worker 26:	ErrorException("function sample does not accept keyword arguments")
+      From worker 26:	Error in return map caught
+      From worker 21:	ErrorException("function sample does not accept keyword arguments")
+      From worker 21:	Error in return map caught
+      From worker 22:	Error in return map caught
+      From worker 12:	ErrorException("function sample does not accept keyword arguments")
+      From worker 12:	Error in return map caught
+      From worker 19:	ErrorException("function sample does not accept keyword arguments")
+      From worker 19:	Error in return map caught
+      From worker 15:	ErrorException("function sample does not accept keyword arguments")
+      From worker 15:	Error in return map caught
+      From worker 11:	ErrorException("function sample does not accept keyword arguments")
+      From worker 11:	Error in return map caught
+      From worker 8:	ErrorException("function sample does not accept keyword arguments")
+      From worker 8:	Error in return map caught
+      From worker 6:	ErrorException("function sample does not accept keyword arguments")
+      From worker 6:	Error in return map caught
+      From worker 27:	ErrorException("function sample does not accept keyword arguments")
+      From worker 27:	Error in return map caught
+      From worker 16:	ErrorException("function sample does not accept keyword arguments")
+      From worker 16:	Error in return map caught
+      From worker 24:	ErrorException("function sample does not accept keyword arguments")
+      From worker 24:	Error in return map caught
+      From worker 25:	ErrorException("function sample does not accept keyword arguments")
+      From worker 25:	Error in return map caught
+      From worker 19:	ErrorException("function sample does not accept keyword arguments")
+      From worker 19:	Error in return map caught
+      From worker 3:	ErrorException("function sample does not accept keyword arguments")
+      From worker 23:	ErrorException("function sample does not accept keyword arguments")
+      From worker 23:	Error in return map caught
+      From worker 3:	Error in return map caught
+      From worker 7:	ErrorException("function sample does not accept keyword arguments")
+      From worker 7:	Error in return map caught
+      From worker 18:	ErrorException("function sample does not accept keyword arguments")
+      From worker 18:	Error in return map caught
+      From worker 22:	ErrorException("function sample does not accept keyword arguments")
+      From worker 22:	Error in return map caught
+      From worker 13:	ErrorException("function sample does not accept keyword arguments")
+      From worker 13:	Error in return map caught
+      From worker 2:	ErrorException("function sample does not accept keyword arguments")
+      From worker 2:	Error in return map caught
+      From worker 5:	ErrorException("function sample does not accept keyword arguments")
+      From worker 5:	Error in return map caught
+      From worker 26:	ErrorException("function sample does not accept keyword arguments")
+      From worker 26:	Error in return map caught
+      From worker 27:	ErrorException("function sample does not accept keyword arguments")
+      From worker 27:	Error in return map caught
+      From worker 12:	ErrorException("function sample does not accept keyword arguments")
+      From worker 12:	Error in return map caught
+      From worker 14:	ErrorException("function sample does not accept keyword arguments")
+      From worker 14:	Error in return map caught
+      From worker 21:	ErrorException("function sample does not accept keyword arguments")
+      From worker 16:	ErrorException("function sample does not accept keyword arguments")
+      From worker 16:	Error in return map caught
+      From worker 17:	ErrorException("function sample does not accept keyword arguments")
+      From worker 17:	Error in return map caught
+      From worker 10:	ErrorException("function sample does not accept keyword arguments")
+      From worker 10:	Error in return map caught
+      From worker 15:	ErrorException("function sample does not accept keyword arguments")
+      From worker 15:	Error in return map caught
+      From worker 8:	ErrorException("function sample does not accept keyword arguments")
+      From worker 8:	Error in return map caught
+      From worker 25:	ErrorException("function sample does not accept keyword arguments")
+      From worker 25:	Error in return map caught
+      From worker 9:	ErrorException("function sample does not accept keyword arguments")
+      From worker 9:	Error in return map caught
+      From worker 4:	ErrorException("function sample does not accept keyword arguments")
+      From worker 4:	Error in return map caught
+      From worker 24:	ErrorException("function sample does not accept keyword arguments")
+      From worker 24:	Error in return map caught
+      From worker 11:	ErrorException("function sample does not accept keyword arguments")
+      From worker 11:	Error in return map caught
+      From worker 21:	Error in return map caught
+      From worker 20:	ErrorException("function sample does not accept keyword arguments")
+      From worker 20:	Error in return map caught
+      From worker 6:	ErrorException("function sample does not accept keyword arguments")
+      From worker 6:	Error in return map caught
+      From worker 19:	ErrorException("function sample does not accept keyword arguments")
+      From worker 19:	Error in return map caughtERROR: 
+LoadError: function sample does not accept keyword arguments      From worker 3:	ErrorException("function sample does not accept keyword arguments")
+Stacktrace:
+
+      From worker 3:	Error in return map caught [1] 
+(::getfield(Base, Symbol("##682#684")))(      From worker 23:	ErrorException("function sample does not accept keyword arguments")::
+Task      From worker 23:	Error in return map caught)
+ at ./asyncmap.jl:178      From worker 7:	ErrorException("function sample does not accept keyword arguments")
+
+ [2]       From worker 7:	Error in return map caughtforeach
+(::      From worker 5:	ErrorException("function sample does not accept keyword arguments")getfield(
+Base      From worker 5:	Error in return map caught, Symbol("
+##682#684"))      From worker 13:	ErrorException("function sample does not accept keyword arguments"), 
+::      From worker 13:	Error in return map caughtArray
+{Any      From worker 18:	ErrorException("function sample does not accept keyword arguments"),
+1      From worker 18:	Error in return map caught}
+) at       From worker 12:	ErrorException("function sample does not accept keyword arguments")./abstractarray.jl:1835
+
+      From worker 12:	Error in return map caught [3] 
+maptwice(      From worker 26:	ErrorException("function sample does not accept keyword arguments")::
+Function      From worker 26:	Error in return map caught, 
+::Channel      From worker 27:	ErrorException("function sample does not accept keyword arguments"){
+Any      From worker 27:	Error in return map caught}
+, ::      From worker 21:	ErrorException("function sample does not accept keyword arguments")Array
+{      From worker 21:	Error in return map caughtAny
+,1      From worker 16:	ErrorException("function sample does not accept keyword arguments")}
+,       From worker 16:	Error in return map caught::
+Array{      From worker 22:	ErrorException("function sample does not accept keyword arguments")Int64
+,      From worker 22:	Error in return map caught1
+})      From worker 25:	ErrorException("function sample does not accept keyword arguments") at 
+./asyncmap.jl:178      From worker 25:	Error in return map caught
+
+ [4] #async_usemap#667      From worker 8:	ErrorException("function sample does not accept keyword arguments") at 
+./asyncmap.jl:154      From worker 8:	Error in return map caught [inlined]
+
+ [5]       From worker 9:	ErrorException("function sample does not accept keyword arguments")#async_usemap
+ at       From worker 9:	Error in return map caught./none:0
+ [inlined]
+      From worker 15:	ErrorException("function sample does not accept keyword arguments") [6] 
+#asyncmap#666      From worker 15:	Error in return map caught at 
+./asyncmap.jl:81 [inlined]      From worker 4:	ErrorException("function sample does not accept keyword arguments")
+
+ [7]       From worker 4:	Error in return map caught#asyncmap
+ at ./none:0      From worker 17:	ErrorException("function sample does not accept keyword arguments") [inlined]
+
+      From worker 17:	Error in return map caught [8] 
+#pmap#215(      From worker 2:	ErrorException("function sample does not accept keyword arguments")::
+Bool      From worker 2:	Error in return map caught, 
+::Int64      From worker 10:	ErrorException("function sample does not accept keyword arguments"), 
+::      From worker 10:	Error in return map caughtNothing
+, ::      From worker 24:	ErrorException("function sample does not accept keyword arguments")Array
+{      From worker 24:	Error in return map caughtFloat64
+,1      From worker 11:	ErrorException("function sample does not accept keyword arguments")}
+,       From worker 11:	Error in return map caught::
+Nothing,       From worker 14:	ErrorException("function sample does not accept keyword arguments")::
+Function      From worker 14:	Error in return map caught, 
+::Function      From worker 20:	ErrorException("function sample does not accept keyword arguments"), 
+::      From worker 20:	Error in return map caughtCachingPool
+, ::      From worker 6:	ErrorException("function sample does not accept keyword arguments")Array
+{      From worker 6:	Error in return map caughtInt64
+,1}) at /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.0/Distributed/src/pmap.jl:126
+ [9] (::getfield(Distributed, Symbol("#kw##pmap")))(::NamedTuple{(:on_error, :retry_delays, :retry_check),Tuple{Nothing,Array{Float64,1},Nothing}}, ::typeof(pmap), ::Function, ::CachingPool, ::Array{Int64,1}) at ./none:0
+ [10] process_batch_errors!(::CachingPool, ::Function, ::Array{Distributed.BatchProcessingError,1}, ::Nothing, ::ExponentialBackOff, ::Nothing) at /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.0/Distributed/src/pmap.jl:219
+ [11] #pmap#215(::Bool, ::Int64, ::Nothing, ::ExponentialBackOff, ::Nothing, ::Function, ::Function, ::CachingPool, ::UnitRange{Int64}) at /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.0/Distributed/src/pmap.jl:148
+ [12] (::getfield(Distributed, Symbol("#kw##pmap")))(::NamedTuple{(:batch_size, :retry_delays),Tuple{Int64,ExponentialBackOff}}, ::typeof(pmap), ::Function, ::CachingPool, ::UnitRange{Int64}) at ./none:0
+ [13] parallel_sample!(::Estimator{SL{1},MC,Array{Normal{Int64},1},Dict{Symbol,Any},MultilevelEstimators.EstimatorInternals{MultilevelEstimators.DefaultInternals{Array{Array{Array{Float64,1},1},2},Array{Int64,1},Array{Float64,1},Set{Level},MultilevelEstimators.IndexSetSize{Int64}},MultilevelEstimators.GenericIndexSetInternals,MultilevelEstimators.MCInternals}}, ::Level, ::Int64, ::Int64) at /home/philippeb/.julia/packages/MultilevelEstimators/l8j9n/src/sample.jl:50
+ [14] macro expansion at ./util.jl:213 [inlined]
+ [15] sample!(::Estimator{SL{1},MC,Array{Normal{Int64},1},Dict{Symbol,Any},MultilevelEstimators.EstimatorInternals{MultilevelEstimators.DefaultInternals{Array{Array{Array{Float64,1},1},2},Array{Int64,1},Array{Float64,1},Set{Level},MultilevelEstimators.IndexSetSize{Int64}},MultilevelEstimators.GenericIndexSetInternals,MultilevelEstimators.MCInternals}}, ::Level, ::Int64) at /home/philippeb/.julia/packages/MultilevelEstimators/l8j9n/src/sample.jl:27
+ [16] _run(::Estimator{SL{1},MC,Array{Normal{Int64},1},Dict{Symbol,Any},MultilevelEstimators.EstimatorInternals{MultilevelEstimators.DefaultInternals{Array{Array{Array{Float64,1},1},2},Array{Int64,1},Array{Float64,1},Set{Level},MultilevelEstimators.IndexSetSize{Int64}},MultilevelEstimators.GenericIndexSetInternals,MultilevelEstimators.MCInternals}}, ::Float64) at /home/philippeb/.julia/packages/MultilevelEstimators/l8j9n/src/run.jl:67
+ [17] macro expansion at ./util.jl:213 [inlined]
+ [18] run(::Estimator{SL{1},MC,Array{Normal{Int64},1},Dict{Symbol,Any},MultilevelEstimators.EstimatorInternals{MultilevelEstimators.DefaultInternals{Array{Array{Array{Float64,1},1},2},Array{Int64,1},Array{Float64,1},Set{Level},MultilevelEstimators.IndexSetSize{Int64}},MultilevelEstimators.GenericIndexSetInternals,MultilevelEstimators.MCInternals}}, ::Array{Float64,1}) at /home/philippeb/.julia/packages/MultilevelEstimators/l8j9n/src/run.jl:31
+ [19] run(::Estimator{SL{1},MC,Array{Normal{Int64},1},Dict{Symbol,Any},MultilevelEstimators.EstimatorInternals{MultilevelEstimators.DefaultInternals{Array{Array{Array{Float64,1},1},2},Array{Int64,1},Array{Float64,1},Set{Level},MultilevelEstimators.IndexSetSize{Int64}},MultilevelEstimators.GenericIndexSetInternals,MultilevelEstimators.MCInternals}}, ::Float64) at /home/philippeb/.julia/packages/MultilevelEstimators/l8j9n/src/run.jl:38
+ [20] top-level scope at none:0
+ [21] include at ./boot.jl:317 [inlined]
+ [22] include_relative(::Module, ::String) at ./loading.jl:1044
+ [23] include(::Module, ::String) at ./sysimg.jl:29
+ [24] exec_options(::Base.JLOptions) at ./client.jl:266
+ [25] _start() at ./client.jl:425
+in expression starting at /home/philippeb/.julia/packages/MultilevelEstimators/l8j9n/applications/SPDE/Run.jl:209

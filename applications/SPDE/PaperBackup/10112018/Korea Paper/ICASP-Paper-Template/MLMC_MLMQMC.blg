@@ -1,0 +1,51 @@
+This is BibTeX, Version 0.99d (TeX Live 2015/Debian)
+Capacity: max_strings=35307, hash_size=35307, hash_prime=30011
+The top-level auxiliary file: MLMC_MLMQMC.aux
+The style file: ascelike.bst
+Reallocated singl_function (elt_size=4) to 100 items from 50.
+Database file #1: bib_Philippe.bib
+Warning--empty booktitle in Blondeel
+Warning--empty publisher in Borst
+Warning--empty school in Teckentrup
+You've used 18 entries,
+            2831 wiz_defined-function locations,
+            732 strings with 7477 characters,
+and the built_in function-call counts, 9603 in all, are:
+= -- 916
+> -- 323
+< -- 49
++ -- 93
+- -- 87
+* -- 806
+:= -- 1354
+add.period$ -- 41
+call.type$ -- 18
+change.case$ -- 126
+chr.to.int$ -- 18
+cite$ -- 21
+duplicate$ -- 458
+empty$ -- 737
+format.name$ -- 175
+if$ -- 1967
+int.to.chr$ -- 1
+int.to.str$ -- 0
+missing$ -- 22
+newline$ -- 80
+num.names$ -- 112
+pop$ -- 155
+preamble$ -- 1
+purify$ -- 239
+quote$ -- 0
+skip$ -- 411
+stack$ -- 0
+substring$ -- 656
+swap$ -- 121
+text.length$ -- 5
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 310
+warning$ -- 3
+while$ -- 56
+width$ -- 0
+write$ -- 242
+(There were 3 warnings)

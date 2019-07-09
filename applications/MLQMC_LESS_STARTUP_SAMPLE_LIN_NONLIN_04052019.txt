@@ -1,0 +1,77 @@
+Procs added
+false
+P of covar equals
+2
+0
+Beam_NL_Het
+getfield(Coupling, Symbol("##18#44")){typeof(MatlabSampler),String,Float64,Float64}(MatlabSampler, "/home/philippeb/.julia/packages/MultilevelEstimators/l8j9n/applications/SPDE/data/Interm", 2.5, 0.25, Core.Box(Dict{Any,Any}(3=>Gaussian random field with 2d exponential covariance function (λ=0.3, σ=1.0, p=2.0) on a 320×32 structured grid, using a KL expansion with 101 terms,4=>Gaussian random field with 2d exponential covariance function (λ=0.3, σ=1.0, p=2.0) on a 640×64 structured grid, using a KL expansion with 101 terms,0=>Gaussian random field with 2d exponential covariance function (λ=0.3, σ=1.0, p=2.0) on a 40×4 structured grid, using a KL expansion with 101 terms,2=>Gaussian random field with 2d exponential covariance function (λ=0.3, σ=1.0, p=2.0) on a 160×16 structured grid, using a KL expansion with 101 terms,1=>Gaussian random field with 2d exponential covariance function (λ=0.3, σ=1.0, p=2.0) on a 80×8 structured grid, using a KL expansion with 101 terms,5=>Gaussian random field with 2d exponential covariance function (λ=0.3, σ=1.0, p=2.0) on a 1280×128 structured grid, using a KL expansion with 101 terms)))
+┌ Warning: `Pkg.dir(pkgname, paths...)` is deprecated; instead, do `import MultilevelEstimators; joinpath(dirname(pathof(MultilevelEstimators)), "..", paths...)`.
+└ @ Pkg.API /buildworker/worker/package_linux64/build/usr/share/julia/stdlib/v1.0/Pkg/src/API.jl:480
+Gamma is
+2
++-------------------------------------------------------------------------------+
+| *** MultilevelEstimators.jl @2019-05-04T11:24:29.594                          |
+| *** This is a Estimator{ML, QMC}                                              |
+| *** Simulating Beam MLQMC_Het_NonLin_Ref                                      |
+| *** Tolerance on RMSE ϵ = 2.651e-05                                           |
++-------------------------------------------------------------------------------+
+Currently running on level 0.
+Taking 10 x 2 warm-up samples at level 0... done
++---------------+---------------+---------------+---------------+---------------+
+| level         | E             | V             | N             | W             | 
++---------------+---------------+---------------+---------------+---------------+
+| 0             | 5.87396e-03   | 1.02590e-08   | 10 x 2        | 1.00000e+00   |
++---------------+---------------+---------------+---------------+---------------+
+0
+3
+false
++---------------+---------------+---------------+---------------+---------------+
+| level         | E             | V             | N             | W             | 
++---------------+---------------+---------------+---------------+---------------+
+| 0             | 5.87396e-03   | 1.02590e-08   | 10 x 2        | 1.00000e+00   |
++---------------+---------------+---------------+---------------+---------------+
+Currently running on level 1.
+Taking 10 x 2 warm-up samples at level 1... done
++---------------+---------------+---------------+---------------+---------------+
+| level         | E             | V             | N             | W             | 
++---------------+---------------+---------------+---------------+---------------+
+| 0             | 5.87396e-03   | 1.02590e-08   | 10 x 2        | 1.00000e+00   |
+| 1             | 7.75712e-04   | 5.51907e-10   | 10 x 2        | 4.00000e+00   |
++---------------+---------------+---------------+---------------+---------------+
+1
+3
+false
++---------------+---------------+---------------+---------------+---------------+
+| level         | E             | V             | N             | W             | 
++---------------+---------------+---------------+---------------+---------------+
+| 0             | 5.87396e-03   | 1.02590e-08   | 10 x 2        | 1.00000e+00   |
+| 1             | 7.75712e-04   | 5.51907e-10   | 10 x 2        | 4.00000e+00   |
++---------------+---------------+---------------+---------------+---------------+
+Currently running on level 2.
+Taking 10 x 2 warm-up samples at level 2... done
++---------------+---------------+---------------+---------------+---------------+
+| level         | E             | V             | N             | W             | 
++---------------+---------------+---------------+---------------+---------------+
+| 0             | 5.87396e-03   | 1.02590e-08   | 10 x 2        | 1.00000e+00   |
+| 1             | 7.75712e-04   | 5.51907e-10   | 10 x 2        | 4.00000e+00   |
+| 2             | 2.75769e-04   | 8.82149e-11   | 10 x 2        | 1.60000e+01   |
++---------------+---------------+---------------+---------------+---------------+
+2
+3
+false
++---------------+---------------+---------------+---------------+---------------+
+| level         | E             | V             | N             | W             | 
++---------------+---------------+---------------+---------------+---------------+
+| 0             | 5.87396e-03   | 1.02590e-08   | 10 x 2        | 1.00000e+00   |
+| 1             | 7.75712e-04   | 5.51907e-10   | 10 x 2        | 4.00000e+00   |
+| 2             | 2.75769e-04   | 8.82149e-11   | 10 x 2        | 1.60000e+01   |
++---------------+---------------+---------------+---------------+---------------+
+Checking convergence...
+  ==> Rates: α ≈ 1.492, β ≈ 2.645, γ ≈ 2.000.
+  ==> Variance of the estimator ≈ 1.83291e-10.
+  ==> Bias of the estimator ≈ 9.80368e-05.
+  ==> MSE splitting parameter ≈ 0.500.
+No convergence yet. RMSE ≈ 9.89672e-05 > 2.651e-05.
+Adding an extra level...
+Currently running on level 3.
+Taking 10 x 2 warm-up samples at level 3...

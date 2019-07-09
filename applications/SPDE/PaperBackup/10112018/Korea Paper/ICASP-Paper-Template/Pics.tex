@@ -1,0 +1,83 @@
+\documentclass{article}
+%\usepackage{pgf}
+%\usepackage{tikz}
+%\usetikzlibrary{arrows,automata}
+%%\usepackage[latin1]{inputenc}
+\usepackage{tikz}
+\usepackage{pgfplots}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{subcaption}
+
+%\usepackage{pgfplots}
+%\usepackage{pgfplotstable}
+%	\pgfplotsset{compat=newest}
+%	\newlength\figureheight
+%	\newlength\figurewidth
+%\usepackage{tikz}
+%	\usetikzlibrary{external, backgrounds, patterns, shapes, shapes.multipart,positioning,arrows.meta,arrows,calc,arrows,decorations.pathmorphing}
+%	\tikzexternalize[shell escape=-enable-write18,prefix=tikz/]
+%	\tikzexternaldisable
+
+\begin{document}
+test
+
+\begin{tikzpicture}
+    \begin{axis}[
+        xlabel=$x$,
+        ylabel=$y$]
+    \addplot[smooth,mark=*,blue] plot coordinates {
+        (0,2)
+        (2,3)
+        (3,1)
+    };
+    \addlegendentry{Case 1}
+
+    \addplot[smooth,color=red,mark=x]
+        plot coordinates {
+            (0,0)
+            (1,1)
+            (2,1)
+            (3,2)
+        };
+    \addlegendentry{Case 2}
+    \end{axis}
+    \end{tikzpicture}
+
+\begin{figure}
+\begin{subfigure}[b]{0.54\linewidth}
+\scalebox{0.5}{
+\input{mc_point_set.tikz}}
+\end{subfigure}
+\begin{subfigure}[b]{0.45\linewidth}
+\scalebox{0.5}{
+\input{qmc_point_set.tikz}}
+\end{subfigure}
+\end{figure}
+
+%\begin{tikzpicture}[->,>=stealth',shorten >=1pt,auto,node distance=2.8cm,
+%                    semithick]
+%  \tikzstyle{every state}=[fill=red,draw=none,text=white]
+%
+%  \node[initial,state] (A)                    {$q_a$};
+%  \node[state]         (B) [above right of=A] {$q_b$};
+%  \node[state]         (D) [below right of=A] {$q_d$};
+%  \node[state]         (C) [below right of=B] {$q_c$};
+%  \node[state]         (E) [below of=D]       {$q_e$};
+%
+%  \path (A) edge              node {0,1,L} (B)
+%            edge              node {1,1,R} (C)
+%        (B) edge [loop above] node {1,1,L} (B)
+%            edge              node {0,1,L} (C)
+%        (C) edge              node {0,1,L} (D)
+%            edge [bend left]  node {1,0,R} (E)
+%        (D) edge [loop below] node {1,1,R} (D)
+%            edge              node {0,1,R} (A)
+%        (E) edge [bend left]  node {1,0,R} (A);
+%\end{tikzpicture}
+
+
+%\begin{figure}
+%\input{qmc_point_set.tikz}
+%\end{figure}
+\end{document}

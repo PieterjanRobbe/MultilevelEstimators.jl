@@ -1,0 +1,99 @@
+\begin{thebibliography}{}
+
+\bibitem[\protect\citeauthoryear{}{{Blondeel} et~al.\@}{2018}]{Blondeel2}
+{Blondeel}, P., {Robbe}, P., {van hoorickx}, C., {Lombaert}, G., and
+  {Vandewalle}, S. (2018).
+\newblock ``{Multilevel Monte Carlo for uncertainty quantification in
+  structural engineering}.''\ {\em ArXiv e-prints}.
+
+\bibitem[\protect\citeauthoryear{}{Blondeel et~al.\@}{2018}]{Blondeel}
+Blondeel, P., Robbe, P., Van~hoorickx, C., Lombaert, G., and Vandewalle, S.
+  (2018).
+\newblock ``The multilevel monte carlo method applied to structural engineering
+  problems with uncertainty in the young’s modulus.''\ Desmet, W, Department
+  of mechanical engineering - KULeuven,  4899--4913.
+
+\bibitem[\protect\citeauthoryear{}{Caflisch}{1998}]{Caflish}
+Caflisch, R.~E. (1998).
+\newblock ``Monte carlo and quasi-{Monte} {Carlo} methods.''\ {\em Acta
+  Numerica}, 7, 1--49.
+
+\bibitem[\protect\citeauthoryear{}{de~Borst et~al.\@}{2012}]{Borst}
+de~Borst, R., Crisfield, M.~A., and Remmers, J. J.~C. (2012).
+\newblock {\em Non Linear Finite Element Analysis of Solids and Structures}.
+
+\bibitem[\protect\citeauthoryear{}{Ghanem and Spanos}{2003}]{GhanemAndSpanos}
+Ghanem, R.~G. and Spanos, P.~D. (2003).
+\newblock {\em Stochastic Finite Elements: A Spectral Approach}.
+\newblock Dover Publications, New York.
+
+\bibitem[\protect\citeauthoryear{}{Giles}{2008}]{Giles}
+Giles, M.~B. (2008).
+\newblock ``Multilevel {Monte} {Carlo} path simulation.''\ {\em Operations
+  Research}, 56(3), 607--617.
+
+\bibitem[\protect\citeauthoryear{}{Giles}{2015}]{Giles2}
+Giles, M.~B. (2015).
+\newblock ``Multilevel {Monte} {Carlo} methods.''\ {\em Acta Numerica}, 24,
+  259--328.
+
+\bibitem[\protect\citeauthoryear{}{Giles and Waterhouse}{2009}]{Giles3}
+Giles, M.~B. and Waterhouse, B.~J. (2009).
+\newblock {\em Multilevel quasi-Monte Carlo path simulation}, Vol.~8.
+\newblock Radon Series on Computational and Applied Mathematics,  1--18.
+
+\bibitem[\protect\citeauthoryear{}{Grigoriu}{1998}]{Grigoriu}
+Grigoriu, M. (1998).
+\newblock ``Simulation of stationary non-gaussian translation processes.''\
+  {\em J. Engrg. Mech. (ASCE)}, 124(2), 121--126.
+
+\bibitem[\protect\citeauthoryear{}{Heinrich}{2001}]{Heinrich}
+Heinrich, S. (2001).
+\newblock ``Multilevel monte carlo methods.''\ {\em Large-Scale Scientific
+  Computing}, S. Margenov, J. Wa{\'{s}}niewski, and P. Yalamov, eds., Berlin,
+  Heidelberg, Springer Berlin Heidelberg,  58--67.
+
+\bibitem[\protect\citeauthoryear{}{Hess et~al.\@}{2002}]{Hess}
+Hess, P.~E., Bruchman, D., Assakkaf, I.~A., and Ayyub, B.~M. (2002).
+\newblock ``Uncertainties in material and geometric strength and load
+  variables.''\ {\em Naval Engineers Journal}, 114(2), 139--166.
+
+\bibitem[\protect\citeauthoryear{}{Kuo et~al.\@}{2017}]{Frances}
+Kuo, F.~Y., Scheichl, R., Schwab, C., Sloan, I.~H., and Ullmann, E. (2017).
+\newblock ``Multilevel quasi-monte carlo methods for lognormal diffusion
+  problems.''\ {\em Math. Comp.}, 39(86), 2827–2860.
+
+\bibitem[\protect\citeauthoryear{}{Lo\`eve}{1977}]{Loeve}
+Lo\`eve, M. (1977).
+\newblock {\em Probability theory}.
+\newblock Springer, New York.
+
+\bibitem[\protect\citeauthoryear{}{Loh}{1996}]{Loh}
+Loh, W.-L. (1996).
+\newblock ``On latin hypercube sampling.''\ {\em Ann. Statist.}, 24(5),
+  2058--2080.
+
+\bibitem[\protect\citeauthoryear{}{Niederreiter}{2004}]{Niederreiter}
+Niederreiter, H. (2004).
+\newblock {\em Monte Carlo and quasi-Monte Carlo methods}.
+\newblock Springer, Berlin.
+
+\bibitem[\protect\citeauthoryear{}{Robbe et~al.\@}{2017}]{PJ}
+Robbe, P., Nuyens, D., and Vandewalle, S. (2017).
+\newblock ``A multi-index quasi--{Monte} {Carlo} algorithm for lognormal
+  diffusion problems.''\ {\em SIAM J. Sci. Comput.}, 39(5), S851--S872.
+
+\bibitem[\protect\citeauthoryear{}{Robbe et~al.\@}{2018}]{PJ2}
+Robbe, P., Nuyens, D., and Vandewalle, S. (2018).
+\newblock ``A dimension-adaptive multi-index {Monte} {Carlo} method applied to
+  a model of a heat exchanger.''\ {\em Monte Carlo and Quasi-Monte Carlo
+  Methods}, A.~B. Owen and P.~W. Glynn, eds., Cham, Springer International
+  Publishing,  429--445.
+
+\bibitem[\protect\citeauthoryear{}{Teckentrup}{2013}]{Teckentrup}
+Teckentrup, A.~L. (2013).
+\newblock ``Multilevel monte carlo methods and uncertainty quantification.''\
+  Ph.D. thesis, University of Bath.
+\newblock \url{http://www.maths.bath.ac.uk/~masrs/Teckentrup_PhD.pdf}.
+
+\end{thebibliography}

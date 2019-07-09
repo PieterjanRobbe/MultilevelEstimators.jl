@@ -1,0 +1,69 @@
+\RequirePackage{luatex85}
+\documentclass[tikz]{standalone}
+% Default preamble
+\usepackage{pgfplots}
+\pgfplotsset{compat=newest}
+\usepgfplotslibrary{groupplots}
+\usepgfplotslibrary{polar}
+\usepgfplotslibrary{statistics}
+\usepgfplotslibrary{dateplot}
+% Custom preamble from global variable:
+\usepackage{amsfonts}
+\newcommand{\littletriangle}[1]
+{
+    \pgfplotsextra
+    {
+        \pgfkeysgetvalue{/pgfplots/xmin}{\xmin}
+        \pgfkeysgetvalue{/pgfplots/xmax}{\xmax}
+        \pgfkeysgetvalue{/pgfplots/ymin}{\ymin}
+        \pgfkeysgetvalue{/pgfplots/ymax}{\ymax}
+
+        \pgfmathsetmacro{\xArel}{0.25}
+        \pgfmathsetmacro{\yArel}{0.1}
+        \pgfmathsetmacro{\xBrel}{0.1}
+        \pgfmathsetmacro{\yBrel}{\yArel}
+        \pgfmathsetmacro{\xCrel}{\xBrel}
+
+        \pgfmathsetmacro{\lnxB}{\xmin*(1-(0.1))+\xmax*(0.1)}
+        \pgfmathsetmacro{\lnxA}{\xmin*(1-0.25)+\xmax*0.25}
+        \pgfmathsetmacro{\lnyA}{\ymin*(1-0.1)+\ymax*0.1}
+        \pgfmathsetmacro{\lnyC}{\lnyA+#1*(\lnxA-\lnxB)}
+        \pgfmathsetmacro{\yCrel}{\lnyC-\ymin)/(\ymax-\ymin)}
+        
+        \coordinate (A) at (rel axis cs:\xArel,\yArel);
+        \coordinate (B) at (rel axis cs:\xBrel,\yBrel);
+        \coordinate (C) at (rel axis cs:\xCrel,\yCrel);
+
+        \draw[black]   (A)--node[pos=0.9,yshift=1ex,xshift=0.5ex] {\small #1}
+                    (B)--
+                    (C)-- 
+                    cycle;
+    }
+}
+
+\newcommand{\drawsquare}[3]{\draw[thick,black,fill=#3] (#1,#2)--(#1,#2+1)--(#1+1,#2+1)--(#1+1,#2)--cycle;}
+
+
+\begin{document}
+\begin{tikzpicture}
+\begin{axis}[ticklabel style={{font=\small}}, major tick length={2pt}, every tick/.style={{black, line cap=round}}, axis on top, legend style={{draw=none, font=\small, at={(0.03,0.03)}, anchor=south west, fill=none, legend cell align=left}}, xmode={log}, ymode={log}, legend style={{draw=none, font=\small, at={(0.97,0.97)}, anchor=north east, fill=none, legend cell align=left}}, xlabel={measured rmse $\varepsilon$}, ylabel={total run time}]
+    \addplot[mark={*}, mark size={1pt}, line cap={round}, mark options={solid}, color={blue}]
+        table[row sep={\\}]
+        {
+            \\
+            3.232044073483056e-5  12813.840256918  \\
+            3.232044073483056e-5  12813.846848004  \\
+            3.232044073483056e-5  12813.853025462999  \\
+            3.121685607685216e-5  12882.540641964999  \\
+            3.121685607685216e-5  12882.546957133  \\
+            3.095682519399838e-5  12998.493934565  \\
+            3.072339076798521e-5  13194.834978219  \\
+            3.069180847445682e-5  13367.825926683  \\
+            3.06556986175924e-5  13774.016178364  \\
+            3.0638239756046424e-5  14737.787074362  \\
+        }
+        ;
+    \littletriangle{2};
+\end{axis}
+\end{tikzpicture}
+\end{document}

@@ -1,0 +1,63 @@
+%!TEX root = ../report_Beam MLMC.tex
+
+\begin{tikzpicture}[trim axis left,trim axis right]
+\begin{axis}[
+width=\figurewidth,
+height=\figureheight,
+scale only axis,
+xlabel={\small level $\ell$},
+every x tick label/.append style={font=\scriptsize},
+every x label/.append style={font=\scriptsize},
+ylabel={\small number of samples $N_\ell$},
+every y tick label/.append style={font=\scriptsize},
+every y label/.append style={font=\scriptsize},
+legend style={draw=none,font=\scriptsize,at={(0.03,0.03)},anchor=south west,fill=none, legend cell align={left}},
+ymode=log,
+ xmin=0,
+ xmax=2,
+ xtick={0,1,...,2},
+]
+
+
+\addplot [color={rgb,1:red,0.0; green,0.0; blue,0.5},solid,mark=*,mark options={solid,fill={rgb,1:red,0.0; green,0.0; blue,0.5}},line width=0.75pt,mark size=1.2,line cap=round, forget plot]
+table[x index = {0}, y index = {1}]{data/samples.txt};
+
+
+\addplot [color={rgb,1:red,0.0; green,0.0; blue,0.999108734402852},solid,mark=*,mark options={solid,fill={rgb,1:red,0.0; green,0.0; blue,0.999108734402852}},line width=0.75pt,mark size=1.2,line cap=round, forget plot]
+table[x index = {0}, y index = {2}]{data/samples.txt};
+
+
+\addplot [color={rgb,1:red,0.0; green,0.3784313725490196; blue,1.0},solid,mark=*,mark options={solid,fill={rgb,1:red,0.0; green,0.3784313725490196; blue,1.0}},line width=0.75pt,mark size=1.2,line cap=round, forget plot]
+table[x index = {0}, y index = {3}]{data/samples.txt};
+
+
+\addplot [color={rgb,1:red,0.0; green,0.8333333333333334; blue,1.0},solid,mark=*,mark options={solid,fill={rgb,1:red,0.0; green,0.8333333333333334; blue,1.0}},line width=0.75pt,mark size=1.2,line cap=round, forget plot]
+table[x index = {0}, y index = {4}]{data/samples.txt};
+
+
+\addplot [color={rgb,1:red,0.30044275774826057; green,1.0; blue,0.6672991777356103},solid,mark=*,mark options={solid,fill={rgb,1:red,0.30044275774826057; green,1.0; blue,0.6672991777356103}},line width=0.75pt,mark size=1.2,line cap=round, forget plot]
+table[x index = {0}, y index = {5}]{data/samples.txt};
+
+
+\addplot [color={rgb,1:red,0.6672991777356103; green,1.0; blue,0.30044275774826057},solid,mark=*,mark options={solid,fill={rgb,1:red,0.6672991777356103; green,1.0; blue,0.30044275774826057}},line width=0.75pt,mark size=1.2,line cap=round, forget plot]
+table[x index = {0}, y index = {6}]{data/samples.txt};
+
+
+\addplot [color={rgb,1:red,1.0; green,0.9012345679012348; blue,0.0},solid,mark=*,mark options={solid,fill={rgb,1:red,1.0; green,0.9012345679012348; blue,0.0}},line width=0.75pt,mark size=1.2,line cap=round, forget plot]
+table[x index = {0}, y index = {7}]{data/samples.txt};
+
+
+\addplot [color={rgb,1:red,1.0; green,0.48002904865649987; blue,0.0},solid,mark=*,mark options={solid,fill={rgb,1:red,1.0; green,0.48002904865649987; blue,0.0}},line width=0.75pt,mark size=1.2,line cap=round, forget plot]
+table[x index = {0}, y index = {8}]{data/samples.txt};
+
+
+\addplot [color={rgb,1:red,0.9991087344028523; green,0.07334785766158336; blue,0.0},solid,mark=*,mark options={solid,fill={rgb,1:red,0.9991087344028523; green,0.07334785766158336; blue,0.0}},line width=0.75pt,mark size=1.2,line cap=round, forget plot]
+table[x index = {0}, y index = {9}]{data/samples.txt};
+
+
+\addplot [color={rgb,1:red,0.5; green,0.0; blue,0.0},solid,mark=*,mark options={solid,fill={rgb,1:red,0.5; green,0.0; blue,0.0}},line width=0.75pt,mark size=1.2,line cap=round, forget plot]
+table[x index = {0}, y index = {10}]{data/samples.txt};
+
+
+\end{axis}
+\end{tikzpicture}
