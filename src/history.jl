@@ -52,7 +52,7 @@ end
 
 History() = History(Vector{Dict{Symbol, Any}}(undef, 0))
 
-function push!(history::History, estimator::Estimator, tol::Real, elapsed::Real)
+function update_history!(history::History, estimator::Estimator, tol::Real, elapsed::Real)
     h = Dict{Symbol, Any}()
     h[:type]              = typeof(estimator)
     h[:ndims]             = ndims(estimator)

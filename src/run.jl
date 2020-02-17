@@ -29,7 +29,7 @@ function run(estimator::Estimator, tols::AbstractVector{<:Real})
     for tol in tols
         clear(estimator) # prepare new run
         t = @elapsed _run(estimator,tol)
-        push!(history, estimator, tol, t) # log the results in history
+        update_history!(history, estimator, tol, t) # log the results in history
     end
 
     return history
