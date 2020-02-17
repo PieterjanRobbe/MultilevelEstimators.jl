@@ -22,7 +22,7 @@ shorte(num) = @sprintf("%5.3e", num)
 
 long(num) = @sprintf("%12.5e", num)
 
-end_table_row(str) = println(string(str, spaces(l()-length(str)-1), "|")) 
+end_table_row(str) = println(string(str, spaces(l()-length(str)-1), "|"))
 
 hline() = println(string("+", repeat("-", l()-2), "+"))
 
@@ -57,19 +57,21 @@ end
 # status
 #
 function print_status(estimator::Estimator)
-    table_hline(5)
+    table_hline(7)
     header = "| "
-    for name in [print_elname(estimator) "E" "V" "N" "W"]
+    for name in [print_elname(estimator) "E" "dE" "V" "dV" "N" "W"]
         header = string(header, name, spaces(n()-length(name)-1), "| ")
     end
     println(header)
-    table_hline(5)
+    table_hline(7)
     for index in keys(estimator)
 		if nb_of_samples(estimator, index) > 0
 			index_str = string(index)
 			str = "| "
 			str = string(str, index_str, spaces(n()-length(index_str)-2), " |")
+			str = string(str, long(mean0(estimator, index)), spaces(n()-12-1), " |")
 			str = string(str, long(mean(estimator, index)), spaces(n()-12-1), " |")
+			str = string(str, long(var0(estimator, index)), spaces(n()-12-1), " |")
 			str = string(str, long(var(estimator, index)), spaces(n()-12-1), " |")
 			samples_str = print_nb_of_samples(estimator, index)
 			str = string(str, " ", samples_str, spaces(n()-length(samples_str)-2), " |")
@@ -77,7 +79,7 @@ function print_status(estimator::Estimator)
 			println(str)
 		end
     end
-    table_hline(5)
+    table_hline(7)
 end
 
 #
@@ -178,7 +180,7 @@ end
 function print_convergence(estimator::Estimator, converged::Bool)
     print_status(estimator)
     converged && println(string("Convergence reached. RMSE ≈", long(rmse(estimator)), "."))
-    print_footer() 
+    print_footer()
 end
 
 function print_mse_analysis(estimator::Estimator, ϵ::Real, θ::Real)
@@ -221,7 +223,7 @@ print_sample!_footer() = println(" done")
 
 #
 # rates
-# 
+#
 function print_rates(estimator::Estimator)
     str = string("  ==> Rates: α ≈ ", print_rate(estimator, α))
     str = string(str, ", β ≈ ", print_rate(estimator, β))

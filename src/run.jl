@@ -115,7 +115,6 @@ function _run(estimator::Estimator{T1, T2}, ϵ::Real) where {T1<:AbstractIndexSe
         end
 
         # check for convergence
-        is_converged = L > 2 && converged(estimator, ϵ, θ)
         if T1 <: SL
             is_converged = true
         else
@@ -124,6 +123,7 @@ function _run(estimator::Estimator{T1, T2}, ϵ::Real) where {T1<:AbstractIndexSe
             estimator[:verbose] && L ≥ 2 && print_mse_analysis(estimator, ϵ, θ)
 
             # check if the new level exceeds the maximum level
+			is_converged = L > estimator[:min_index_set_param] && converged(estimator, ϵ, θ)
             if !is_converged && max_level_exceeded(estimator) 
                 estimator[:verbose] && warn_max_level(estimator)
                 is_converged = true

@@ -8,11 +8,11 @@
 #
 # basics
 #
-ndims(::Estimator{<:AbstractIndexSet{d}}) where d = d 
+ndims(::Estimator{<:AbstractIndexSet{d}}) where d = d
 
 get_index_set(estimator::Estimator, sz) = get_index_set(estimator.index_set, sz)
 
-get_tols(estimator::Estimator, tol::T) where T<:Real = estimator[:continuate] ? estimator[:continuation_mul_factor].^(estimator[:nb_of_tols]-1:-1:0)*tol : T[tol] 
+get_tols(estimator::Estimator, tol::T) where T<:Real = estimator[:continuate] ? estimator[:continuation_mul_factor].^(estimator[:nb_of_tols]-1:-1:0)*tol : T[tol]
 
 mse(estimator::Estimator) = varest(estimator) + bias(estimator)^2
 
@@ -50,16 +50,16 @@ varest(estimator::Estimator, index::Index) = var(estimator, index)/nb_of_samples
 varest(estimator::Estimator) =  sum(varest(estimator, index) for index in keys(estimator))
 
 #
-# rates 
+# rates
 #
 for (f, g, sgn) in zip([:α, :β, :γ], [:mean, :var, :cost], [-1, -1, 1])
-    @eval begin 
+    @eval begin
 
         $f(estimator::Estimator{<:SL}) = nothing
 
         $f(estimator::Estimator{<:AbstractIndexSet}) = $sgn.*getindex.(broadcast(i->$(Symbol("rates_", f))(estimator, i), 1:ndims(estimator)), 2)
 
-        $(Symbol("rates_", f))(estimator::Estimator{<:AbstractML}) = $(Symbol("rates_", f))(estimator, 1) 
+        $(Symbol("rates_", f))(estimator::Estimator{<:AbstractML}) = $(Symbol("rates_", f))(estimator, 1)
 
         $(Symbol("rates_", f))(estimator::Estimator{<:AbstractIndexSet}, dir::Integer) = $(Symbol("rates_", f))(estimator, (maximum(getindex.(keys(estimator), dir)) + 1) * Index(ntuple(i -> i == dir, ndims(estimator))), dir)
 
@@ -99,8 +99,9 @@ function interp1(x::AbstractVector{<:Real}, y::AbstractVector{<:Real})
 end
 
 function interp(f::Function, estimator::Estimator)
-    idx_set = filter(i -> !isempty(samples(estimator)[1][i]), CartesianIndices(size(samples(estimator)[1])))
-    A = [i == 0 ? 1 : getindex(index - one(index), i) for index in idx_set, i in 0:ndims(estimator)]	
+	filter_fcn = estimator isa Estimator{<:AbstractIndexSet, QMC} ? i -> !isempty(samples(estimator)[1][i]) : i -> length(samples(estimator)[1][i]) > 1
+    idx_set = filter(filter_fcn, CartesianIndices(size(samples(estimator)[1])))
+    A = [i == 0 ? 1 : getindex(index - one(index), i) for index in idx_set, i in 0:ndims(estimator)]
     y = map(i -> log2(f(estimator, i - one(i))), idx_set)
     try
         return A\y
@@ -136,7 +137,7 @@ function _regress_nb_of_samples(estimator::Estimator{<:AbstractIndexSet, <:MC}, 
     end
     Dict(index => begin
              n_opt = optimal_nb_of_samples(ϵ, θ, vars[index], costs[index], Σ_estimate)
-             max(2, min(n_opt, estimator[:nb_of_warm_up_samples])) 
+             max(2, min(n_opt, estimator[:nb_of_warm_up_samples]))
          end for index in index_set)
 end
 
@@ -187,7 +188,7 @@ max_level_exceeded(estimator::Estimator{<:AD}) = isempty(setdiff(get_index_set(e
 
 function find_index_with_max_profit(estimator::Estimator{<:AD})
     indices = collect(active_set(estimator))
-    profits = [profit(estimator, index) for index in indices] 
+    profits = [profit(estimator, index) for index in indices]
     (max_profit, idx) = findmax(profits)
     if rand() < estimator[:acceptance_rate] || length(profits)==1
         max_index = indices[idx]
@@ -259,7 +260,7 @@ function find_index_with_max_var_over_cost(estimator::Estimator{<:AbstractIndexS
     indices[idx]
 end
 
-varest(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index) = var(mean(samples_diff(estimator, qoi_with_max_var(estimator), n_shift, index)) for n_shift in 1:estimator[:nb_of_shifts](index), corrected=true) / estimator[:nb_of_shifts](index) 
+varest(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index) = var(mean(samples_diff(estimator, qoi_with_max_var(estimator), n_shift, index)) for n_shift in 1:estimator[:nb_of_shifts](index), corrected=true) / estimator[:nb_of_shifts](index)
 
 #
 # Unbiased estimation
@@ -295,7 +296,7 @@ Geometric(p, k) = (1 - p)^k*p
 function update_pmf(estimator::Estimator{<:U})
     f(estimator, index) = sqrt(var(estimator, index)/cost(estimator, index))
     p = interp(f, estimator)
-    if !any(isnan.(p)) && all(p[2:end] .< -0.5)
+    if !any(isnan.(p)) && all(p[2:end] .< 0)
         for index in keys(estimator)
             if isnan(f(estimator, index)) || isinf(f(estimator, index))
                 set_pmf_key(estimator, index, 2^(p[1]+sum(p[2:end].*index.I)))
@@ -328,4 +329,9 @@ converged(estimator::Estimator{<:U}, ϵ::Real) = mse(estimator) ≤ ϵ^2
 
 mean(estimator::Estimator{<:U}) = mean(accumulator(estimator, qoi_with_max_var(estimator)))
 
+mean0(estimator::Estimator{<:U}) = mean0(accumulator(estimator, qoi_with_max_var(estimator)))
+
+
 var(estimator::Estimator{<:U}) = var(accumulator(estimator, qoi_with_max_var(estimator)))
+
+var0(estimator::Estimator{<:U}) = var0(accumulator(estimator, qoi_with_max_var(estimator)))
