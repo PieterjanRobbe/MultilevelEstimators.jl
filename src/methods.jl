@@ -104,7 +104,7 @@ function interp(f::Function, estimator::Estimator)
     A = [i == 0 ? 1 : getindex(index - one(index), i) for index in idx_set, i in 0:ndims(estimator)]
     y = map(i -> log2(f(estimator, i - one(i))), idx_set)
     try
-        return A\y
+        return A \ y
     catch e
         return fill(NaN, length(y))
     end

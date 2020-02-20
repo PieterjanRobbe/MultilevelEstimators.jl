@@ -290,6 +290,6 @@ struct EmptyFunction <: Function end
         0,
         begin
             check_larger_than(to_string(key, val)..., 0)
-            check_smaller_than_or_equal_to(to_string(key, val)..., length(options[:distributions]))
+            check_smaller_than_or_equal_to(to_string(key, val)..., length(options[:nb_of_qoi]))
         end
        )
