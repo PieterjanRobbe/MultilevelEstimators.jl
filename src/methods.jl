@@ -245,7 +245,7 @@ qoi_with_max_var(estimator::Estimator{<:AbstractIndexSet, <:QMC}) = estimator[:q
 
 function next_number_of_samples(estimator, index)
     if estimator[:sample_mul_factor] == 2
-        Dict(index => nextpow2(nb_of_samples(estimator, index) + 1))
+        Dict(index => nextpow(2, nb_of_samples(estimator, index) + 1))
     elseif estimator[:sample_mul_factor] ≤ 1
         Dict(index => nb_of_samples(estimator, index) + 1)
     else
