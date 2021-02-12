@@ -8,11 +8,11 @@
 #
 # basics
 #
-ndims(::Estimator{<:AbstractIndexSet{d}}) where d = d 
+ndims(::Estimator{<:AbstractIndexSet{d}}) where d = d
 
 get_index_set(estimator::Estimator, sz) = get_index_set(estimator.index_set, sz)
 
-get_tols(estimator::Estimator, tol::T) where T<:Real = estimator[:continuate] ? estimator[:continuation_mul_factor].^(estimator[:nb_of_tols]-1:-1:0)*tol : T[tol] 
+get_tols(estimator::Estimator, tol::T) where T<:Real = estimator[:continuate] ? estimator[:continuation_mul_factor].^(estimator[:nb_of_tols]-1:-1:0)*tol : T[tol]
 
 mse(estimator::Estimator) = varest(estimator) + bias(estimator)^2
 
@@ -50,16 +50,16 @@ varest(estimator::Estimator, index::Index) = var(estimator, index)/nb_of_samples
 varest(estimator::Estimator) =  sum(varest(estimator, index) for index in keys(estimator))
 
 #
-# rates 
+# rates
 #
 for (f, g, sgn) in zip([:α, :β, :γ], [:mean, :var, :cost], [-1, -1, 1])
-    @eval begin 
+    @eval begin
 
         $f(estimator::Estimator{<:SL}) = nothing
 
         $f(estimator::Estimator{<:AbstractIndexSet}) = $sgn.*getindex.(broadcast(i->$(Symbol("rates_", f))(estimator, i), 1:ndims(estimator)), 2)
 
-        $(Symbol("rates_", f))(estimator::Estimator{<:AbstractML}) = $(Symbol("rates_", f))(estimator, 1) 
+        $(Symbol("rates_", f))(estimator::Estimator{<:AbstractML}) = $(Symbol("rates_", f))(estimator, 1)
 
         $(Symbol("rates_", f))(estimator::Estimator{<:AbstractIndexSet}, dir::Integer) = $(Symbol("rates_", f))(estimator, (maximum(getindex.(keys(estimator), dir)) + 1) * Index(ntuple(i -> i == dir, ndims(estimator))), dir)
 
@@ -101,10 +101,10 @@ end
 function interp(f::Function, estimator::Estimator)
 	filter_fcn = estimator isa Estimator{<:AbstractIndexSet, QMC} ? i -> !isempty(samples(estimator)[1][i]) : i -> length(samples(estimator)[1][i]) > 1
     idx_set = filter(filter_fcn, CartesianIndices(size(samples(estimator)[1])))
-    A = [i == 0 ? 1 : getindex(index - one(index), i) for index in idx_set, i in 0:ndims(estimator)]	
+    A = [i == 0 ? 1 : getindex(index - one(index), i) for index in idx_set, i in 0:ndims(estimator)]
     y = map(i -> log2(f(estimator, i - one(i))), idx_set)
     try
-        return A\y
+        return A \ y
     catch e
         return fill(NaN, length(y))
     end
@@ -137,7 +137,7 @@ function _regress_nb_of_samples(estimator::Estimator{<:AbstractIndexSet, <:MC}, 
     end
     Dict(index => begin
              n_opt = optimal_nb_of_samples(ϵ, θ, vars[index], costs[index], Σ_estimate)
-             max(2, min(n_opt, estimator[:nb_of_warm_up_samples])) 
+             max(2, min(n_opt, estimator[:nb_of_warm_up_samples]))
          end for index in index_set)
 end
 
@@ -188,7 +188,7 @@ max_level_exceeded(estimator::Estimator{<:AD}) = isempty(setdiff(get_index_set(e
 
 function find_index_with_max_profit(estimator::Estimator{<:AD})
     indices = collect(active_set(estimator))
-    profits = [profit(estimator, index) for index in indices] 
+    profits = [profit(estimator, index) for index in indices]
     (max_profit, idx) = findmax(profits)
     if rand() < estimator[:acceptance_rate] || length(profits)==1
         max_index = indices[idx]
@@ -245,7 +245,7 @@ qoi_with_max_var(estimator::Estimator{<:AbstractIndexSet, <:QMC}) = estimator[:q
 
 function next_number_of_samples(estimator, index)
     if estimator[:sample_mul_factor] == 2
-        Dict(index => nextpow2(nb_of_samples(estimator, index) + 1))
+        Dict(index => nextpow(2, nb_of_samples(estimator, index) + 1))
     elseif estimator[:sample_mul_factor] ≤ 1
         Dict(index => nb_of_samples(estimator, index) + 1)
     else
@@ -260,7 +260,7 @@ function find_index_with_max_var_over_cost(estimator::Estimator{<:AbstractIndexS
     indices[idx]
 end
 
-varest(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index) = var(mean(samples_diff(estimator, qoi_with_max_var(estimator), n_shift, index)) for n_shift in 1:estimator[:nb_of_shifts](index), corrected=true) / estimator[:nb_of_shifts](index) 
+varest(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index) = var(mean(samples_diff(estimator, qoi_with_max_var(estimator), n_shift, index)) for n_shift in 1:estimator[:nb_of_shifts](index), corrected=true) / estimator[:nb_of_shifts](index)
 
 #
 # Unbiased estimation
@@ -329,4 +329,9 @@ converged(estimator::Estimator{<:U}, ϵ::Real) = mse(estimator) ≤ ϵ^2
 
 mean(estimator::Estimator{<:U}) = mean(accumulator(estimator, qoi_with_max_var(estimator)))
 
+mean0(estimator::Estimator{<:U}) = mean0(accumulator(estimator, qoi_with_max_var(estimator)))
+
+
 var(estimator::Estimator{<:U}) = var(accumulator(estimator, qoi_with_max_var(estimator)))
+
+var0(estimator::Estimator{<:U}) = var0(accumulator(estimator, qoi_with_max_var(estimator)))
