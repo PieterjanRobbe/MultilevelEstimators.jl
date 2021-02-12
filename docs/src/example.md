@@ -224,7 +224,7 @@ function sample_lognormal(index::Index, ω::Vector{<:Real}, grf::GaussianRandomF
     z  = sample(grf, xi = ω)
     af = exp.(z)
     Af = elliptic2d(af)
-    bf = fill(eltype(Af), size(Af, 1))
+    bf = fill(one(eltype(Af)), size(Af, 1))
     uf = Af\bf
     Qf = uf[length(uf) ÷ 2]
 
@@ -234,7 +234,7 @@ function sample_lognormal(index::Index, ω::Vector{<:Real}, grf::GaussianRandomF
         step = (index - key).I .+ 1
         ac = view(af, step[1]:step[1]:size(af, 1), step[2]:step[2]:size(af, 2))
         Ac = elliptic2d(ac)
-        bc = fill(eltype(Af), size(Ac, 1))
+        bc = fill(one(eltype(Af)), size(Ac, 1))
         uc = Ac\bc
         Qc = uc[length(uc) ÷ 2]
         dQ += val * Qc
@@ -333,7 +333,7 @@ The most recent development to MultilevelEstimators is the addition of unbaised 
 This requires a small change to the sample function, in the sense that it should now return the solutions for all levels samller than or equal to `level`. In the PDE example this can easily be accomplished by using Full Multigrid, see [7] and [8]. See [SimpleMultigrid](https://github.com/PieterjanRobbe/SimpleMultigrid.jl) and [NotSoSimpleMultigrid](https://github.com/PieterjanRobbe/NotSoSimpleMultigrid.jl) for basic example solvers. See also [LognormalDiffusionProblems](https://github.com/PieterjanRobbe/LognormalDiffusionProblems.jl) for a setup using Full Multigrid.
 
 ```julia
-estimator = estimator(U(1), MC(), sample_lognormal_fmg, distributions)
+estimator = Estimator(U(1), MC(), sample_lognormal_fmg, distributions)
 ``` 
 
 !!! warning
