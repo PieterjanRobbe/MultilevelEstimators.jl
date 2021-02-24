@@ -11,7 +11,7 @@ using Dates, DelimitedFiles, Distributed, JLD2, LinearAlgebra, Printf, Random, S
 
 ## import statements ##
 
-import Base: filter, ndims, eltype, show, diff, sum, :, print, length, getindex, run, push!, isless, >, <, ≥, ≤, +, zero, one, keys, haskey
+import Base: filter, ndims, eltype, show, diff, sum, :, print, length, getindex, run, push!, isless, >, <, ≥, ≤, +, zero, one, keys, haskey, isempty
 
 import Random: GLOBAL_RNG
 

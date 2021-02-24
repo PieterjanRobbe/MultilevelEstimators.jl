@@ -6,16 +6,30 @@
 # Multilevel Monte Carlo Methods (c) Pieterjan Robbe, 2019
 
 function update_samples(estimator::Estimator, n_opt)
+    flag = false
     for τ in keys(n_opt)
         n_due = n_opt[τ] - nb_of_samples(estimator, τ)
-        n_due > 0 && sample!(estimator, τ, n_due)
+        if n_due > 0
+            ret = sample!(estimator, τ, n_due)
+            if ret
+                flag = true
+            end
+        end
     end
+    return flag
 end
 
 function update_samples(estimator::Estimator{<:U}, n_opt)
+    flag = false
     for τ in keys(n_opt)
-        n_opt[τ] > 0 && sample!(estimator, τ, n_opt[τ])
+        if n_opt[τ] > 0
+            ret = sample!(estimator, τ, n_opt[τ])
+            if ret
+                flag = true
+            end
+        end
     end
+    return flag
 end
 
 function sample!(estimator::Estimator{I}, index::Index, n::Integer) where I
@@ -24,19 +38,40 @@ function sample!(estimator::Estimator{I}, index::Index, n::Integer) where I
 
     Istart = I <: U ? sum(values(nb_of_samples(estimator))) + 1 : nb_of_samples(estimator, index) + 1 # count zero level if U
     Iend = Istart + n - 1
-    t = @elapsed parallel_sample!(estimator, index, Istart, Iend)
+    t = @elapsed flag = parallel_sample(estimator, index, Istart, Iend)
+
+    flag && return true
 
     add_to_nb_of_samples(estimator, index, n)
     add_to_total_work(estimator, index, n)
     add_to_total_time(estimator, index, t)
 
     estimator[:verbose] && print_sample!_footer()
+
+    return false
+end
+
+function parallel_sample(estimator::Estimator, index::Index, Istart::Integer, Iend::Integer)
+    if estimator[:offline]
+        flag, S = parallel_sample_offline(estimator, index, Istart, Iend)
+    else
+        flag, S = parallel_sample_online(estimator, index, Istart, Iend)
+    end
+
+    flag && return true
+
+    s_diff = first.(S)
+    s = last.(S)
+
+    append_samples!(estimator, index, s_diff, s)
+
+    return false
 end
 
 #
 # MC
 #
-function parallel_sample!(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index, Istart::Integer, Iend::Integer)
+function parallel_sample_online(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index, Istart::Integer, Iend::Integer)
 
     m = estimator[:nb_of_uncertainties](index)
     f(i) = estimator.sample_function(index, transform.(view(distributions(estimator), 1:m), rand(m)))
@@ -49,10 +84,44 @@ function parallel_sample!(estimator::Estimator{<:AbstractIndexSet, <:MC}, index:
     S = pmap(f, pool, Istart:Iend, batch_size = batch_size, retry_delays = retry_delays)
     clear!(pool)
 
-    s_diff = first.(S)
-    s = last.(S)
+    return false, S
+end
 
-    append_samples!(estimator, index, s_diff, s)
+function parallel_sample_offline(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index, Istart::Integer, Iend::Integer)
+
+    S = Vector{Tuple{Matrix{Float64}, Matrix{Float64}}}(undef, Iend - Istart + 1)
+    restart = Dict(i => false for i in Istart:Iend)
+
+    # loop over all samples
+    for i in Istart:Iend
+        dir = joinpath(estimator[:samples_dir], join(index.I, "_"), string(i))
+        dQ_file = joinpath(dir, "dQ.dat")
+        Qf_file = joinpath(dir, "Qf.dat")
+        # check if sample already exists
+        if isfile(dQ_file) && isfile(Qf_file)
+            dQ = readdlm(dQ_file)
+            Qf = readdlm(Qf_file)
+            S[i - Istart + 1] = (dQ, Qf)
+        else # if not, write parameter values
+            m = estimator[:nb_of_uncertainties](index)
+            params = transform.(view(distributions(estimator), 1:m), rand(m))
+            isdir(dir) || mkpath(dir)
+            writedlm(joinpath(dir, "params.dat"), params)
+            restart[i] = true
+        end
+    end
+
+    estimator[:verbose] && print_restart(index, restart, estimator[:samples_dir], "*")
+
+    # check for restart
+    if any(values(restart))
+        estimator[:verbose] && print_footer()
+        restart_flag = true
+    else
+        restart_flag = false
+    end
+
+    return restart_flag, S
 end
 
 function append_samples!(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index, s_diff, s)
@@ -76,7 +145,7 @@ end
 #
 # QMC
 #
-function parallel_sample!(estimator::Estimator{I, <:QMC}, index::Index, Istart::Integer, Iend::Integer) where I<:AbstractIndexSet
+function parallel_sample_online(estimator::Estimator{I, <:QMC}, index::Index, Istart::Integer, Iend::Integer) where I<:AbstractIndexSet
 
     m = estimator[:nb_of_uncertainties](index)
     x(i) = begin
@@ -95,10 +164,50 @@ function parallel_sample!(estimator::Estimator{I, <:QMC}, index::Index, Istart::
     S = pmap(f, pool, Iterators.product(1:estimator[:nb_of_shifts](index), Istart:Iend), batch_size = batch_size, retry_delays = retry_delays)
     clear!(pool)
 
-    s_diff = first.(S)
-    s = last.(S)
+    return false, S
+end
 
-    append_samples!(estimator, index, s_diff, s)
+function parallel_sample_offline(estimator::Estimator{I, <:QMC}, index::Index, Istart::Integer, Iend::Integer) where I<:AbstractIndexSet
+
+    K = estimator[:nb_of_shifts](index)
+    S = Matrix{Tuple{Matrix{Float64}, Matrix{Float64}}}(undef, K, Iend - Istart + 1)
+    restart = Dict(i => false for i in Istart:Iend)
+
+    # loop over all samples
+    for k in 1:K
+        for i in Istart:Iend
+            dir = joinpath(estimator[:samples_dir], join(index.I, "_"), string(i), string(k))
+            dQ_file = joinpath(dir, "dQ.dat")
+            Qf_file = joinpath(dir, "Qf.dat")
+            # check if sample already exists
+            if isfile(dQ_file) && isfile(Qf_file)
+                dQ = readdlm(dQ_file)
+                Qf = readdlm(Qf_file)
+                S[k, i] = (dQ, Qf)
+            else # if not, write parameter values
+                m = estimator[:nb_of_uncertainties](index)
+                _index = I <: U ? zero(index) : index
+                point = get_point(generator(estimator, index, k), i - 1)
+                length(point) < m && append!(point, rand(m - length(point)))
+                params = transform.(view(distributions(estimator), 1:m), view(point, 1:m))
+                isdir(dir) || mkpath(dir)
+                writedlm(joinpath(dir, "params.dat"), params)
+                restart[i] = true
+            end
+        end
+    end
+
+    estimator[:verbose] && print_restart(index, restart, estimator[:samples_dir], joinpath("*", "*"))
+
+    # check for restart
+    if any(values(restart))
+        estimator[:verbose] && print_footer()
+        restart_flag = true
+    else
+        restart_flag = false
+    end
+
+    return restart_flag, S
 end
 
 function append_samples!(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index, s_diff, s)

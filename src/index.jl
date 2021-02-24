@@ -20,7 +20,13 @@ See also: [`Level`](@ref)
 """
 Index = CartesianIndex
 
-show(io::IO, index::Index) = print(io, string("(", join(index.I, ", "), ")"))
+# Dirty hack to avoid warning "Method definition overwritten..." 
+for i in 2:100
+    expr = quote
+        show(io::IO, index::CartesianIndex{$i}) = print(io, string("(", join(index.I, ", "), ")"))
+    end
+    eval(expr)
+end
 show(io::IO, ::Type{Index}) = print(io, "Index")
 
 ## Level ##

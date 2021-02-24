@@ -115,6 +115,8 @@ push!(estimator::Estimator, index::Index) = push!(estimator.internals.default_in
 
 clear(estimator::Estimator) = empty!(current_index_set(estimator))
 
+isempty(estimator::Estimator) = sum(nb_of_samples(estimator)) == 0
+
 # specific internals related to the sample method
 abstract type SampleMethodInternals <: AbstractEstimatorInternals end
 

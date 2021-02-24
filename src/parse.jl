@@ -119,16 +119,17 @@ eltype(::Type{<:Val{T}}) where {T} = T
         get_valid_filename(index_set, sample_method, options),
         begin
             check_type(to_string(key, val)..., String)
-            parse!(index_set, sample_method, options, Val(:folder))
+            parse!(index_set, sample_method, options, :folder)
             !endswith(val, ".jld2") && occursin(".", val) && throw(ArgumentError("in Estimator, optional key name must not contain a ."))
             val = endswith(val, ".jld2") ? val : string(val, ".jld2")
             options[key] = val
-            isfile(joinpath(options[:folder], val)) && @warn string("filename ", val, " exists, will be overwritten!")
+            parse!(index_set, sample_method, options, :save)
+            options[:save] && isfile(joinpath(options[:folder], val)) && @warn string("filename ", val, " exists, will be overwritten!")
         end
        )
 
 function get_valid_filename(index_set, sample_method, options)
-    parse!(index_set, sample_method, options, Val(:folder))
+    parse!(index_set, sample_method, options, :folder)
     filename = "UntitledEstimator"
     cntr = 0
     if isfile(joinpath(options[:folder], string(filename, ".jld2")))
@@ -198,6 +199,22 @@ struct EmptyFunction <: Function end
             haskey(options, :max_index_set_param) || parse!(index_set, sample_method, options, :max_index_set_param)
             check_ordered_or_equal(Estimator, val, options[:max_index_set_param], "optional key min_index_set_param", "optional key max_index_set_param")
         end
+       )
+
+## samples_dir ##
+@parse!(:samples_dir,
+        joinpath(pwd(), "samples"),
+        begin
+            check_type(to_string(key, val)..., String)
+            isdir(val) || throw(ArgumentError(string(val, "is not a directory!")))
+            ispath(val) || makepath(val)
+        end
+       )
+
+## offline ##
+@parse!(:offline,
+        false,
+        check_type(to_string(key, val)..., Bool)
        )
 
 ## sample_mul_factor ##

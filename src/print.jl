@@ -222,6 +222,23 @@ print_with_s(n::Integer) = n > 1 ? "s" : ""
 print_sample!_footer() = println(" done")
 
 #
+# restart
+#
+function print_restart(index, restart, samples_dir, wildcard)
+    if any(values(restart))
+        param_file = joinpath(samples_dir, join(index.I, "_"), wildcard, "params.dat")
+        println("\nWritten parameter values to ", param_file)
+        print("for sample numbers ")
+        tf = findall([restart[i] for i in sort(collect(keys(restart)))])
+        if length(tf) < 11
+            println(join(tf, ","), ".")
+        else
+            println(join(tf[1:5], ","), ", ..., ", join(tf[end-4:end], ","), ".")
+        end
+    end
+end
+
+#
 # rates
 #
 function print_rates(estimator::Estimator)

@@ -49,6 +49,9 @@ function _run(estimator::Estimator{T1, T2}, ϵ::Real) where {T1<:AbstractIndexSe
     # initial MSE splitting parameter
     θ = T1 <: SL ? 0.5 : estimator[:min_splitting]
 
+    # restart flag
+    flag = false
+
     # main loop
     is_converged = false
     while !is_converged
@@ -64,9 +67,12 @@ function _run(estimator::Estimator{T1, T2}, ϵ::Real) where {T1<:AbstractIndexSe
         ns = regress_nb_of_samples(estimator, index_set, ϵ, θ, L) 
         for index in index_set
             if !has_samples_at_index(estimator, index)
-                sample!(estimator, index, ns[index])
+                flag = sample!(estimator, index, ns[index])
+                flag && break
             end
         end
+
+        flag && break
 
         # add new indices to the index set
         for index in index_set
@@ -89,7 +95,8 @@ function _run(estimator::Estimator{T1, T2}, ϵ::Real) where {T1<:AbstractIndexSe
             estimator[:verbose] && print_optimal_nb_of_samples(estimator, n_opt)
 
             # take additional samples if required
-            update_samples(estimator, n_opt)
+            flag = update_samples(estimator, n_opt)
+            flag && break
 
         else
 
@@ -103,7 +110,8 @@ function _run(estimator::Estimator{T1, T2}, ϵ::Real) where {T1<:AbstractIndexSe
                 estimator[:verbose] && print_optimal_nb_of_samples(estimator, n_opt)
 
                 # take additional samples
-                update_samples(estimator, n_opt)
+                flag = update_samples(estimator, n_opt)
+                flag && break
 
                 # recompute splitting parameter
                 θ = T1 <: SL ? 0.5 : estimator[:do_mse_splitting] ? compute_splitting(estimator, ϵ) : estimator[:min_splitting]
@@ -111,6 +119,8 @@ function _run(estimator::Estimator{T1, T2}, ϵ::Real) where {T1<:AbstractIndexSe
                 # check next iteration
                 estimator[:verbose] && print_qmc_convergence(estimator, ϵ, θ)
             end
+
+            flag && break
 
         end
 
@@ -134,11 +144,13 @@ function _run(estimator::Estimator{T1, T2}, ϵ::Real) where {T1<:AbstractIndexSe
         end
     end
 
-    # update boundary in case of AD
-    T1 <: AD && update_boundary(estimator)
+    if !flag
+        # update boundary in case of AD
+        T1 <: AD && update_boundary(estimator)
 
-    # print convergence status
-    estimator[:verbose] && print_convergence(estimator, T1 <: SL ? true : converged(estimator, ϵ, θ))
+        # print convergence status
+        estimator[:verbose] && print_convergence(estimator, T1 <: SL ? true : converged(estimator, ϵ, θ))
+    end
 end
 
 ## Unbiased estimator routine ##
@@ -158,6 +170,7 @@ function _run(estimator::Estimator{<:U, <:AbstractSampleMethod}, ϵ::Real)
 
     # main loop
     is_converged = varest(estimator) ≤ ϵ^2
+    flag = false
     while !is_converged
 
         # print status
@@ -170,7 +183,8 @@ function _run(estimator::Estimator{<:U, <:AbstractSampleMethod}, ϵ::Real)
         estimator[:verbose] && print_optimal_nb_of_samples(estimator, n_opt)
 
         # take additional samples
-        update_samples(estimator, n_opt)
+        flag = update_samples(estimator, n_opt)
+        flag && break
 
         # update pmf
         update_pmf(estimator)
@@ -185,6 +199,8 @@ function _run(estimator::Estimator{<:U, <:AbstractSampleMethod}, ϵ::Real)
         estimator[:verbose] && print_index_set(estimator, index_set)
     end
 
-    # print convergence status
-    estimator[:verbose] && print_convergence(estimator, true)
+    if !flag
+        # print convergence status
+        estimator[:verbose] && print_convergence(estimator, true)
+    end
 end
