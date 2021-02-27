@@ -211,8 +211,8 @@ struct EmptyFunction <: Function end
         end
        )
 
-## offline ##
-@parse!(:offline,
+## checkpoint ##
+@parse!(:checkpoint,
         false,
         check_type(to_string(key, val)..., Bool)
        )

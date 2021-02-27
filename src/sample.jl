@@ -52,8 +52,8 @@ function sample!(estimator::Estimator{I}, index::Index, n::Integer) where I
 end
 
 function parallel_sample(estimator::Estimator, index::Index, Istart::Integer, Iend::Integer)
-    if estimator[:offline]
-        flag, S = parallel_sample_offline(estimator, index, Istart, Iend)
+    if estimator[:checkpoint]
+        flag, S = parallel_sample_checkpoint(estimator, index, Istart, Iend)
     else
         flag, S = parallel_sample_online(estimator, index, Istart, Iend)
     end
@@ -87,7 +87,7 @@ function parallel_sample_online(estimator::Estimator{<:AbstractIndexSet, <:MC}, 
     return false, S
 end
 
-function parallel_sample_offline(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index, Istart::Integer, Iend::Integer)
+function parallel_sample_checkpoint(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index, Istart::Integer, Iend::Integer)
 
     S = Vector{Tuple{Matrix{Float64}, Matrix{Float64}}}(undef, Iend - Istart + 1)
     restart = Dict(i => false for i in Istart:Iend)
@@ -167,7 +167,7 @@ function parallel_sample_online(estimator::Estimator{I, <:QMC}, index::Index, Is
     return false, S
 end
 
-function parallel_sample_offline(estimator::Estimator{I, <:QMC}, index::Index, Istart::Integer, Iend::Integer) where I<:AbstractIndexSet
+function parallel_sample_checkpoint(estimator::Estimator{I, <:QMC}, index::Index, Istart::Integer, Iend::Integer) where I<:AbstractIndexSet
 
     K = estimator[:nb_of_shifts](index)
     S = Matrix{Tuple{Matrix{Float64}, Matrix{Float64}}}(undef, K, Iend - Istart + 1)
