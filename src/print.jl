@@ -8,78 +8,38 @@
 #
 # convenience functions
 #
-l() = 81
+long(num) = sprintf1("%12.5e", num)
 
-l_short() = 29
+short(num) = sprintf1("%5.3f", num)
 
-n() = 15
+shorte(num) = sprintf1("%5.3e", num)
 
-spaces(n) = repeat(" ", n)
+get_crayon() = crayon"blue bold"
 
-short(num) = @sprintf("%5.3f", num)
-
-shorte(num) = @sprintf("%5.3e", num)
-
-long(num) = @sprintf("%12.5e", num)
-
-end_table_row(str) = println(string(str, spaces(l()-length(str)-1), "|"))
-
-hline() = println(string("+", repeat("-", l()-2), "+"))
-
-table_hline(m) = println(string("+", repeat(string(repeat("-", n()), "+"), m)))
+highlight_cols(k) = Highlighter((v, i, j) -> any(j .== k), get_crayon())
 
 #
 # header and footer
 #
+function print_head_foot(strs...)
+    pre = ["***" for _ in strs]
+    data = hcat(pre, vcat(strs...), pre)
+    pretty_table(data, noheader=true, vlines=[:begin, :end], columns_width=[3, 71, 3],
+                 highlighters=highlight_cols([1, 3]), alignment=:l)
+end
+
 function print_header(estimator::Estimator, ϵ::Real)
-    hline()
-    str = string("| *** MultilevelEstimators.jl @", now())
-    end_table_row(str)
-    str = string("| *** This is a ", estimator)
-    end_table_row(str)
-    str = string("| *** Simulating ", first(split(estimator[:name], ".")))
-    end_table_row(str)
-    str = string("| *** Tolerance on RMSE ϵ = ", shorte(ϵ))
-    end_table_row(str)
-    hline()
+    str1 = string("MultilevelEstimators.jl @", now()) 
+    str2 = string("This is an ", estimator)
+    str3 = string("Simulating ", first(split(estimator[:name], ".")))
+    str4 = string("Tolerance on RMSE ϵ = ", shorte(ϵ))
+    print_head_foot(str1, str2, str3, str4)
 end
 
 function print_footer()
-    hline()
-    str = string("| *** MultilevelEstimators.jl @", now())
-    end_table_row(str)
-    str = "| *** Successfull termination."
-    end_table_row(str)
-    hline()
-end
-
-#
-# status
-#
-function print_status(estimator::Estimator)
-    table_hline(7)
-    header = "| "
-    for name in [print_elname(estimator) "E" "dE" "V" "dV" "N" "W"]
-        header = string(header, name, spaces(n()-length(name)-1), "| ")
-    end
-    println(header)
-    table_hline(7)
-    for index in keys(estimator)
-		if nb_of_samples(estimator, index) > 0
-			index_str = string(index)
-			str = "| "
-			str = string(str, index_str, spaces(n()-length(index_str)-2), " |")
-			str = string(str, long(mean0(estimator, index)), spaces(n()-12-1), " |")
-			str = string(str, long(mean(estimator, index)), spaces(n()-12-1), " |")
-			str = string(str, long(var0(estimator, index)), spaces(n()-12-1), " |")
-			str = string(str, long(var(estimator, index)), spaces(n()-12-1), " |")
-			samples_str = print_nb_of_samples(estimator, index)
-			str = string(str, " ", samples_str, spaces(n()-length(samples_str)-2), " |")
-			str = string(str, long(cost(estimator, index)), spaces(n()-12-1), " |")
-			println(str)
-		end
-    end
-    table_hline(7)
+    str1 = string("MultilevelEstimators.jl @", now())
+    str2 = "Successfull termination"
+    print_head_foot(str1, str2)
 end
 
 #
@@ -92,32 +52,44 @@ print_elname(::Estimator{<:AbstractML}) = "level"
 print_elname(::Estimator{<:AbstractMI}) = "index"
 
 #
+# status
+#
+function print_status(estimator::Estimator)
+    # header
+    header = [print_elname(estimator), "|Eℓ|", "|ΔEℓ|", "Vℓ", "ΔVℓ", "Nℓ", "Wℓ"]
+    # data
+    indices = collect(keys(estimator))
+    E = [abs.(mean0(estimator, index)) for index in indices]
+    dE = [abs.(mean(estimator, index)) for index in indices]
+    V = [var0(estimator, index) for index in indices]
+    dV = [var(estimator, index) for index in indices]
+    N = [nb_of_samples(estimator, index) for index in indices]
+    W = [cost(estimator, index) for index in indices]
+    data = hcat(indices, E, dE, V, dV, N, W)
+    # formatters
+    e_fmt = ft_printf("%5.3e", [2, 3, 4, 5, 7])
+    # print table
+    pretty_table(data, header, header_crayon=get_crayon(), header_alignment=:c, 
+                 formatters = e_fmt, highlighters=highlight_cols(1),
+                 equal_columns_width=true)
+end
+
+#
 # optimal number of samples
 #
 function print_optimal_nb_of_samples(estimator::Estimator, samples)
-    println("Samples will be updated ", estimator isa U ? "with" : "to")
-    table_hline(2)
-    header = "| "
-    for name in [print_elname(estimator) "N"]
-        header = string(header, name, spaces(n()-length(name)-1), "| ")
-    end
-    println(header)
-    table_hline(2)
-    _print_optimal_nb_of_samples(estimator, samples)
-    table_hline(2)
-end
-
-function _print_optimal_nb_of_samples(estimator::Estimator, samples::Dict)
-    for index in sort(collect(keys(samples)))
-		if samples[index] > 0
-			index_str = string(index)
-			str = "| "
-			str = string(str, index_str, spaces(n()-length(index_str)-2), " |")
-			samples_str = print_nb_of_samples(estimator, index, samples[index])
-			str = string(str, " ", samples_str, spaces(n()-length(samples_str)-2), " |")
-			println(str)
-		end
-    end
+    # header
+    header = [print_elname(estimator), "Nℓ"]
+    # data
+    indices = [key for key in keys(estimator) if samples[key] > 0]
+    N = [print_nb_of_samples(estimator, index, samples[index]) for index in indices]
+    data = hcat(indices, N)
+    # formatters
+    s_fmt = (v, i, j) -> sprintf1("%9s", v)
+    # print table
+    println("Samples will be updated ", estimator isa U ? "with" : "to", ":")
+    pretty_table(data, header, header_crayon=get_crayon(), header_alignment=:c,
+                 formatters = s_fmt, highlighters=highlight_cols(1))
 end
 
 print_nb_of_samples(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index, n::Integer) = string(n)
@@ -130,23 +102,14 @@ print_nb_of_samples(estimator::Estimator, index::Index) = print_nb_of_samples(es
 # profits
 #
 function print_largest_profit(estimator, max_index, max_profit, indices, profits)
+    # header
+    header = [print_elname(estimator), "profit"]
+    # data
+    data = hcat(indices, profits)
+    # print table
     println("Profit indicators:")
-    table_hline(2)
-    header = "| "
-    for name in [print_elname(estimator) "profit"]
-        header = string(header, name, spaces(n()-length(name)-1), "| ")
-    end
-    println(header)
-    table_hline(2)
-    for i in 1:length(indices)
-        index_str = string(indices[i])
-        str = "| "
-        str = string(str, index_str, spaces(n()-length(index_str)-2), " |")
-        profit_str = shorte(profits[i])
-        str = string(str, " ", profit_str, spaces(n()-length(profit_str)-2), " |")
-        println(str)
-    end
-    table_hline(2)
+    pretty_table(data, header, header_crayon=get_crayon(), header_alignment=:c,
+                 formatters = ft_printf("%9s"), highlighters=highlight_cols(1))
     println("Index with max profit is ", max_index, " (value = ", long(max_profit), ").")
 end
 
@@ -154,24 +117,16 @@ end
 # probabilities
 #
 function print_pmf(estimator::Estimator)
-	P = pmf(estimator)
+    P = pmf(estimator)
+    # header
+    header = [print_elname(estimator), "P"]
+    # data
+    indices = sort(collect(keys(P)))
+    data = hcat(indices, P[indices])
+    # print table
     println("Using approximate probability mass function:")
-    table_hline(2)
-    header = "| "
-	for name in [print_elname(estimator) "P"]
-        header = string(header, name, spaces(n()-length(name)-1), "| ")
-    end
-    println(header)
-    table_hline(2)
-	for idx in sort(collect(keys(P)))
-        index_str = string(idx)
-        str = "| "
-        str = string(str, index_str, spaces(n()-length(index_str)-2), " |")
-        pmf_str = shorte(P[idx])
-        str = string(str, " ", pmf_str, spaces(n()-length(pmf_str)-2), " |")
-        println(str)
-    end
-    table_hline(2)
+    pretty_table(data, header, header_crayon=get_crayon(), header_alignment=:c,
+                 formatters = ft_printf("%9s"), highlighters=highlight_cols(1))
 end
 
 #
