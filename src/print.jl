@@ -3,7 +3,7 @@
 # A collection of useful print statements for Estimators.
 #
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for
-# Multilevel Monte Carlo Methods (c) Pieterjan Robbe, 2019
+# Multilevel Monte Carlo Methods (c) Pieterjan Robbe, 2021
 
 #
 # convenience functions

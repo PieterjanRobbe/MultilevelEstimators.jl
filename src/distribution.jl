@@ -10,7 +10,7 @@
 # define the required transformations ourselves (with less efficiency).
 #
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for
-# Multilevel Monte Carlo Methods (c) Pieterjan Robbe, 2019
+# Multilevel Monte Carlo Methods (c) Pieterjan Robbe, 2021
 
 ## AbstractDistribution ##
 abstract type AbstractDistribution end
