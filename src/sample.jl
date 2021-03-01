@@ -38,7 +38,7 @@ function sample!(estimator::Estimator{I}, index::Index, n::Integer) where I
 
     Istart = I <: U ? sum(values(nb_of_samples(estimator))) + 1 : nb_of_samples(estimator, index) + 1 # count zero level if U
     Iend = Istart + n - 1
-    t = @elapsed flag = parallel_sample(estimator, index, Istart, Iend)
+    t, flag = parallel_sample(estimator, index, Istart, Iend)
 
     flag && return true
 
@@ -53,9 +53,9 @@ end
 
 function parallel_sample(estimator::Estimator, index::Index, Istart::Integer, Iend::Integer)
     if estimator[:checkpoint]
-        flag, S = parallel_sample_checkpoint(estimator, index, Istart, Iend)
+        t, flag, S = parallel_sample_checkpoint(estimator, index, Istart, Iend)
     else
-        flag, S = parallel_sample_online(estimator, index, Istart, Iend)
+        t = @elapsed flag, S = parallel_sample_online(estimator, index, Istart, Iend)
     end
 
     flag && return true
@@ -65,7 +65,7 @@ function parallel_sample(estimator::Estimator, index::Index, Istart::Integer, Ie
 
     append_samples!(estimator, index, s_diff, s)
 
-    return false
+    return t, false
 end
 
 #
@@ -91,17 +91,25 @@ function parallel_sample_checkpoint(estimator::Estimator{<:AbstractIndexSet, <:M
 
     S = Vector{Tuple{Matrix{Float64}, Matrix{Float64}}}(undef, Iend - Istart + 1)
     restart = Dict(i => false for i in Istart:Iend)
+	t = 0.0
 
     # loop over all samples
     for i in Istart:Iend
         dir = joinpath(estimator[:samples_dir], join(index.I, "_"), string(i))
         dQ_file = joinpath(dir, "dQ.dat")
         Qf_file = joinpath(dir, "Qf.dat")
+		W_file = joinpath(dir, "time.dat")
         # check if sample already exists
         if isfile(dQ_file) && isfile(Qf_file)
             dQ = readdlm(dQ_file)
             Qf = readdlm(Qf_file)
             S[i - Istart + 1] = (dQ, Qf)
+			if isfile(W_file) # read time of sample if time file exists
+				t += readdlm(W_file)[1]
+			elseif !(estimator[:cost_model] isa EmptyFunction) 
+				str = string("File time.dat not found for sample number ", i, ", timings for ", print_elname(estimator), " ", index, " will be unreliable!") 
+				@warn str
+			end
         else # if not, write parameter values
             m = estimator[:nb_of_uncertainties](index)
             params = transform.(view(distributions(estimator), 1:m), rand(m))
@@ -121,7 +129,7 @@ function parallel_sample_checkpoint(estimator::Estimator{<:AbstractIndexSet, <:M
         restart_flag = false
     end
 
-    return restart_flag, S
+    return t, restart_flag, S
 end
 
 function append_samples!(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index, s_diff, s)
