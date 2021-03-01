@@ -58,7 +58,7 @@ function parallel_sample(estimator::Estimator, index::Index, Istart::Integer, Ie
         t = @elapsed flag, S = parallel_sample_online(estimator, index, Istart, Iend)
     end
 
-    flag && return true
+    flag && return t, true
 
     s_diff = first.(S)
     s = last.(S)
@@ -180,6 +180,7 @@ function parallel_sample_checkpoint(estimator::Estimator{I, <:QMC}, index::Index
     K = estimator[:nb_of_shifts](index)
     S = Matrix{Tuple{Matrix{Float64}, Matrix{Float64}}}(undef, K, Iend - Istart + 1)
     restart = Dict(i => false for i in Istart:Iend)
+	t = 0.0
 
     # loop over all samples
     for k in 1:K
@@ -187,11 +188,18 @@ function parallel_sample_checkpoint(estimator::Estimator{I, <:QMC}, index::Index
             dir = joinpath(estimator[:samples_dir], join(index.I, "_"), string(i), string(k))
             dQ_file = joinpath(dir, "dQ.dat")
             Qf_file = joinpath(dir, "Qf.dat")
+			W_file = joinpath(dir, "time.dat")
             # check if sample already exists
             if isfile(dQ_file) && isfile(Qf_file)
                 dQ = readdlm(dQ_file)
                 Qf = readdlm(Qf_file)
                 S[k, i] = (dQ, Qf)
+				if isfile(W_file) # read time of sample if time file exists
+					t += readdlm(W_file)[1]
+				elseif !(estimator[:cost_model] isa EmptyFunction) 
+					str = string("File time.dat not found for sample number ", i, ", timings for ", print_elname(estimator), " ", index, " will be unreliable!") 
+					@warn str
+				end
             else # if not, write parameter values
                 m = estimator[:nb_of_uncertainties](index)
                 _index = I <: U ? zero(index) : index
@@ -215,7 +223,7 @@ function parallel_sample_checkpoint(estimator::Estimator{I, <:QMC}, index::Index
         restart_flag = false
     end
 
-    return restart_flag, S
+    return t, restart_flag, S
 end
 
 function append_samples!(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index, s_diff, s)
