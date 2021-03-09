@@ -16,6 +16,9 @@ function update_samples(estimator::Estimator, n_opt)
             end
         end
     end
+	if flag
+		print_footer()
+	end
     return flag
 end
 
@@ -122,12 +125,7 @@ function parallel_sample_checkpoint(estimator::Estimator{<:AbstractIndexSet, <:M
     estimator[:verbose] && print_restart(index, restart, estimator[:samples_dir], "*")
 
     # check for restart
-    if any(values(restart))
-        estimator[:verbose] && print_footer()
-        restart_flag = true
-    else
-        restart_flag = false
-    end
+	restart_flag = any(values(restart))
 
     return t, restart_flag, S
 end
@@ -216,12 +214,7 @@ function parallel_sample_checkpoint(estimator::Estimator{I, <:QMC}, index::Index
     estimator[:verbose] && print_restart(index, restart, estimator[:samples_dir], joinpath("*", "*"))
 
     # check for restart
-    if any(values(restart))
-        estimator[:verbose] && print_footer()
-        restart_flag = true
-    else
-        restart_flag = false
-    end
+	restart_flag = any(values(restart))
 
     return t, restart_flag, S
 end

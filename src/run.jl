@@ -65,13 +65,8 @@ function _run(estimator::Estimator{T1, T2}, ϵ::Real) where {T1<:AbstractIndexSe
 
         # obtain initial variance estimate
         ns = regress_nb_of_samples(estimator, index_set, ϵ, θ, L) 
-        for index in index_set
-            if !has_samples_at_index(estimator, index)
-                flag = sample!(estimator, index, ns[index])
-                flag && break
-            end
-        end
-
+		filter!(x -> !has_samples_at_index(estimator, first(x)), ns)
+		flag = update_samples(estimator, ns)
         flag && break
 
         # add new indices to the index set

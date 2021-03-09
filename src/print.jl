@@ -182,14 +182,14 @@ print_sample!_footer() = println(" done")
 function print_restart(index, restart, samples_dir, wildcard)
     if any(values(restart))
         param_file = joinpath(samples_dir, join(index.I, "_"), wildcard, "params.dat")
-        println("\nWritten parameter values to ", param_file)
-        print("for sample numbers ")
-        tf = findall([restart[i] for i in sort(collect(keys(restart)))])
+		str = string("Written parameter values to ", param_file, " for sample numbers ")
+		tf = sort(collect(keys(filter(x -> last(x), restart))))
         if length(tf) < 11
-            println(join(tf, ","), ".")
+            str = string(str, join(tf, ", "), ".")
         else
-            println(join(tf[1:5], ","), ", ..., ", join(tf[end-4:end], ","), ".")
+            str = string(str, join(tf[1:5], ", "), ", ..., ", join(tf[end-4:end], ","), ".")
         end
+		println("\n", join((SubString(str, i, min(i+84, length(str))) for i=1:85:length(str)), "\n"))
     end
 end
 
