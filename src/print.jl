@@ -187,7 +187,7 @@ function print_restart(index, restart, samples_dir, wildcard)
         if length(tf) < 11
             str = string(str, join(tf, ", "), ".")
         else
-            str = string(str, join(tf[1:5], ", "), ", ..., ", join(tf[end-4:end], ","), ".")
+            str = string(str, join(tf[1:5], ", "), ", ..., ", join(tf[end-4:end], ", "), ".")
         end
 		println("\n", join((SubString(str, i, min(i+84, length(str))) for i=1:85:length(str)), "\n"))
     end
