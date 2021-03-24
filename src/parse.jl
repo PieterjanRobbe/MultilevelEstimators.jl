@@ -206,7 +206,7 @@ struct EmptyFunction <: Function end
         joinpath(pwd(), "samples"),
         begin
             check_type(to_string(key, val)..., String)
-            isdir(val) || throw(ArgumentError(string(val, " is not a directory!")))
+            #isdir(val) || throw(ArgumentError(string(val, " is not a directory!")))
             ispath(val) || makepath(val)
         end
        )
