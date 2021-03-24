@@ -207,7 +207,7 @@ struct EmptyFunction <: Function end
         begin
             check_type(to_string(key, val)..., String)
             #isdir(val) || throw(ArgumentError(string(val, " is not a directory!")))
-            ispath(val) || makepath(val)
+            ispath(val) || mkpath(val)
         end
        )
 
