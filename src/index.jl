@@ -14,7 +14,7 @@ Return a multi-index.
 # Examples
 ```jldoctest; setup = :(using MultilevelEstimators)
 julia> index = Index(2, 1)
-(2, 1)
+CartesianIndex(2, 1)
 ```
 See also: [`Level`](@ref)
 """

@@ -34,14 +34,14 @@ julia> lattice_rule = LatticeRule32([0x00000001,0x00000022], 2, 0x00000037) # Fi
 LatticeRule32{2}
 
 julia> get_point(lattice_rule, 2)
-2-element Array{Float64,1}:
+2-element Vector{Float64}:
  0.75
  0.5
 
 julia> get_point(lattice_rule, 56) # returns random points beyond n
-2-element Array{Float64,1}:
- 0.23603334566204692
- 0.34651701419196046
+2-element Vector{Float64}:
+ 0.07336635446929285
+ 0.34924148955718615
 ```
 See also: [`get_point`](@ref), [`ShiftedLatticeRule`](@ref)
 """
@@ -64,7 +64,7 @@ julia> lattice_rule = LatticeRule32(z_file, 16)
 LatticeRule32{16}
 
 julia> get_point(lattice_rule, 123)
-16-element Array{Float64,1}:
+16-element Vector{Float64}:
  0.3828125
  0.2890625
  0.1484375
@@ -108,23 +108,23 @@ julia> shifted_lattice_rule = ShiftedLatticeRule(lattice_rule)
 ShiftedLatticeRule{LatticeRule32{16}}
 
 julia> get_point(shifted_lattice_rule, 0)
-16-element Array{Float64,1}:
- 0.23603334566204692
- 0.34651701419196046
- 0.3127069683360675
- 0.00790928339056074
- 0.4886128300795012
- 0.21096820215853596
- 0.951916339835734
- 0.9999046588986136
- 0.25166218303197185
- 0.9866663668987996
- 0.5557510873245723
- 0.43710797460962514
- 0.42471785049513144
- 0.773223048457377
- 0.2811902322857298
- 0.20947237319807077
+16-element Vector{Float64}:
+ 0.0491718221481211
+ 0.11907881640750706
+ 0.3932710232252806
+ 0.024094310524527707
+ 0.6918572875342215
+ 0.7675180540873912
+ 0.08725304891274233
+ 0.8557176841095734
+ 0.8403841370820818
+ 0.8907696748195567
+ 0.138227024723224
+ 0.3477368477058109
+ 0.19852090963358837
+ 0.008197858843363659
+ 0.5920407556271403
+ 0.8010551449181886
 
 ```
 See also: [`LatticeRule32`](@ref), [`get_point`](@ref)
@@ -154,7 +154,7 @@ julia> lattice_rule = LatticeRule32([0x00000001,0x00000022], 2, 0x00000037) # Fi
 LatticeRule32{2}
 
 julia> get_point(lattice_rule, 2)
-2-element Array{Float64,1}:
+2-element Vector{Float64}:
  0.75
  0.5
 

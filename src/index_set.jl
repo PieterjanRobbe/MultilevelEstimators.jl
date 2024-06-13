@@ -245,13 +245,13 @@ Return an iterator over all indices in the index set `idxset` for a given size p
 # Examples
 ```jldoctest; setup = :(using MultilevelEstimators)
 julia> collect(get_index_set(TD(2), 2))
-6-element Array{CartesianIndex{2},1}:
- (0, 0)
- (1, 0)
- (2, 0)
- (0, 1)
- (1, 1)
- (0, 2)
+6-element Vector{CartesianIndex{2}}:
+ CartesianIndex(0, 0)
+ CartesianIndex(1, 0)
+ CartesianIndex(2, 0)
+ CartesianIndex(0, 1)
+ CartesianIndex(1, 1)
+ CartesianIndex(0, 2)
 ```
 """
 get_index_set(idxset::AbstractIndexSet{d}, sz::Integer) where d = Base.Iterators.filter(filter(idxset, sz), CartesianIndices(ntuple(i -> 0:sz + 1, d)))
