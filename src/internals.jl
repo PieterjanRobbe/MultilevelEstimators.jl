@@ -41,12 +41,12 @@ function DefaultInternals(index_set, sample_method, options)
     n = sample_method isa MC ? 1 : maximum(options[:nb_of_shifts].(collect(indices))) 
 
     T = Float64
-    samples = [[Vector{T}(undef, 0) for index in CartesianIndices(sz + one(sz))] for i in 1:m, j in 1:n]
-    samples_diff = [[Vector{T}(undef, 0) for index in CartesianIndices(sz + one(sz))] for i in 1:m, j in 1:n]
+    samples = [[Vector{T}(undef, 0) for index in CartesianIndices(sz + oneunit(sz))] for i in 1:m, j in 1:n]
+    samples_diff = [[Vector{T}(undef, 0) for index in CartesianIndices(sz + oneunit(sz))] for i in 1:m, j in 1:n]
 
-    nb_of_samples = [0 for index in CartesianIndices(sz + one(sz))]
-    total_work = [0. for index in CartesianIndices(sz + one(sz))]
-    total_time = [0. for index in CartesianIndices(sz + one(sz))]
+    nb_of_samples = [0 for index in CartesianIndices(sz + oneunit(sz))]
+    total_work = [0. for index in CartesianIndices(sz + oneunit(sz))]
+    total_time = [0. for index in CartesianIndices(sz + oneunit(sz))]
     current_index_set = Set{Index{ndims(index_set)}}()
     index_set_size = IndexSetSize(0, 0) 
 
@@ -59,11 +59,11 @@ samples(estimator::Estimator, n_qoi, n_shift) = estimator.internals.default_inte
 
 samples(estimator::Estimator, n_qoi) = samples(estimator, n_qoi, 1)
 
-samples(estimator::Estimator, n_qoi, n_shift, index::Index) = estimator.internals.default_internals.samples[n_qoi, n_shift][index + one(index)]
+samples(estimator::Estimator, n_qoi, n_shift, index::Index) = estimator.internals.default_internals.samples[n_qoi, n_shift][index + oneunit(index)]
 
 samples(estimator::Estimator, n_qoi, index::Index) = samples(estimator, n_qoi, 1, index)
 
-append_samples!(estimator::Estimator, n_qoi, n_shift, index::Index, samples_to_append) = append!(estimator.internals.default_internals.samples[n_qoi, n_shift][index + one(index)], samples_to_append)
+append_samples!(estimator::Estimator, n_qoi, n_shift, index::Index, samples_to_append) = append!(estimator.internals.default_internals.samples[n_qoi, n_shift][index + oneunit(index)], samples_to_append)
 
 append_samples!(estimator::Estimator, n_qoi, index::Index, samples_to_append) = append_samples!(estimator, n_qoi, 1, index, samples_to_append)
 
@@ -73,43 +73,43 @@ samples_diff(estimator::Estimator, n_qoi, n_shift) = estimator.internals.default
 
 samples_diff(estimator::Estimator, n_qoi) = samples_diff(estimator, n_qoi, 1)
 
-samples_diff(estimator::Estimator, n_qoi, n_shift, index::Index) = estimator.internals.default_internals.samples_diff[n_qoi, n_shift][index + one(index)]
+samples_diff(estimator::Estimator, n_qoi, n_shift, index::Index) = estimator.internals.default_internals.samples_diff[n_qoi, n_shift][index + oneunit(index)]
 
 samples_diff(estimator::Estimator, n_qoi, index::Index) = samples_diff(estimator, n_qoi, 1, index)
 
-append_samples_diff!(estimator::Estimator, n_qoi, n_shift, index::Index, samples_to_append) = append!(estimator.internals.default_internals.samples_diff[n_qoi, n_shift][index + one(index)], samples_to_append)
+append_samples_diff!(estimator::Estimator, n_qoi, n_shift, index::Index, samples_to_append) = append!(estimator.internals.default_internals.samples_diff[n_qoi, n_shift][index + oneunit(index)], samples_to_append)
 
 append_samples_diff!(estimator::Estimator, n_qoi, index::Index, samples_to_append) = append_samples_diff!(estimator, n_qoi, 1, index, samples_to_append)
 
-has_samples_at_index(estimator::Estimator, index::Index) = !isempty(estimator.internals.default_internals.samples_diff[1][index + one(index)])
+has_samples_at_index(estimator::Estimator, index::Index) = !isempty(estimator.internals.default_internals.samples_diff[1][index + oneunit(index)])
 
 nb_of_samples(estimator::Estimator) = estimator.internals.default_internals.nb_of_samples
 
-nb_of_samples(estimator::Estimator, index::Index) = estimator.internals.default_internals.nb_of_samples[index + one(index)]
+nb_of_samples(estimator::Estimator, index::Index) = estimator.internals.default_internals.nb_of_samples[index + oneunit(index)]
 
-add_to_nb_of_samples(estimator::Estimator, index::Index, amount::Integer) = estimator.internals.default_internals.nb_of_samples[index + one(index)] += amount
+add_to_nb_of_samples(estimator::Estimator, index::Index, amount::Integer) = estimator.internals.default_internals.nb_of_samples[index + oneunit(index)] += amount
 
 work(estimator::Estimator, index::Index) = total_work(estimator, index)/nb_of_samples(estimator, index)
 
 total_work(estimator::Estimator) = estimator.internals.default_internals.total_work
 
-total_work(estimator::Estimator, index::Index) = estimator.internals.default_internals.total_work[index + one(index)]
+total_work(estimator::Estimator, index::Index) = estimator.internals.default_internals.total_work[index + oneunit(index)]
 
-add_to_total_work(estimator::Estimator, index::Index, amount::Real) = estimator.internals.default_internals.total_work[index + one(index)] += estimator[:cost_model] isa EmptyFunction ? 0. : amount*estimator[:cost_model](index)
+add_to_total_work(estimator::Estimator, index::Index, amount::Real) = estimator.internals.default_internals.total_work[index + oneunit(index)] += estimator[:cost_model] isa EmptyFunction ? 0. : amount*estimator[:cost_model](index)
 
 time(estimator::Estimator, index::Index) = total_time(estimator, index)/nb_of_samples(estimator, index)
 
 total_time(estimator::Estimator) = estimator.internals.default_internals.total_time
 
-total_time(estimator::Estimator, index::Index) = estimator.internals.default_internals.total_time[index + one(index)]
+total_time(estimator::Estimator, index::Index) = estimator.internals.default_internals.total_time[index + oneunit(index)]
 
-add_to_total_time(estimator::Estimator, index::Index, amount::Real) = estimator.internals.default_internals.total_time[index + one(index)] += amount
+add_to_total_time(estimator::Estimator, index::Index, amount::Real) = estimator.internals.default_internals.total_time[index + oneunit(index)] += amount
 
 current_index_set(estimator::Estimator) = estimator.internals.default_internals.current_index_set
 
 keys(estimator::Estimator) = sort(collect(current_index_set(estimator)))
 
-all_keys(estimator::Estimator) = broadcast(i -> i - one(i), filter(i -> has_samples_at_index(estimator, i -one(i)), CartesianIndices(samples(estimator, 1))))
+all_keys(estimator::Estimator) = broadcast(i -> i - oneunit(i), filter(i -> has_samples_at_index(estimator, i - oneunit(i)), CartesianIndices(samples(estimator, 1))))
 
 push!(estimator::Estimator, index::Index) = push!(estimator.internals.default_internals.current_index_set, index)
 
@@ -126,15 +126,15 @@ struct QMCInternals{T1} <: SampleMethodInternals
     generators::T1
 end
 
-generator(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index) = estimator.internals.sample_method_internals.generators[index + one(index)]
-generator(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index, shift) = estimator.internals.sample_method_internals.generators[index + one(index)][shift]
+generator(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index) = estimator.internals.sample_method_internals.generators[index + oneunit(index)]
+generator(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index, shift) = estimator.internals.sample_method_internals.generators[index + oneunit(index)][shift]
 
 function SampleMethodInternals(index_set, sample_method::QMC, options)
     max_search_space = index_set isa Union{AD, U} ? options[:max_search_space] : index_set
     indices = get_index_set(max_search_space, options[:max_index_set_param])
 
     sz = maximum(indices)
-    R = CartesianIndices(sz + one(sz))
+    R = CartesianIndices(sz + oneunit(sz))
     generators = [[ShiftedLatticeRule(options[:point_generator]) for i in 1:options[:nb_of_shifts](I)] for I in R]
 
     QMCInternals(generators)

@@ -20,7 +20,7 @@ See also: [`Level`](@ref)
 """
 Index = CartesianIndex
 
-show(io::IO, index::Index) = print(io, string("(", join(index.I, ", "), ")"))
+# show(io::IO, index::Index) = print(io, string("(", join(index.I, ", "), ")"))
 show(io::IO, ::Type{Index}) = print(io, "Index")
 
 ## Level ##
@@ -44,7 +44,7 @@ show(io::IO, ::Type{Level}) = print(io, "Level")
 ## utilities ##
 function diff(index::Index{d}) where d
     D = Dict{Index{d}, Int}()
-    Istart = max(zero(index), index - one(index))
+    Istart = max(zero(index), index - oneunit(index))
     Iend = index
 	R = Istart:Iend
 	for I in Base.Iterators.take(R, length(R)-1)
