@@ -21,7 +21,7 @@ import Statistics: mean, var
 
 export Level, Index
 
-export AbstractIndexSet, SL, ML, FT, TD, HC, ZC, AD, U, get_index_set
+export AbstractIndexSet, SL, ML, FT, TD, HC, ZC, AD, U, get_index_set, is_admissable
 
 export AbstractDistribution, Uniform, Normal, TruncatedNormal, Weibull , transform
 

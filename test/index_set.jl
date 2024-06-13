@@ -28,11 +28,16 @@ for (T, n3, n2) in Base.Iterators.zip(["FT" "TD" "HC" "ZC"], [512 120 38 98], [2
         @test isa(t3, $(Symbol(T)){3})
         idxset3 = collect(get_index_set(t3, 7))
         @test length(idxset3) == $n3
+        @test length(idxset3, 7) == $n3
+        @test eltype(idxset3) == Index{3}
         @test idxset3[1] == Index(0, 0, 0)
         @test Index(1, 1, 1) ∈ idxset3
         @test Index(8, 0, 0) ∉ idxset3
         @test Index(0, 8, 0) ∉ idxset3
         @test Index(0, 0, 8) ∉ idxset3
+        @test is_admissable(Set(get_index_set(idxset3, 7)), Index(8, 0, 0))
+        @test !is_admissable(Set(get_index_set(idxset3, 7)), Index(0, 0, 0))
+        @test !is_admissable(Set(get_index_set(idxset3, 7)), Index(0, 9, 0))
         #
         # weighted d2 index set
         #

@@ -20,8 +20,10 @@ See also: [`Level`](@ref)
 """
 Index = CartesianIndex
 
-# show(io::IO, index::Index) = print(io, string("(", join(index.I, ", "), ")"))
-show(io::IO, ::Type{Index}) = print(io, "Index")
+# function __init__()
+#     show(io::IO, index::Index) = print(io, string("(", join(index.I, ", "), ")"))
+#     show(io::IO, ::Type{Index}) = print(io, "Index")
+# end
 
 ## Level ##
 """
@@ -38,8 +40,8 @@ See also: [`Index`](@ref)
 """
 Level = CartesianIndex{1}
 
-show(io::IO, level::Level) = print(io, level[1])
-show(io::IO, ::Type{Level}) = print(io, "Level")
+# show(io::IO, level::Level) = print(io, level[1])
+# show(io::IO, ::Type{Level}) = print(io, "Level")
 
 ## utilities ##
 function diff(index::Index{d}) where d
@@ -55,6 +57,6 @@ end
 
 sum(I::CartesianIndex) = sum(Tuple(I))
 
-if VERSION < v"1.1.0-"
-	(:)(I::CartesianIndex{N}, J::CartesianIndex{N}) where N = CartesianIndices(map((i,j) -> i:j, Tuple(I), Tuple(J)))
-end
+# if VERSION < v"1.1.0-"
+# 	(:)(I::CartesianIndex{N}, J::CartesianIndex{N}) where N = CartesianIndices(map((i,j) -> i:j, Tuple(I), Tuple(J)))
+# end
