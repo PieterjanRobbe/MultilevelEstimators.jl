@@ -22,5 +22,8 @@ index_2_3 = Index(2,3)
 @test typeof(index_2_3) <: Index{2}
 @test index_0_0 + index_2_3 == index_2_3
 @test_throws MethodError Index(0.,2)
+d_index = diff(Index(1))
+@test length(d_index) == 1
+@test d_index[Index(0)] == -1
 
 end
