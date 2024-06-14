@@ -11,9 +11,10 @@ for (descr, sym) in zip(("equal to", "larger than", "larger than or equal to", "
         $(Symbol("check_", join(split(descr), "_")))(type_name, x, parameter_name, y) = all($(sym).(x, y)) || throw(ArgumentError(string("in ", type_name, ", ", parameter_name, " must be ", $(descr), " ", y, ".")))
     end
 end
-function check_ndims(x, type_name, parameter_name, m, msg)
-    ndims(x) == m || throw(ArgumentError(string("in ", type_name, ", ", msg, ", got ", ndims(x), ", expected ", m)))
-end
+
+# function check_ndims(x, type_name, parameter_name, m, msg)
+#     ndims(x) == m || throw(ArgumentError(string("in ", type_name, ", ", msg, ", got ", ndims(x), ", expected ", m)))
+# end
 
 check_finite(type_name, x, parameter_name) = isfinite(x) || throw(ArgumentError(string("in ", type_name, ", ", parameter_name, " must be finite.")))
 

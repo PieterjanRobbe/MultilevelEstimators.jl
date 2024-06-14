@@ -19,7 +19,7 @@ import Statistics: mean, var
 
 ## export statements ##
 
-export Level, Index
+export Level, Index, diff
 
 export AbstractIndexSet, SL, ML, FT, TD, HC, ZC, AD, U, get_index_set, is_admissable, length
 
