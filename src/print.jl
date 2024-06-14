@@ -164,7 +164,7 @@ function print_pmf(estimator::Estimator)
     println(header)
     table_hline(2)
 	for idx in sort(collect(keys(P)))
-        index_str = string(idx)
+        index_str = pprint(idx)
         str = "| "
         str = string(str, index_str, spaces(n()-length(index_str)-2), " |")
         pmf_str = shorte(P[idx])
