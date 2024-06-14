@@ -139,7 +139,7 @@ function print_largest_profit(estimator, max_index, max_profit, indices, profits
     println(header)
     table_hline(2)
     for i in 1:length(indices)
-        index_str = string(indices[i])
+        index_str = pprint(indices[i])
         str = "| "
         str = string(str, index_str, spaces(n()-length(index_str)-2), " |")
         profit_str = shorte(profits[i])

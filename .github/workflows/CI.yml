@@ -44,3 +44,8 @@ jobs:
           files: lcov.info
           token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: false
+      - uses: coverallsapp/github-action@v2
+        with:
+          files: lcov.info
+          token: ${{ secrets.COVERALLS_TOKEN }}
+          fail_ci_if_error: false

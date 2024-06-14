@@ -84,7 +84,7 @@
 
     for index_method in (TD, FT, HC, ZC, AD)
         for sample_method in (MC(), QMC())
-            @suppress_err @capture_out h = run(Estimator(TD(2), sample_method, test_function, [Uniform(-0.5, 0.5), Uniform(-0.5, 0.5)]; nb_of_qoi=n, max_index_set_param=3, save_samples=true, folder=tempdir()), 0.001)
+            @suppress_err @capture_out h = run(Estimator(index_method(2), sample_method, test_function, [Uniform(-0.5, 0.5), Uniform(-0.5, 0.5)]; nb_of_qoi=n, max_index_set_param=3, save_samples=true, folder=tempdir()), 0.001)
         end
     end
 
