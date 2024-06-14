@@ -3,7 +3,7 @@
 # A collection of useful print statements for Estimators.
 #
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for
-# Multilevel Monte Carlo Methods (c) Pieterjan Robbe, 2019
+# Multilevel Monte Carlo Methods
 
 #
 # convenience functions
@@ -66,7 +66,7 @@ function print_status(estimator::Estimator)
     table_hline(7)
     for index in keys(estimator)
 		if nb_of_samples(estimator, index) > 0
-			index_str = string(index)
+			index_str = pprint(index)
 			str = "| "
 			str = string(str, index_str, spaces(n()-length(index_str)-2), " |")
 			str = string(str, long(mean0(estimator, index)), spaces(n()-12-1), " |")
@@ -110,7 +110,7 @@ end
 function _print_optimal_nb_of_samples(estimator::Estimator, samples::Dict)
     for index in sort(collect(keys(samples)))
 		if samples[index] > 0
-			index_str = string(index)
+			index_str = pprint(index)
 			str = "| "
 			str = string(str, index_str, spaces(n()-length(index_str)-2), " |")
 			samples_str = print_nb_of_samples(estimator, index, samples[index])
@@ -211,7 +211,7 @@ end
 #
 # taking ...
 #
-print_sample!_header(estimator::Estimator, index::Index, n::Integer, warm_up::Bool) = print(string("Taking ", print_nb_of_samples(estimator, index, n), print_warm_up(Val(warm_up)), " sample", print_with_s(n), " at ", print_elname(estimator), " ", index, "..."))
+print_sample!_header(estimator::Estimator, index::Index, n::Integer, warm_up::Bool) = print(string("Taking ", print_nb_of_samples(estimator, index, n), print_warm_up(Val(warm_up)), " sample", print_with_s(n), " at ", print_elname(estimator), " ", pprint(index), "..."))
 
 print_warm_up(::Val{true}) = " warm-up"
 

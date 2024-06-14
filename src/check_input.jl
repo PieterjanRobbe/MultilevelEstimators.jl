@@ -3,7 +3,7 @@
 # Common functions for input argument checking.
 #
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for
-# Multilevel Monte Carlo Methods (c) Pieterjan Robbe, 2019
+# Multilevel Monte Carlo Methods
 
 ## checks ##
 for (descr, sym) in zip(("equal to", "larger than", "larger than or equal to", "smaller than", "smaller than or equal to"), (:(==),:>, :≥, :<, :≤))

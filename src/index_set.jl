@@ -5,7 +5,7 @@
 # using the `filter`-function from `Base.Iterators`.
 #
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for
-# Multilevel Monte Carlo Methods (c) Pieterjan Robbe, 2019
+# Multilevel Monte Carlo Methods
 
 ## Indexset ##
 abstract type AbstractIndexSet{d} end

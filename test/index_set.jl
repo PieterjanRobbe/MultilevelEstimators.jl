@@ -1,7 +1,7 @@
 ## index_set.jl : unit testing for index_set.jl
 #
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for
-# Multilevel Monte Carlo Methods (c) Pieterjan Robbe, 2019
+# Multilevel Monte Carlo Methods
 
 @testset "IndexSet                     " begin
 
@@ -28,16 +28,16 @@ for (T, n3, n2) in Base.Iterators.zip(["FT" "TD" "HC" "ZC"], [512 120 38 98], [2
         @test isa(t3, $(Symbol(T)){3})
         idxset3 = collect(get_index_set(t3, 7))
         @test length(idxset3) == $n3
-        @test length(idxset3, 7) == $n3
+        @test length(t3, 7) == $n3
         @test eltype(idxset3) == Index{3}
         @test idxset3[1] == Index(0, 0, 0)
         @test Index(1, 1, 1) ∈ idxset3
         @test Index(8, 0, 0) ∉ idxset3
         @test Index(0, 8, 0) ∉ idxset3
         @test Index(0, 0, 8) ∉ idxset3
-        @test is_admissable(Set(get_index_set(idxset3, 7)), Index(8, 0, 0))
-        @test !is_admissable(Set(get_index_set(idxset3, 7)), Index(0, 0, 0))
-        @test !is_admissable(Set(get_index_set(idxset3, 7)), Index(0, 9, 0))
+        @test is_admissable(Set(idxset3), Index(8, 0, 0))
+        @test !is_admissable(Set(idxset3), Index(0, 0, 0))
+        @test !is_admissable(Set(idxset3), Index(0, 9, 0))
         #
         # weighted d2 index set
         #
@@ -78,5 +78,10 @@ m = U(2)
 
 @test length(collect(get_index_set(TD(2), 0))) == 1
 @test isempty(get_index_set(TD(2), -1))
+
+# printing
+@test_throws ArgumentError print(TD(3), 4)
+result = @capture_out print(TD(2), 4)
+@test result isa String
 
 end

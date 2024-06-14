@@ -3,7 +3,7 @@
 # Parse inputs passed to the Estimator type.
 #
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for
-# Multilevel Monte Carlo Methods (c) Pieterjan Robbe, 2019
+# Multilevel Monte Carlo Methods
 
 ## parse! ##
 # Make a function parse! for the key key_name.

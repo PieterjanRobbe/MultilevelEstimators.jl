@@ -1,7 +1,7 @@
 ## MultilevelEstimators.jl : module file
 #
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for 
-# Multilevel Monte Carlo Methods (c) Pieterjan Robbe, 2019
+# Multilevel Monte Carlo Methods
 
 module MultilevelEstimators
 
@@ -21,7 +21,7 @@ import Statistics: mean, var
 
 export Level, Index
 
-export AbstractIndexSet, SL, ML, FT, TD, HC, ZC, AD, U, get_index_set, is_admissable
+export AbstractIndexSet, SL, ML, FT, TD, HC, ZC, AD, U, get_index_set, is_admissable, length
 
 export AbstractDistribution, Uniform, Normal, TruncatedNormal, Weibull , transform
 
@@ -29,7 +29,7 @@ export AbstractSampleMethod, MC, QMC
 
 export LatticeRule32, ShiftedLatticeRule, get_point
 
-export Estimator
+export Estimator, mean, var
 
 export History, haskey
 

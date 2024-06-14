@@ -3,7 +3,7 @@
 # Methods to add samples to the Estimator.
 #
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for
-# Multilevel Monte Carlo Methods (c) Pieterjan Robbe, 2019
+# Multilevel Monte Carlo Methods
 
 function update_samples(estimator::Estimator, n_opt)
     for τ in keys(n_opt)

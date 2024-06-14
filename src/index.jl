@@ -3,7 +3,7 @@
 # Representation of levels and multi-dimensional indices. 
 #
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for
-# Multilevel Monte Carlo Methods (c) Pieterjan Robbe, 2019
+# Multilevel Monte Carlo Methods
 
 ## Index ##
 """
@@ -25,6 +25,8 @@ Index = CartesianIndex
 #     show(io::IO, ::Type{Index}) = print(io, "Index")
 # end
 
+pprint(index::Index) = string("(", join(index.I, ", "), ")")
+
 ## Level ##
 """
     Level(l::Integer)
@@ -34,7 +36,7 @@ Return a level.
 # Examples
 ```jldoctest; setup = :(using MultilevelEstimators)
 julia> level = Level(2)
-2
+CartesianIndex(2,)
 ```
 See also: [`Index`](@ref)
 """

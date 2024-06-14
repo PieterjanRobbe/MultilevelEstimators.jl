@@ -1,7 +1,7 @@
 ## distribution.jl : unit testing for distribution.jl
 #
 # This file is part of MultilevelEstimators.jl - A Julia toolbox for
-# Multilevel Monte Carlo Methods (c) Pieterjan Robbe, 2019
+# Multilevel Monte Carlo Methods
 
 @testset "Uniform                      " begin
 
