@@ -90,14 +90,14 @@ function update_history!(history::History, estimator::Estimator, tol::Real, elap
     end
 
     # save samples if required
+    if estimator[:save_samples]
+        h[:samples] = samples(estimator)
+        h[:samples_diff] = samples_diff(estimator)
+    end
+
+    push!(history.data, h)
+
     if estimator[:save]
-        if estimator[:save_samples]
-            h[:samples] = samples(estimator)
-            h[:samples_diff] = samples_diff(estimator)
-        end
-
-        push!(history.data, h)
-
         # save history
         save(history)
     end
