@@ -58,8 +58,7 @@
                     max_index_set_param=3,
                     save_samples=true,
                     folder=tempdir(),
-                    aggregation=aggregation,
-                    qoi_with_max_var=3
+                    aggregation=aggregation
                 ),
                 tolerance
             )
@@ -152,8 +151,7 @@
                     max_index_set_param=3,
                     save_samples=true,
                     folder=tempdir(),
-                    aggregation=aggregation,
-                    qoi_with_max_var=3,
+                    aggregation=aggregation
                     max_search_space=ML()
                 ),
                 tolerance
@@ -174,8 +172,7 @@
                     max_index_set_param=3,
                     save_samples=true,
                     folder=tempdir(),
-                    aggregation=aggregation,
-                    qoi_with_max_var=3
+                    aggregation=aggregation
                 ),
                 tolerance
             )
