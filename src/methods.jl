@@ -25,27 +25,45 @@ max_level_exceeded(estimator::Estimator) = sz(estimator) ≥ estimator[:max_inde
 #
 # inspector functions: mean, var, varest...
 #
-qoi_with_max_var(estimator::Estimator{<:AbstractIndexSet, <:MC}) = estimator[:qoi_with_max_var] == 0 ? argmax(map(n_qoi -> sum(var(samples_diff(estimator, n_qoi, index)) for index in keys(estimator)), 1:estimator[:nb_of_qoi])) : estimator[:qoi_with_max_var]
+function aggregate(estimator::Estimator, values)
+    if estimator[:aggregation] == "sum"
+        return sum(values)
+    elseif estimator[:aggregation] == "norm"
+        return norm(values)
+    else
+        if estimator[:qoi_with_max_var] == 0
+            qoi_vars = map(qoi -> var(estimator, qoi), 1:estimator[:nb_of_qoi])
+            qoi_with_max_var = argmax(qoi_vars)
+        else
+            qoi_with_max_var = estimator[:qoi_with_max_var]
+        end
+        return values[qoi_with_max_var]
+    end
+end
 
-cost(estimator::Estimator, index::Index) = estimator[:cost_model] isa EmptyFunction ? time(estimator, index) : work(estimator, index)
+var(estimator::Estimator{<:AbstractIndexSet, <:MC}, qoi::Integer) = sum(var(samples_diff(estimator, qoi, index)) for index in keys(estimator))
+
+var(estimator::Estimator{<:AbstractIndexSet, <:QMC}, qoi::Integer) = sum(mean(var(samples_diff(estimator, qoi, shift, index)) for shift in 1:estimator[:nb_of_shifts](index)) for index in keys(estimator))
 
 for f in [:mean, :var]
     @eval begin
 
-        $f(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index) = $f(samples_diff(estimator, qoi_with_max_var(estimator), index))
+    $f(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index) = aggregate(estimator, map(qoi -> $f(samples_diff(estimator, qoi, index)), 1:estimator[:nb_of_qoi]))
 
-        $(Symbol(f, 0))(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index) = $f(samples(estimator, qoi_with_max_var(estimator), index))
+    $(Symbol(f, 0))(estimator::Estimator{<:AbstractIndexSet, <:MC}, index::Index) = aggregate(estimator, map(qoi -> $f(samples(estimator, qoi, index)), 1:estimator[:nb_of_qoi]))
 
-        $f(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index) = mean($f(samples_diff(estimator, qoi_with_max_var(estimator), shift, index)) for shift in 1:estimator[:nb_of_shifts](index))
+    $f(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index) = aggregate(estimator, map(qoi -> mean($f(samples_diff(estimator, qoi, shift, index)) for shift in 1:estimator[:nb_of_shifts](index)), 1:estimator[:nb_of_qoi]))
 
-        $(Symbol(f, 0))(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index) = mean($f(samples(estimator, qoi_with_max_var(estimator), shift, index)) for shift in 1:estimator[:nb_of_shifts](index))
-
-        $f(estimator::Estimator) = sum($f(estimator, index) for index in keys(estimator))
+    $(Symbol(f, 0))(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index) = aggregate(estimator, map(qoi -> mean($f(samples(estimator, qoi, shift, index)) for shift in 1:estimator[:nb_of_shifts](index)), 1:estimator[:nb_of_qoi]))
 
     end
 end
 
-varest(estimator::Estimator, index::Index) = var(estimator, index)/nb_of_samples(estimator, index)
+mean(estimator::Estimator) = sum(mean(estimator, index) for index in keys(estimator))
+
+cost(estimator::Estimator, index::Index) = estimator[:cost_model] isa EmptyFunction ? time(estimator, index) : work(estimator, index)
+
+varest(estimator::Estimator, index::Index) = var(estimator, index) / nb_of_samples(estimator, index)
 
 varest(estimator::Estimator) =  sum(varest(estimator, index) for index in keys(estimator))
 
@@ -244,8 +262,6 @@ end
 #
 # QMC related functions
 #
-qoi_with_max_var(estimator::Estimator{<:AbstractIndexSet, <:QMC}) = estimator[:qoi_with_max_var] == 0 ? argmax(map(n_qoi -> sum(mean(var(samples_diff(estimator, n_qoi, n_shift, index)) for n_shift in 1:estimator[:nb_of_shifts](index)) for index in keys(estimator)), 1:estimator[:nb_of_qoi])) : estimator[:qoi_with_max_var]
-
 function next_number_of_samples(estimator, index)
     if estimator[:sample_mul_factor] == 2
         Dict(index => nextpow(2, nb_of_samples(estimator, index) + 1))
@@ -263,15 +279,11 @@ function find_index_with_max_var_over_cost(estimator::Estimator{<:AbstractIndexS
     indices[idx]
 end
 
-varest(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index) = var(mean(samples_diff(estimator, qoi_with_max_var(estimator), n_shift, index)) for n_shift in 1:estimator[:nb_of_shifts](index), corrected=true) / estimator[:nb_of_shifts](index)
+varest(estimator::Estimator{<:AbstractIndexSet, <:QMC}, index::Index) = aggregate(estimator, map(qoi -> var(mean(samples_diff(estimator, qoi, shift, index)) for shift in 1:estimator[:nb_of_shifts](index), corrected=true) / estimator[:nb_of_shifts](index), 1:estimator[:nb_of_qoi]))
 
 #
 # Unbiased estimation
 #
-qoi_with_max_var(estimator::Estimator{<:U, <:MC}) = estimator[:qoi_with_max_var] == 0 ? argmax(map(n_qoi -> var(accumulator(estimator, n_qoi)) / length(accumulator(estimator, n_qoi)), 1:estimator[:nb_of_qoi])) : estimator[:qoi_with_max_var]
-
-qoi_with_max_var(estimator::Estimator{<:U, <:QMC}) = estimator[:qoi_with_max_var] == 0 ? argmax(map(n_qoi -> var(mean(accumulator(estimator, n_qoi, n_shift)) for n_shift in 1:size(accumulator(estimator), 2)) / estimator[:nb_of_qoi], 1:estimator[:nb_of_qoi])) : estimator[:qoi_with_max_var]
-
 function next_number_of_samples(estimator::Estimator{<:U})
     n_total = sum(values(nb_of_samples(estimator)))
     n0 = max(estimator[:nb_of_warm_up_samples], n_total)
@@ -322,19 +334,18 @@ Prob(estimator::Estimator{<:U}, index::Index) = sum(val for (key, val) in pmf(es
 
 Prob(estimator::Estimator{<:U}) = Dict(index => Prob(estimator, index) for index in keys(estimator))
 
-varest(estimator::Estimator{<:U, <:MC}) = var(accumulator(estimator, qoi_with_max_var(estimator))) / length(accumulator(estimator, qoi_with_max_var(estimator)))
+var(estimator::Estimator{<:U, <:MC}, qoi::Integer) = var(accumulator(estimator, qoi))
 
-varest(estimator::Estimator{<:U, <:QMC}) = var(mean(accumulator(estimator, qoi_with_max_var(estimator), n_shift)) for n_shift in 1:size(accumulator(estimator), 2)) / estimator[:nb_of_qoi]
+var(estimator::Estimator{<:U, <:QMC}, qoi::Integer) = mean(var(accumulator(estimator, qoi, shift)) for shift in 1:n_shifts(estimator))
+
+varest(estimator::Estimator{<:U, <:MC}) = aggregate(estimator, map(qoi -> var(accumulator(estimator, qoi)) / length(accumulator(estimator, qoi)), 1:estimator[:nb_of_qoi]))
+
+varest(estimator::Estimator{<:U, <:QMC}) = aggregate(estimator, map(qoi -> var(mean(accumulator(estimator, qoi, shift)) for shift in 1:n_shifts(estimator)) / n_shifts(estimator), 1:estimator[:nb_of_qoi]))
+
+n_shifts(estimator::Estimator{<:U, <:QMC}) = size(accumulator(estimator), 2)
 
 bias(estimator::Estimator{<:U}) = 0.0
 
 converged(estimator::Estimator{<:U}, ϵ::Real) = mse(estimator) ≤ ϵ^2
 
-mean(estimator::Estimator{<:U}) = mean(accumulator(estimator, qoi_with_max_var(estimator)))
-
-mean0(estimator::Estimator{<:U}) = mean0(accumulator(estimator, qoi_with_max_var(estimator)))
-
-
-var(estimator::Estimator{<:U}) = var(accumulator(estimator, qoi_with_max_var(estimator)))
-
-var0(estimator::Estimator{<:U}) = var0(accumulator(estimator, qoi_with_max_var(estimator)))
+mean(estimator::Estimator{<:U}) = aggregate(estimator, map(qoi -> mean(accumulator(estimator, qoi)), 1:estimator[:nb_of_qoi]))

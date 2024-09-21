@@ -8,6 +8,11 @@
     # number of qoi
     n = 13
 
+    # tolerances
+    tol_max = 1e-2
+    tol_sum = 1e-1
+    tol_norm = 1e-1
+
     # define test function
     function problem_18(ell::Level, xi::Vector{<:Real})
         ℓ = ell[1]
@@ -41,8 +46,24 @@
     end
 
     # run multilevel
-    for sample_method in (MC(), QMC())
-        @suppress_err @capture_out h = run(Estimator(ML(), sample_method, test_function, Uniform(-0.5, 0.5); nb_of_qoi=n, max_index_set_param=3, save_samples=true, folder=tempdir()), 0.001)
+    for (aggregation, tolerance) in [("max", tol_max), ("sum", tol_sum), ("norm", tol_norm)]
+        for sample_method in (MC(), QMC())
+            @suppress_err @capture_out h = run(
+                Estimator(
+                    ML(),
+                    sample_method,
+                    test_function,
+                    Uniform(-0.5, 0.5);
+                    nb_of_qoi=n,
+                    max_index_set_param=3,
+                    save_samples=true,
+                    folder=tempdir(),
+                    aggregation=aggregation,
+                    qoi_with_max_var=3
+                ),
+                tolerance
+            )
+        end
     end
 
     # define test function
@@ -83,9 +104,25 @@
     end
 
     # run multi-index
-    for index_method in (TD, FT, HC, ZC, AD)
-        for sample_method in (MC(), QMC())
-            @suppress_err @capture_out h = run(Estimator(index_method(2), sample_method, test_function, [Uniform(-0.5, 0.5), Uniform(-0.5, 0.5)]; nb_of_qoi=n, max_index_set_param=3, save_samples=true, folder=tempdir()), 0.001)
+    for (aggregation, tolerance) in [("max", tol_max), ("sum", tol_sum), ("norm", tol_norm)]
+        for index_method in (TD, FT, HC, ZC, AD)
+            for sample_method in (MC(), QMC())
+                @suppress_err @capture_out h = run(
+                    Estimator(
+                        index_method(2),
+                        sample_method,
+                        test_function,
+                        [Uniform(-0.5, 0.5), Uniform(-0.5, 0.5)];
+                        nb_of_qoi=n,
+                        max_index_set_param=3,
+                        save_samples=true,
+                        folder=tempdir(),
+                        aggregation=aggregation,
+                        qoi_with_max_var=3
+                    ),
+                    tolerance
+                )
+            end
         end
     end
 
@@ -102,9 +139,46 @@
         return dQ, Qf
     end
 
-    # run unbiased
-    for sample_method in (MC(), QMC())
-        @suppress_err @capture_out h = run(Estimator(U(1), sample_method, test_function2, Uniform(-0.5, 0.5); nb_of_qoi=n, max_index_set_param=3, save_samples=true, folder=tempdir(), max_search_space=ML()), 0.001)
-        @suppress_err @capture_out h = run(Estimator(U(2), sample_method, test_function2, [Uniform(-0.5, 0.5), Uniform(-0.5, 0.5)]; nb_of_qoi=n, max_index_set_param=3, save_samples=true, folder=tempdir()), 0.001)
+    # run unbiased multilevel
+    for (aggregation, tolerance) in [("max", tol_max), ("sum", tol_sum), ("norm", tol_norm)]
+        for sample_method in (MC(), QMC())
+            @suppress_err @capture_out h = run(
+                Estimator(
+                    U(1),
+                    sample_method,
+                    test_function2,
+                    Uniform(-0.5, 0.5);
+                    nb_of_qoi=n,
+                    max_index_set_param=3,
+                    save_samples=true,
+                    folder=tempdir(),
+                    aggregation=aggregation,
+                    qoi_with_max_var=3,
+                    max_search_space=ML()
+                ),
+                tolerance
+            )
+        end
+    end
+
+    # run unbiased multi-index
+    for (aggregation, tolerance) in [("max", tol_max), ("sum", tol_sum), ("norm", tol_norm)]
+        for sample_method in (MC(), QMC())
+            @suppress_err @capture_out h = run(
+                Estimator(
+                    U(2),
+                    sample_method,
+                    test_function2,
+                    [Uniform(-0.5, 0.5), Uniform(-0.5, 0.5)];
+                    nb_of_qoi=n,
+                    max_index_set_param=3,
+                    save_samples=true,
+                    folder=tempdir(),
+                    aggregation=aggregation,
+                    qoi_with_max_var=3
+                ),
+                tolerance
+            )
+        end
     end
 end

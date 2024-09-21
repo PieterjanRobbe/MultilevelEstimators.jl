@@ -65,7 +65,6 @@ function update_history!(history::History, estimator::Estimator, tol::Real, elap
     h[:mse]               = mse(estimator)
     h[:rmse]              = rmse(estimator)
     h[:mean]              = mean(estimator)
-    h[:var]               = var(estimator)
     h[:varest]            = varest(estimator)
     h[:bias]              = bias(estimator)
     h[:E]                 = apply(mean0, estimator)
@@ -77,7 +76,7 @@ function update_history!(history::History, estimator::Estimator, tol::Real, elap
     h[:β]                 = β(estimator)
     h[:γ]                 = γ(estimator)
     h[:nb_of_samples]     = copy(nb_of_samples(estimator)) 
-    h[:qoi_with_max_var]  = qoi_with_max_var(estimator)
+    # h[:qoi_with_max_var]  = qoi_with_max_var(estimator)
 
     # add cost model is it was provided
     if !(estimator[:cost_model] isa EmptyFunction)

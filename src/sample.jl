@@ -65,10 +65,10 @@ end
 function append_samples!(estimator::Estimator{<:U, <:MC}, index::Index, s_diff, s)
     for idx in zero(index):index
         for n_qoi in 1:estimator[:nb_of_qoi]
-            append_samples_diff!(estimator, n_qoi, idx, getindex.(getindex.(s_diff, Ref(idx + one(idx))), n_qoi))
-            append_samples!(estimator, n_qoi, idx, getindex.(getindex.(s, Ref(idx + one(idx))), n_qoi))
+            append_samples_diff!(estimator, n_qoi, idx, getindex.(getindex.(s_diff, idx + one(idx)), n_qoi))
+            append_samples!(estimator, n_qoi, idx, getindex.(getindex.(s, idx + one(idx)), n_qoi))
             idx == zero(idx) && append_to_accumulator!(estimator, n_qoi, zeros(length(s_diff)))
-            add_to_accumulator!(estimator, n_qoi, 1 / Prob(estimator, idx) * getindex.(getindex.(s_diff, Ref(idx + one(idx))), n_qoi))
+            add_to_accumulator!(estimator, n_qoi, 1 / Prob(estimator, idx) * getindex.(getindex.(s_diff, idx + one(idx)), n_qoi))
         end
     end
 end
@@ -114,10 +114,10 @@ function append_samples!(estimator::Estimator{<:U, <:QMC}, index::Index, s_diff,
     for idx in zero(index):index
         for n_shift in 1:estimator[:nb_of_shifts](index)
             for n_qoi in 1:estimator[:nb_of_qoi]
-                append_samples_diff!(estimator, n_qoi, n_shift, idx, getindex.(getindex.(view(s_diff, n_shift, :), Ref(idx + one(idx))), n_qoi))
-                append_samples!(estimator, n_qoi, n_shift, idx, getindex.(getindex.(view(s, n_shift, :), Ref(idx + one(idx))), n_qoi))
+                append_samples_diff!(estimator, n_qoi, n_shift, idx, getindex.(getindex.(view(s_diff, n_shift, :), idx + one(idx)), n_qoi))
+                append_samples!(estimator, n_qoi, n_shift, idx, getindex.(getindex.(view(s, n_shift, :), idx + one(idx)), n_qoi))
                 idx == zero(idx) && append_to_accumulator!(estimator, n_qoi, n_shift, zeros(size(s_diff, 2)))
-                add_to_accumulator!(estimator, n_qoi, n_shift, 1 / Prob(estimator, idx) * getindex.(getindex.(view(s_diff, n_shift, :), Ref(idx + one(idx))), n_qoi))
+                add_to_accumulator!(estimator, n_qoi, n_shift, 1 / Prob(estimator, idx) * getindex.(getindex.(view(s_diff, n_shift, :), idx + one(idx)), n_qoi))
             end
         end
     end

@@ -49,6 +49,17 @@ eltype(::Type{<:Val{T}}) where {T} = T
         end
        )
 
+## aggregation ##
+@parse!(:aggregation,
+        "max",
+        begin
+            check_type(to_string(key, val)..., String)
+            if !(val in ["max", "sum", "norm"])
+                throw(ArgumentError("in Estimator, optional key aggregation must be 'sum', 'max' or 'norm'"))
+            end
+        end
+       )
+
 ## continuate ##
 @parse!(:continuate,
         true,
@@ -287,10 +298,10 @@ struct EmptyFunction <: Function end
 
 ## qoi_with_max_var
 @parse!(:qoi_with_max_var,
-        0,
+        1,
         begin
             check_larger_than(to_string(key, val)..., 0)
             haskey(options, :nb_of_qoi) || parse!(index_set, sample_method, options, :nb_of_qoi)
-            check_smaller_than_or_equal_to(to_string(key, val)..., length(options[:nb_of_qoi]))
+            check_smaller_than_or_equal_to(to_string(key, val)..., options[:nb_of_qoi])
         end
        )
