@@ -151,7 +151,7 @@
                     max_index_set_param=3,
                     save_samples=true,
                     folder=tempdir(),
-                    aggregation=aggregation
+                    aggregation=aggregation,
                     max_search_space=ML()
                 ),
                 tolerance
