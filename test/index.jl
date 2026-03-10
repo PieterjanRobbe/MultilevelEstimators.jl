@@ -11,7 +11,7 @@ level_2 = Level(2)
 @test typeof(level_2) <: Level
 @test level_0 + level_2 == level_2
 @test_throws MethodError Level(0.)
-@test sprint(show, level_0) == "CartesianIndex(0,)"
+@test sprint(show, level_0) in ("CartesianIndex(0,)", "CartesianIndex(0)")
 
 end
 
