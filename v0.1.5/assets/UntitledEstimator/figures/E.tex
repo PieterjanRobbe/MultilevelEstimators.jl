@@ -1,0 +1,27 @@
+\begin{tikzpicture}
+\begin{axis}[ticklabel style={{font=\small}}, major tick length={2pt}, every tick/.style={{black, line cap=round}}, axis on top, legend style={{draw=none, font=\small, at={(0.03,0.03)}, anchor=south west, fill=none, legend cell align=left}}, xlabel={$\ell$}, xtick distance={1}, ylabel={$\log_2(\mathbb{E}[|\;\cdot\;|])$}]
+    \addplot[mark={*}, mark size={1pt}, line cap={round}, mark options={solid}, color={red}]
+        table[row sep={\\}]
+        {
+            \\
+            0.0  -3.477485262416127  \\
+            1.0  -3.1403574169667117  \\
+            2.0  -3.078198511366461  \\
+            3.0  -2.970842622030882  \\
+            4.0  -3.064434183316084  \\
+        }
+        ;
+    \addlegendentry {$Q_{\ell}$}
+    \addplot[mark={*}, mark size={1pt}, line cap={round}, mark options={solid}, color={red}, style={dotted}]
+        table[row sep={\\}]
+        {
+            \\
+            1.0  -5.432198305970875  \\
+            2.0  -7.517634540784438  \\
+            3.0  -9.986596874368164  \\
+            4.0  -12.687127281977626  \\
+        }
+        ;
+    \addlegendentry {$\Delta Q_{\ell}$}
+\end{axis}
+\end{tikzpicture}
