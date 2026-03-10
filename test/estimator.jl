@@ -82,10 +82,19 @@
     @test_throws ArgumentError Estimator(ml, qmc, qoi, distr; point_generator=3)
 
     @test_throws ArgumentError Estimator(ml, mc, qoi, distr; do_regression="blabla")
+    @test_throws ArgumentError Estimator(ml, mc, qoi, distr; aggregation="blabla")
 
     @test_throws ArgumentError Estimator(AD(2), mc, qoi, distr; max_search_space=true)
     @test_throws ArgumentError Estimator(ad, mc, qoi, distr; max_search_space=TD(2))
     @test Estimator(ad, qmc, qoi, distr; max_search_space=FT(3)) isa Estimator{<:AD, <:QMC}
+
+    @test_throws ArgumentError Estimator(ad, mc, qoi, distr; penalization=-0.1)
+    @test_throws ArgumentError Estimator(ad, mc, qoi, distr; penalization=1.1)
+    @test Estimator(ad, mc, qoi, distr; penalization=0.5) isa Estimator{<:AD, <:MC}
+
+    @test_throws ArgumentError Estimator(ad, mc, qoi, distr; acceptance_rate=-0.1)
+    @test_throws ArgumentError Estimator(ad, mc, qoi, distr; acceptance_rate=1.1)
+    @test Estimator(ad, mc, qoi, distr; acceptance_rate=0.8) isa Estimator{<:AD, <:MC}
 
 	# TODO add more tests... 
 end

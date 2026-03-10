@@ -36,6 +36,7 @@ for (n, ϵ) in zip(2 .^(0:20), exp10.([0 0 0 0 0 0 1 1 2 2 2 3 3 3 3 3 3 4 4 5])
 end
 
 @test LatticeRule32(3600) isa LatticeRule32
+@test LatticeRule32(UInt32[1, 2, 3]) isa LatticeRule32
 @test_throws ArgumentError LatticeRule32(3601)
 @test LatticeRule32(z_file_2, 250) isa LatticeRule32
 @test_throws ArgumentError LatticeRule32(z_file_2, 251)
